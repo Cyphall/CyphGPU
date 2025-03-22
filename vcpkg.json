@@ -1,0 +1,20 @@
+{
+	"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+	"dependencies": [
+		"glm",
+		"vulkan-headers",
+		"vulkan-memory-allocator",
+		"magic-enum",
+		"boost-optional",
+		"spdlog",
+		{
+			"name": "glfw3",
+			"features": [
+				{
+					"name": "wayland",
+					"platform": "linux"
+				}
+			]
+		}
+	]
+}

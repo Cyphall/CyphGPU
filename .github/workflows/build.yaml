@@ -1,0 +1,157 @@
+name: Build
+
+on: [ push ]
+
+env:
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
+
+jobs:
+  build-windows-msvc:
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup MSVC
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
+      - name: Set VCPKG_ROOT
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-
+
+      - name: Configure CMake
+        run: cmake --preset Windows-MSVC-Release
+
+      - name: Build
+        run: cmake --build --preset Windows-MSVC-Release
+
+  build-windows-clang-cl:
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup MSVC
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
+      - name: Set VCPKG_ROOT
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-
+
+      - name: Configure CMake
+        run: cmake --preset Windows-ClangCL-Release
+
+      - name: Build
+        run: cmake --build --preset Windows-ClangCL-Release
+
+  build-linux-clang:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set VCPKG_ROOT
+        run: echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt install xorg-dev
+          sudo apt install libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-
+
+      - name: Configure CMake
+        run: cmake --preset Linux-Clang-Release
+
+      - name: Build
+        run: cmake --build --preset Linux-Clang-Release
+
+  build-linux-gcc:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set VCPKG_ROOT
+        run: echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt install xorg-dev
+          sudo apt install libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-
+
+      - name: Configure CMake
+        run: cmake --preset Linux-GCC-Release
+
+      - name: Build
+        run: cmake --build --preset Linux-GCC-Release
+
+  build-macos-clang:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set VCPKG_ROOT
+        run: echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> $GITHUB_ENV
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: ${{ runner.os }}-${{ github.job }}-vcpkg-binary-cache-
+
+      - name: Configure CMake
+        run: cmake --preset macOS-Clang-Release
+
+      - name: Build
+        run: cmake --build --preset macOS-Clang-Release

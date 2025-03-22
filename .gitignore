@@ -1,0 +1,17 @@
+# Build directory
+/build/
+
+# Install directory
+/install/
+
+# CLion
+/.idea/
+
+# Visual Studio
+/.vs/
+
+# Visual Studio Code
+/.vscode/
+
+# User files
+**/*.user
