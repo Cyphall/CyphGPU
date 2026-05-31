@@ -1,3 +1,7 @@
+# ---- Dependency: boostorg/scope ----
+
+find_package(boost_scope CONFIG REQUIRED)
+
 # ---- Dependency: glfw3 ----
 
 find_package(glfw3 CONFIG REQUIRED)
@@ -32,6 +36,10 @@ endif ()
 # ---- Dependency: CyphGPU ----
 
 target_link_libraries(CyphGPU_sample PRIVATE CyphGPU)
+
+# ---- Dependency: boostorg/scope ----
+
+target_link_libraries(CyphGPU_sample PRIVATE Boost::scope)
 
 # ---- Dependency: glfw3 ----
 

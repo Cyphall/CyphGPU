@@ -8,7 +8,7 @@
 
 namespace cgpu
 {
-class ContextSession final : public DependencyObjectChild<ContextSession, Context>
+class ContextSession final : public DependencyObject<ContextSession>
 {
 	class PrivateKey
 	{};
@@ -29,18 +29,28 @@ public:
 
 	explicit ContextSession(PrivateKey, const ContextRef& context, Desc&& desc);
 
+	~ContextSession() override;
+
+	[[nodiscard]]
+	ContextRef getContext() const;
+
 	[[nodiscard]]
 	const Desc& getDesc() const;
 
 	[[nodiscard]]
 	const vk::detail::DispatchLoaderDynamic& getDispatcher() const;
 
+	[[nodiscard]]
+	const vk::Instance& getHandle() const;
+
 private:
+	DependencyParent<Context> m_context;
+
 	Desc m_desc;
 
 	vk::detail::DispatchLoaderDynamic m_dispatcher;
 
-	vk::UniqueInstance m_instance{};
-	vk::UniqueDebugUtilsMessengerEXT m_messenger{};
+	vk::Instance m_instance{};
+	vk::DebugUtilsMessengerEXT m_messenger{};
 };
 }

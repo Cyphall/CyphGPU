@@ -43,9 +43,9 @@ cgpu::ContextSessionRef cgpu::ContextSession::create(const ContextRef& context, 
 }
 
 cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc&& desc):
-	DependencyObjectChild{context},
+	m_context{context},
 	m_desc{std::move(desc)},
-	m_dispatcher{m_parent.getDispatcher()}
+	m_dispatcher{m_context->getDispatcher()}
 {
 	// Create instance
 	{
@@ -59,12 +59,12 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 		std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> uniqueExtensions;
 		for (Context::Capability capability : magic_enum::enum_values<Context::Capability>())
 		{
-			if (!(m_parent.getCapabilities() & capability))
+			if (!(m_context->getCapabilities() & capability))
 			{
 				continue;
 			}
 
-			const Context::CapabilityData& capabilityData = m_parent.getCapabilityData(capability).value();
+			const Context::CapabilityData& capabilityData = m_context->getCapabilityData(capability).value();
 			uniqueExtensions.insert(capabilityData.extensions.begin(), capabilityData.extensions.end());
 		}
 
@@ -78,12 +78,12 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 		createInfo.enabledLayerCount = m_desc.enabledLayers.size();
 		createInfo.ppEnabledLayerNames = m_desc.enabledLayers.data();
 
-		m_instance = vk::createInstanceUnique(createInfo, nullptr, m_dispatcher);
+		m_instance = vk::createInstance(createInfo, nullptr, m_dispatcher);
 	}
 
 	// Query instance functions
 	{
-		m_dispatcher.init(*m_instance);
+		m_dispatcher.init(m_instance);
 	}
 
 	// Create debug messenger
@@ -102,8 +102,19 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 		createInfo.pfnUserCallback = &messageCallback;
 		createInfo.pUserData = nullptr;
 
-		m_messenger = m_instance->createDebugUtilsMessengerEXTUnique(createInfo, nullptr, m_dispatcher);
+		m_messenger = m_instance.createDebugUtilsMessengerEXT(createInfo, nullptr, m_dispatcher);
 	}
+}
+
+cgpu::ContextSession::~ContextSession()
+{
+	m_instance.destroy(m_messenger, nullptr, m_dispatcher);
+	m_instance.destroy(nullptr, m_dispatcher);
+}
+
+cgpu::ContextRef cgpu::ContextSession::getContext() const
+{
+	return m_context.get();
 }
 
 const cgpu::ContextSession::Desc& cgpu::ContextSession::getDesc() const
@@ -114,4 +125,9 @@ const cgpu::ContextSession::Desc& cgpu::ContextSession::getDesc() const
 const vk::detail::DispatchLoaderDynamic& cgpu::ContextSession::getDispatcher() const
 {
 	return m_dispatcher;
+}
+
+const vk::Instance& cgpu::ContextSession::getHandle() const
+{
+	return m_instance;
 }

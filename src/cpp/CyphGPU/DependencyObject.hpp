@@ -54,34 +54,36 @@ protected:
 	std::weak_ptr<void>& m_owningPtr;
 };
 
-template<class TDerived, class TParent>
+template<class TParent>
 requires std::derived_from<TParent, DependencyObject<TParent>>
-class DependencyObjectChild : public DependencyObject<TDerived>
+class DependencyParent
 {
 public:
-	std::shared_ptr<TParent> getParent() const
-	{
-		return m_parent.asRef();
-	}
-
-protected:
-	explicit DependencyObjectChild(std::shared_ptr<TParent> parent):
-		DependencyObject<TDerived>{},
+	explicit DependencyParent(const std::shared_ptr<TParent>& parent):
 		m_parent{*parent},
 		m_parentRef{parent}
 	{
 	}
 
-	explicit DependencyObjectChild(TParent& parent):
-		DependencyObject<TDerived>{parent.m_owningPtr},
+	explicit DependencyParent(TParent& parent):
 		m_parent{parent}
 	{
 	}
 
-	TParent& m_parent;
+	std::shared_ptr<TParent> get() const
+	{
+		return m_parent.asRef();
+	}
+
+	TParent* operator->() const
+	{
+		return &m_parent;
+	}
 
 private:
-	// To keep parent alive when this is self-owned
+	TParent& m_parent;
+
+	// To keep parent alive when the parent is not owning this object
 	std::optional<std::shared_ptr<TParent>> m_parentRef;
 };
 }

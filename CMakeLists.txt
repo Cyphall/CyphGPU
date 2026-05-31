@@ -61,6 +61,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/Utils.cpp"
 	"src/cpp/CyphGPU/Context/Context.cpp"
 	"src/cpp/CyphGPU/ContextSession/ContextSession.cpp"
+	"src/cpp/CyphGPU/Surface/Surface.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -69,6 +70,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/DependencyObject.hpp"
 	"src/cpp/CyphGPU/Context/Context.hpp"
 	"src/cpp/CyphGPU/ContextSession/ContextSession.hpp"
+	"src/cpp/CyphGPU/Surface/Surface.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
