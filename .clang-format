@@ -98,7 +98,7 @@ IndentRequiresClause: false
 IndentWidth: 4
 IndentWrappedFunctionNames: false
 InsertBraces: true
-InsertNewlineAtEOF: false
+InsertNewlineAtEOF: true
 IntegerLiteralSeparator:
   Binary: 0
   Decimal: 0

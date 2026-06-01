@@ -1,11 +1,11 @@
 #pragma once
 
-#include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/ContextSession/ContextSession.hpp>
+#include <CyphGPU/DependencyObject.hpp>
 
 namespace cgpu
 {
-class Surface final: public DependencyObject<Surface>
+class Surface final : public DependencyObject<Surface>
 {
 	class PrivateKey
 	{};
