@@ -8,21 +8,21 @@
 cgpu::ContextRef cgpu::Context::create()
 {
 	cgpu::ContextRef ref = std::make_shared<cgpu::Context>(PrivateKey{});
-	ref->m_weakThis = ref;
+	ref->m_weak_this = ref;
 	return ref;
 }
 
 cgpu::Context::Context(PrivateKey)
 {
-	if (!m_dynamicLoader.success())
+	if (!m_dynamic_loader.success())
 	{
 		throw std::runtime_error("Failed to load Vulkan loader.");
 	}
 
-	m_dispatcher.init(m_dynamicLoader);
+	m_dispatcher.init(m_dynamic_loader);
 
-	uint32_t apiVersion = vk::enumerateInstanceVersion(m_dispatcher);
-	if (apiVersion < VULKAN_API_VERSION)
+	uint32_t api_version = vk::enumerateInstanceVersion(m_dispatcher);
+	if (api_version < VULKAN_API_VERSION)
 	{
 		throw std::runtime_error(
 			std::format(
@@ -33,23 +33,23 @@ cgpu::Context::Context(PrivateKey)
 		);
 	}
 
-	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supportedExtensions;
-	for (const vk::ExtensionProperties& extensionProperties : vk::enumerateInstanceExtensionProperties(nullptr, m_dispatcher))
+	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supported_extensions;
+	for (const vk::ExtensionProperties& extension_properties : vk::enumerateInstanceExtensionProperties(nullptr, m_dispatcher))
 	{
-		supportedExtensions.emplace(extensionProperties.extensionName.data());
+		supported_extensions.emplace(extension_properties.extensionName.data());
 	}
 
-	auto isCapabilitySupported = [&](Capability capability) -> bool
+	auto is_capability_supported = [&](Capability capability) -> bool
 	{
-		boost::optional<const CapabilityData&> capabilityData = getCapabilityData(capability);
-		if (!capabilityData)
+		boost::optional<const CapabilityData&> capability_data = getCapabilityData(capability);
+		if (!capability_data)
 		{
 			return false;
 		}
 
-		for (const char* requiredExtension : capabilityData->extensions)
+		for (const char* required_extension : capability_data->extensions)
 		{
-			if (!supportedExtensions.contains(requiredExtension))
+			if (!supported_extensions.contains(required_extension))
 			{
 				return false;
 			}
@@ -60,7 +60,7 @@ cgpu::Context::Context(PrivateKey)
 
 	for (Capability capability : magic_enum::enum_values<Capability>())
 	{
-		if (isCapabilitySupported(capability))
+		if (is_capability_supported(capability))
 		{
 			m_capabilities |= capability;
 		}
@@ -79,24 +79,24 @@ cgpu::Context::Capabilities cgpu::Context::getCapabilities() const
 
 std::vector<std::string> cgpu::Context::getAvailableLayers() const
 {
-	std::vector<std::string> availableLayers;
-	for (const vk::LayerProperties& layerProperties : vk::enumerateInstanceLayerProperties(m_dispatcher))
+	std::vector<std::string> available_layers;
+	for (const vk::LayerProperties& layer_properties : vk::enumerateInstanceLayerProperties(m_dispatcher))
 	{
-		availableLayers.emplace_back(layerProperties.layerName.data());
+		available_layers.emplace_back(layer_properties.layerName.data());
 	}
-	return availableLayers;
+	return available_layers;
 }
 
-boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabilityData(Capability capability) const
+boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabilityData(Capability capability)
 {
-	static CapabilityData CORE{
+	static constexpr CapabilityData CORE{
 		{
 			vk::EXTDebugUtilsExtensionName,
 		}
 	};
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-	static CapabilityData SURFACE_WIN32{
+	static constexpr CapabilityData SURFACE_WIN32{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRWin32SurfaceExtensionName,
@@ -105,7 +105,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-	static CapabilityData SURFACE_METAL{
+	static constexpr CapabilityData SURFACE_METAL{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::EXTMetalSurfaceExtensionName,
@@ -114,7 +114,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
-	static CapabilityData SURFACE_XCB{
+	static constexpr CapabilityData SURFACE_XCB{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRXcbSurfaceExtensionName,
@@ -123,7 +123,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	static CapabilityData SURFACE_XLIB{
+	static constexpr CapabilityData SURFACE_XLIB{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRXlibSurfaceExtensionName,
@@ -132,7 +132,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	static CapabilityData SURFACE_WAYLAND{
+	static constexpr CapabilityData SURFACE_WAYLAND{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRWaylandSurfaceExtensionName,

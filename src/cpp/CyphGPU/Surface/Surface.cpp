@@ -1,14 +1,14 @@
 #include "Surface.hpp"
 
-cgpu::SurfaceRef cgpu::Surface::create(const ContextSessionRef& contextSession, Desc&& desc)
+cgpu::SurfaceRef cgpu::Surface::create(const ContextSessionRef& context_session, Desc&& desc)
 {
-	cgpu::SurfaceRef ref = std::make_shared<cgpu::Surface>(PrivateKey{}, contextSession, std::move(desc));
-	ref->m_weakThis = ref;
+	cgpu::SurfaceRef ref = std::make_shared<cgpu::Surface>(PrivateKey{}, context_session, std::move(desc));
+	ref->m_weak_this = ref;
 	return ref;
 }
 
-cgpu::Surface::Surface(PrivateKey, const ContextSessionRef& contextSession, Desc&& desc):
-	m_contextSession{contextSession},
+cgpu::Surface::Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc):
+	m_context_session{context_session},
 	m_desc{std::move(desc)},
 	m_surface{m_desc.surface}
 {}
@@ -17,7 +17,7 @@ cgpu::Surface::~Surface()
 {
 	if (m_desc.owned)
 	{
-		m_contextSession->getHandle().destroySurfaceKHR(m_surface, nullptr, m_contextSession->getDispatcher());
+		m_context_session->getHandle().destroySurfaceKHR(m_surface, nullptr, m_context_session->getDispatcher());
 	}
 }
 

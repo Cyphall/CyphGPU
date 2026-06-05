@@ -9,36 +9,36 @@
 namespace
 {
 VKAPI_ATTR vk::Bool32 VKAPI_CALL messageCallback(
-	vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	vk::DebugUtilsMessageSeverityFlagBitsEXT message_severity,
 	vk::DebugUtilsMessageTypeFlagsEXT,
-	const vk::DebugUtilsMessengerCallbackDataEXT* messageData,
+	const vk::DebugUtilsMessengerCallbackDataEXT* message_data,
 	void*
 )
 {
-	switch (messageSeverity)
+	switch (message_severity)
 	{
 	case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-		spdlog::error(messageData->pMessage);
+		spdlog::error(message_data->pMessage);
 		break;
 	case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-		spdlog::warn(messageData->pMessage);
+		spdlog::warn(message_data->pMessage);
 		break;
 	case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-		spdlog::info(messageData->pMessage);
+		spdlog::info(message_data->pMessage);
 		break;
 	case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-		spdlog::debug(messageData->pMessage);
+		spdlog::debug(message_data->pMessage);
 		break;
 	}
 
-	return false;
+	return VK_FALSE;
 }
 }
 
 cgpu::ContextSessionRef cgpu::ContextSession::create(const ContextRef& context, Desc&& desc)
 {
 	cgpu::ContextSessionRef ref = std::make_shared<cgpu::ContextSession>(PrivateKey{}, context, std::move(desc));
-	ref->m_weakThis = ref;
+	ref->m_weak_this = ref;
 	return ref;
 }
 
@@ -49,14 +49,14 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 {
 	// Create instance
 	{
-		vk::ApplicationInfo appInfo;
-		appInfo.pApplicationName = m_desc.applicationName.c_str();
-		appInfo.applicationVersion = m_desc.applicationVersion;
-		appInfo.pEngineName = "CyphGPU";
-		appInfo.engineVersion = 0;
-		appInfo.apiVersion = Context::VULKAN_API_VERSION;
+		vk::ApplicationInfo app_info;
+		app_info.pApplicationName = m_desc.application_name.c_str();
+		app_info.applicationVersion = m_desc.application_version;
+		app_info.pEngineName = "CyphGPU";
+		app_info.engineVersion = 0;
+		app_info.apiVersion = Context::VULKAN_API_VERSION;
 
-		std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> uniqueExtensions;
+		std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> unique_extensions;
 		for (Context::Capability capability : magic_enum::enum_values<Context::Capability>())
 		{
 			if (!(m_context->getCapabilities() & capability))
@@ -64,21 +64,21 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 				continue;
 			}
 
-			const Context::CapabilityData& capabilityData = m_context->getCapabilityData(capability).value();
-			uniqueExtensions.insert(capabilityData.extensions.begin(), capabilityData.extensions.end());
+			const Context::CapabilityData& capability_data = cgpu::Context::getCapabilityData(capability).value();
+			unique_extensions.insert(capability_data.extensions.begin(), capability_data.extensions.end());
 		}
 
-		std::vector<const char*> extensions{uniqueExtensions.begin(), uniqueExtensions.end()};
+		std::vector<const char*> extensions{unique_extensions.begin(), unique_extensions.end()};
 
-		vk::InstanceCreateInfo createInfo;
-		createInfo.flags = {};
-		createInfo.pApplicationInfo = &appInfo;
-		createInfo.enabledExtensionCount = extensions.size();
-		createInfo.ppEnabledExtensionNames = extensions.data();
-		createInfo.enabledLayerCount = m_desc.enabledLayers.size();
-		createInfo.ppEnabledLayerNames = m_desc.enabledLayers.data();
+		vk::InstanceCreateInfo create_info;
+		create_info.flags = {};
+		create_info.pApplicationInfo = &app_info;
+		create_info.enabledExtensionCount = extensions.size();
+		create_info.ppEnabledExtensionNames = extensions.data();
+		create_info.enabledLayerCount = m_desc.enabled_layers.size();
+		create_info.ppEnabledLayerNames = m_desc.enabled_layers.data();
 
-		m_instance = vk::createInstance(createInfo, nullptr, m_dispatcher);
+		m_instance = vk::createInstance(create_info, nullptr, m_dispatcher);
 	}
 
 	// Query instance functions
@@ -88,21 +88,21 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 
 	// Create debug messenger
 	{
-		vk::DebugUtilsMessengerCreateInfoEXT createInfo;
-		createInfo.flags = {};
-		createInfo.messageSeverity =
+		vk::DebugUtilsMessengerCreateInfoEXT create_info;
+		create_info.flags = {};
+		create_info.messageSeverity =
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
 			vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
-		createInfo.messageType =
+		create_info.messageType =
 			vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
 			vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
 			vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
-		createInfo.pfnUserCallback = &messageCallback;
-		createInfo.pUserData = nullptr;
+		create_info.pfnUserCallback = &messageCallback;
+		create_info.pUserData = nullptr;
 
-		m_messenger = m_instance.createDebugUtilsMessengerEXT(createInfo, nullptr, m_dispatcher);
+		m_messenger = m_instance.createDebugUtilsMessengerEXT(create_info, nullptr, m_dispatcher);
 	}
 }
 

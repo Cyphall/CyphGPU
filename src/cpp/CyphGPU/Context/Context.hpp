@@ -47,19 +47,20 @@ private:
 
 	struct CapabilityData
 	{
-		std::vector<const char*> extensions;
+		std::initializer_list<const char*> extensions;
 	};
 
-	vk::detail::DynamicLoader m_dynamicLoader{};
+	vk::detail::DynamicLoader m_dynamic_loader{};
 	vk::detail::DispatchLoaderDynamic m_dispatcher{};
 
 	Capabilities m_capabilities{};
 
 	[[nodiscard]]
-	boost::optional<const CapabilityData&> getCapabilityData(Capability capability) const;
+	static boost::optional<const CapabilityData&> getCapabilityData(Capability capability);
 };
 }
 
+// NOLINTBEGIN(readability-identifier-naming)
 template<>
 struct vk::FlagTraits<cgpu::Context::Capability>
 {
@@ -72,3 +73,4 @@ struct vk::FlagTraits<cgpu::Context::Capability>
 		cgpu::Context::Capability::eSurfaceXlib |
 		cgpu::Context::Capability::eSurfaceWayland;
 };
+// NOLINTEND(readability-identifier-naming)

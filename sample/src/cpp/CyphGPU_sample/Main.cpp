@@ -10,17 +10,17 @@ int main()
 	cgpu::ContextRef context = cgpu::Context::create();
 
 	// Create context session
-	cgpu::ContextSessionRef contextSession = cgpu::ContextSession::create(
+	cgpu::ContextSessionRef context_session = cgpu::ContextSession::create(
 		context,
 		{
-			.applicationName = "CyphGPU sample",
+			.application_name = "CyphGPU sample",
 		}
 	);
 
 	// Create GLFW window
-	glfwInitVulkanLoader(contextSession->getDispatcher().vkGetInstanceProcAddr);
+	glfwInitVulkanLoader(context_session->getDispatcher().vkGetInstanceProcAddr);
 	glfwInit();
-	auto terminateGLFW = boost::scope::make_scope_exit(
+	auto terminate_glfw = boost::scope::make_scope_exit(
 		[&]
 		{
 			glfwTerminate();
@@ -31,7 +31,7 @@ int main()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 	GLFWwindow* window = glfwCreateWindow(800, 600, "CyphGPU sample", nullptr, nullptr);
-	auto destroyGLFWWindow = boost::scope::make_scope_exit(
+	auto destroy_glfw_window = boost::scope::make_scope_exit(
 		[&]
 		{
 			glfwDestroyWindow(window);
@@ -39,18 +39,18 @@ int main()
 	);
 
 	// Create surface
-	VkSurfaceKHR surfaceRaw;
-	glfwCreateWindowSurface(contextSession->getHandle(), window, nullptr, &surfaceRaw);
+	VkSurfaceKHR surface_raw{};
+	glfwCreateWindowSurface(context_session->getHandle(), window, nullptr, &surface_raw);
 
 	cgpu::SurfaceRef surface = cgpu::Surface::create(
-		contextSession,
+		context_session,
 		{
-			.surface = surfaceRaw,
+			.surface = surface_raw,
 		}
 	);
 
 	// Run render loop
-	while (!glfwWindowShouldClose(window))
+	while (glfwWindowShouldClose(window) == GLFW_FALSE)
 	{
 		glfwPollEvents();
 	}

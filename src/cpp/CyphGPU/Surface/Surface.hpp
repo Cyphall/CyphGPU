@@ -21,9 +21,9 @@ public:
 	};
 
 	[[nodiscard]]
-	static SurfaceRef create(const ContextSessionRef& contextSession, Desc&& desc);
+	static SurfaceRef create(const ContextSessionRef& context_session, Desc&& desc);
 
-	explicit Surface(PrivateKey, const ContextSessionRef& contextSession, Desc&& desc);
+	explicit Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc);
 
 	~Surface() override;
 
@@ -34,7 +34,7 @@ public:
 	const vk::SurfaceKHR& getHandle() const;
 
 private:
-	DependencyParent<ContextSession> m_contextSession;
+	DependencyParent<ContextSession> m_context_session;
 
 	Desc m_desc;
 

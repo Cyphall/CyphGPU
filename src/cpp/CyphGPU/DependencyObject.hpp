@@ -20,12 +20,12 @@ public:
 
 	std::shared_ptr<TDerived> asRef()
 	{
-		return {m_owningPtr.lock(), static_cast<TDerived*>(this)};
+		return {m_owning_ptr.lock(), static_cast<TDerived*>(this)};
 	}
 
 	std::shared_ptr<const TDerived> asRef() const
 	{
-		return {m_owningPtr.lock(), static_cast<const TDerived*>(this)};
+		return {m_owning_ptr.lock(), static_cast<const TDerived*>(this)};
 	}
 
 protected:
@@ -35,23 +35,23 @@ protected:
 
 	// Self-owned constructor
 	explicit DependencyObject():
-		m_owningPtr{m_weakThis}
+		m_owning_ptr{m_weak_this}
 	{
 	}
 
 	// External-owned constructor
-	explicit DependencyObject(std::weak_ptr<void>& externalOwningPtr):
-		m_owningPtr{externalOwningPtr}
+	explicit DependencyObject(std::weak_ptr<void>& external_owning_ptr):
+		m_owning_ptr{external_owning_ptr}
 	{
 	}
 
 	// Similar to weak_this in std::enable_shared_from_this
 	// Will be empty for external-owned objects
-	std::weak_ptr<void> m_weakThis;
+	std::weak_ptr<void> m_weak_this;
 
-	// For independent objects, points to our m_weakThis
-	// For external-owned objects, points to the m_owningPtr of the owning object
-	std::weak_ptr<void>& m_owningPtr;
+	// For independent objects, points to our m_weak_this
+	// For external-owned objects, points to the m_owning_ptr of the owning object
+	std::weak_ptr<void>& m_owning_ptr;
 };
 
 template<class TParent>
@@ -61,7 +61,7 @@ class DependencyParent
 public:
 	explicit DependencyParent(const std::shared_ptr<TParent>& parent):
 		m_parent{*parent},
-		m_parentRef{parent}
+		m_parent_ref{parent}
 	{
 	}
 
@@ -69,6 +69,12 @@ public:
 		m_parent{parent}
 	{
 	}
+
+	DependencyParent(const DependencyParent&) = delete;
+	DependencyParent(DependencyParent&&) = delete;
+
+	DependencyParent& operator=(const DependencyParent&) = delete;
+	DependencyParent& operator=(DependencyParent&&) = delete;
 
 	std::shared_ptr<TParent> get() const
 	{
@@ -84,6 +90,6 @@ private:
 	TParent& m_parent;
 
 	// To keep parent alive when the parent is not owning this object
-	std::optional<std::shared_ptr<TParent>> m_parentRef;
+	std::optional<std::shared_ptr<TParent>> m_parent_ref;
 };
 }

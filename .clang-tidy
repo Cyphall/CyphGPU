@@ -1,0 +1,44 @@
+FormatStyle: file
+Checks:
+  - -*
+  - bugprone-*
+  - cppcoreguidelines-*
+  - modernize-*
+  - performance-*
+  - readability-*
+  - -*-branch-clone
+  - -*-special-member-functions
+  - -*-non-private-member-variables-in-classes
+  - -*-use-trailing-return-type
+  - -*-move-const-arg
+  - -*-named-parameter
+  - -*-redundant-member-init
+  - -*-use-anyofallof
+  - -*-use-concise-preprocessor-directives
+  - -*-magic-numbers
+CheckOptions:
+  - { key: readability-identifier-naming.ClassCase,                   value: CamelCase }
+
+  - { key: readability-identifier-naming.FunctionCase,                value: camelBack }
+
+  - { key: readability-identifier-naming.VariableCase,                value: lower_case }
+
+  - { key: readability-identifier-naming.ConstexprVariableCase,       value: UPPER_CASE }
+
+  - { key: readability-identifier-naming.ParameterCase,               value: lower_case }
+
+  - { key: readability-identifier-naming.PublicMemberCase,            value: lower_case }
+
+  - { key: readability-identifier-naming.ProtectedMemberCase,         value: lower_case }
+  - { key: readability-identifier-naming.ProtectedMemberPrefix,       value: m_ }
+
+  - { key: readability-identifier-naming.PrivateMemberCase,           value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberPrefix,         value: m_ }
+
+  - { key: readability-identifier-naming.EnumConstantCase,            value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantPrefix,          value: e }
+
+  - { key: readability-identifier-naming.ValueTemplateParameterCase,  value: CamelCase }
+
+  - { key: readability-identifier-naming.TypeTemplateParameterCase,   value: CamelCase }
+  - { key: readability-identifier-naming.TypeTemplateParameterPrefix, value: T }

@@ -17,11 +17,11 @@ public:
 	struct Desc
 	{
 		// Required
-		std::string applicationName;
+		std::string application_name;
 
 		// Optional
-		uint32_t applicationVersion{0};
-		std::vector<const char*> enabledLayers{};
+		uint32_t application_version{0};
+		std::vector<const char*> enabled_layers{};
 	};
 
 	[[nodiscard]]
