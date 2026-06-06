@@ -21,50 +21,7 @@ cgpu::Context::Context(PrivateKey)
 
 	m_dispatcher.init(m_dynamic_loader);
 
-	uint32_t api_version = vk::enumerateInstanceVersion(m_dispatcher);
-	if (api_version < VULKAN_API_VERSION)
-	{
-		throw std::runtime_error(
-			std::format(
-				"The Vulkan loader does not support Vulkan {}.{}.",
-				vk::apiVersionMajor(VULKAN_API_VERSION),
-				vk::apiVersionMinor(VULKAN_API_VERSION)
-			)
-		);
-	}
-
-	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supported_extensions;
-	for (const vk::ExtensionProperties& extension_properties : vk::enumerateInstanceExtensionProperties(nullptr, m_dispatcher))
-	{
-		supported_extensions.emplace(extension_properties.extensionName.data());
-	}
-
-	auto is_capability_supported = [&](Capability capability) -> bool
-	{
-		boost::optional<const CapabilityData&> capability_data = getCapabilityData(capability);
-		if (!capability_data)
-		{
-			return false;
-		}
-
-		for (const char* required_extension : capability_data->extensions)
-		{
-			if (!supported_extensions.contains(required_extension))
-			{
-				return false;
-			}
-		}
-
-		return true;
-	};
-
-	for (Capability capability : magic_enum::enum_values<Capability>())
-	{
-		if (is_capability_supported(capability))
-		{
-			m_capabilities |= capability;
-		}
-	}
+	checkCapabilitySupport();
 }
 
 const vk::detail::DispatchLoaderDynamic& cgpu::Context::getDispatcher() const
@@ -179,5 +136,53 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	case Capability::eSurfaceWayland: return boost::none;
 #endif
 	default: std::terminate();
+	}
+}
+
+void cgpu::Context::checkCapabilitySupport()
+{
+	// If Vulkan version is not supported, nothing is considered supported
+	uint32_t api_version = vk::enumerateInstanceVersion(m_dispatcher);
+	if (api_version < VULKAN_API_VERSION)
+	{
+		return;
+	}
+
+	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supported_extensions;
+	for (const vk::ExtensionProperties& extension_properties : vk::enumerateInstanceExtensionProperties(nullptr, m_dispatcher))
+	{
+		supported_extensions.emplace(extension_properties.extensionName.data());
+	}
+
+	auto is_capability_supported = [&](Capability capability) -> bool
+	{
+		boost::optional<const CapabilityData&> capability_data = getCapabilityData(capability);
+		if (!capability_data)
+		{
+			return false;
+		}
+
+		for (const char* required_extension : capability_data->extensions)
+		{
+			if (!supported_extensions.contains(required_extension))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	};
+
+	for (Capability capability : magic_enum::enum_values<Capability>())
+	{
+		if (is_capability_supported(capability))
+		{
+			m_capabilities |= capability;
+		}
+		// If core is not supported, nothing is considered supported
+		else if (capability == Capability::eCore)
+		{
+			return;
+		}
 	}
 }

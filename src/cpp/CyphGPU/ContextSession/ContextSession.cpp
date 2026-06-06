@@ -48,63 +48,11 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 	m_desc{std::move(desc)},
 	m_dispatcher{m_context->getDispatcher()}
 {
-	// Create instance
-	{
-		vk::ApplicationInfo app_info;
-		app_info.pApplicationName = m_desc.application_name.c_str();
-		app_info.applicationVersion = m_desc.application_version;
-		app_info.pEngineName = "CyphGPU";
-		app_info.engineVersion = 0;
-		app_info.apiVersion = Context::VULKAN_API_VERSION;
+	createInstance();
 
-		std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> unique_extensions;
-		for (Context::Capability capability : magic_enum::enum_values<Context::Capability>())
-		{
-			if (!(m_context->getCapabilities() & capability))
-			{
-				continue;
-			}
+	m_dispatcher.init(m_instance);
 
-			auto capability_data = cgpu::Context::getCapabilityData(capability);
-			unique_extensions.insert(capability_data->extensions.begin(), capability_data->extensions.end());
-		}
-
-		std::vector<const char*> extensions{unique_extensions.begin(), unique_extensions.end()};
-
-		vk::InstanceCreateInfo create_info;
-		create_info.flags = {};
-		create_info.pApplicationInfo = &app_info;
-		create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-		create_info.ppEnabledExtensionNames = extensions.data();
-		create_info.enabledLayerCount = static_cast<uint32_t>(m_desc.enabled_layers.size());
-		create_info.ppEnabledLayerNames = m_desc.enabled_layers.data();
-
-		m_instance = vk::createInstance(create_info, nullptr, m_dispatcher);
-	}
-
-	// Query instance functions
-	{
-		m_dispatcher.init(m_instance);
-	}
-
-	// Create debug messenger
-	{
-		vk::DebugUtilsMessengerCreateInfoEXT create_info;
-		create_info.flags = {};
-		create_info.messageSeverity =
-			vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-			vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
-			vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-			vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
-		create_info.messageType =
-			vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-			vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-			vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
-		create_info.pfnUserCallback = &messageCallback;
-		create_info.pUserData = nullptr;
-
-		m_messenger = m_instance.createDebugUtilsMessengerEXT(create_info, nullptr, m_dispatcher);
-	}
+	createDebugMessenger();
 }
 
 cgpu::ContextSession::~ContextSession()
@@ -131,4 +79,57 @@ const vk::detail::DispatchLoaderDynamic& cgpu::ContextSession::getDispatcher() c
 const vk::Instance& cgpu::ContextSession::getHandle() const
 {
 	return m_instance;
+}
+
+void cgpu::ContextSession::createInstance()
+{
+	vk::ApplicationInfo app_info;
+	app_info.pApplicationName = m_desc.application_name.c_str();
+	app_info.applicationVersion = m_desc.application_version;
+	app_info.pEngineName = "CyphGPU";
+	app_info.engineVersion = 0;
+	app_info.apiVersion = Context::VULKAN_API_VERSION;
+
+	std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> unique_extensions;
+	for (Context::Capability capability : magic_enum::enum_values<Context::Capability>())
+	{
+		if (!(m_context->getCapabilities() & capability))
+		{
+			continue;
+		}
+
+		auto capability_data = cgpu::Context::getCapabilityData(capability);
+		unique_extensions.insert(capability_data->extensions.begin(), capability_data->extensions.end());
+	}
+
+	std::vector<const char*> extensions{unique_extensions.begin(), unique_extensions.end()};
+
+	vk::InstanceCreateInfo create_info;
+	create_info.flags = {};
+	create_info.pApplicationInfo = &app_info;
+	create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+	create_info.ppEnabledExtensionNames = extensions.data();
+	create_info.enabledLayerCount = static_cast<uint32_t>(m_desc.enabled_layers.size());
+	create_info.ppEnabledLayerNames = m_desc.enabled_layers.data();
+
+	m_instance = vk::createInstance(create_info, nullptr, m_dispatcher);
+}
+
+void cgpu::ContextSession::createDebugMessenger()
+{
+	vk::DebugUtilsMessengerCreateInfoEXT create_info;
+	create_info.flags = {};
+	create_info.messageSeverity =
+		vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+		vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
+		vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+		vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+	create_info.messageType =
+		vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+		vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+		vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
+	create_info.pfnUserCallback = &messageCallback;
+	create_info.pUserData = nullptr;
+
+	m_messenger = m_instance.createDebugUtilsMessengerEXT(create_info, nullptr, m_dispatcher);
 }

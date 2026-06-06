@@ -51,5 +51,8 @@ private:
 
 	vk::Instance m_instance{};
 	vk::DebugUtilsMessengerEXT m_messenger{};
+
+	void createInstance();
+	void createDebugMessenger();
 };
 }

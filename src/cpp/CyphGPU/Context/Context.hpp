@@ -57,6 +57,8 @@ private:
 
 	[[nodiscard]]
 	static boost::optional<const CapabilityData&> getCapabilityData(Capability capability);
+
+	void checkCapabilitySupport();
 };
 }
 
