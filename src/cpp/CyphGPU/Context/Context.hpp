@@ -73,4 +73,5 @@ struct vk::FlagTraits<cgpu::Context::Capability>
 		cgpu::Context::Capability::eSurfaceXlib |
 		cgpu::Context::Capability::eSurfaceWayland;
 };
+
 // NOLINTEND(readability-identifier-naming)
