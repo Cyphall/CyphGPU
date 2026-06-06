@@ -80,13 +80,14 @@ set_target_properties(CyphGPU PROPERTIES CXX_STANDARD_REQUIRED ON)
 set_target_properties(CyphGPU PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(CyphGPU PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 set_target_properties(CyphGPU PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
-set_target_properties(CyphGPU PROPERTIES COMPILE_WARNING_AS_ERROR $<CONFIG:Release>)
 
-# Enable all warnings
+# Enable all warnings + warning-as-error in Release
 if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
 	target_compile_options(CyphGPU PRIVATE /W4)
+	target_compile_options(CyphGPU PRIVATE $<$<CONFIG:Release>:/WX>)
 elseif (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
 	target_compile_options(CyphGPU PRIVATE -Wall -Wextra -Wpedantic)
+	target_compile_options(CyphGPU PRIVATE $<$<CONFIG:Release>:-Werror>)
 else ()
 	message(FATAL_ERROR "Unknown compiler frontend variant: ${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}")
 endif ()

@@ -73,9 +73,9 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 		vk::InstanceCreateInfo create_info;
 		create_info.flags = {};
 		create_info.pApplicationInfo = &app_info;
-		create_info.enabledExtensionCount = extensions.size();
+		create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		create_info.ppEnabledExtensionNames = extensions.data();
-		create_info.enabledLayerCount = m_desc.enabled_layers.size();
+		create_info.enabledLayerCount = static_cast<uint32_t>(m_desc.enabled_layers.size());
 		create_info.ppEnabledLayerNames = m_desc.enabled_layers.data();
 
 		m_instance = vk::createInstance(create_info, nullptr, m_dispatcher);
