@@ -18,11 +18,13 @@ public:
 	DependencyObject& operator=(const DependencyObject&) = delete;
 	DependencyObject& operator=(DependencyObject&&) = delete;
 
+	[[nodiscard]]
 	std::shared_ptr<TDerived> asRef()
 	{
 		return {m_owning_ptr.lock(), static_cast<TDerived*>(this)};
 	}
 
+	[[nodiscard]]
 	std::shared_ptr<const TDerived> asRef() const
 	{
 		return {m_owning_ptr.lock(), static_cast<const TDerived*>(this)};
@@ -76,11 +78,13 @@ public:
 	DependencyParent& operator=(const DependencyParent&) = delete;
 	DependencyParent& operator=(DependencyParent&&) = delete;
 
+	[[nodiscard]]
 	std::shared_ptr<TParent> get() const
 	{
 		return m_parent.asRef();
 	}
 
+	[[nodiscard]]
 	TParent* operator->() const
 	{
 		return &m_parent;
