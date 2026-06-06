@@ -64,8 +64,8 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 				continue;
 			}
 
-			const Context::CapabilityData& capability_data = cgpu::Context::getCapabilityData(capability).value();
-			unique_extensions.insert(capability_data.extensions.begin(), capability_data.extensions.end());
+			auto capability_data = cgpu::Context::getCapabilityData(capability);
+			unique_extensions.insert(capability_data->extensions.begin(), capability_data->extensions.end());
 		}
 
 		std::vector<const char*> extensions{unique_extensions.begin(), unique_extensions.end()};
