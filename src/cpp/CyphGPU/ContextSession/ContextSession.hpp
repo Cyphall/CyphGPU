@@ -42,6 +42,9 @@ public:
 	[[nodiscard]]
 	const vk::Instance& getHandle() const;
 
+	[[nodiscard]]
+	std::vector<DeviceRef> getDevices() const;
+
 private:
 	DependencyParent<Context> m_context;
 
@@ -52,7 +55,10 @@ private:
 	vk::Instance m_instance{};
 	vk::DebugUtilsMessengerEXT m_messenger{};
 
+	std::vector<std::unique_ptr<Device>> m_devices;
+
 	void createInstance();
 	void createDebugMessenger();
+	void queryDevices();
 };
 }

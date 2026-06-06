@@ -1,6 +1,7 @@
 #include <boost/scope/scope_exit.hpp>
 #include <CyphGPU/Context/Context.hpp>
 #include <CyphGPU/ContextSession/ContextSession.hpp>
+#include <CyphGPU/Device/Device.hpp>
 #include <CyphGPU/Surface/Surface.hpp>
 #include <GLFW/glfw3.h>
 
@@ -16,6 +17,18 @@ int main()
 			.application_name = "CyphGPU sample",
 		}
 	);
+
+	// Select device
+	std::optional<cgpu::DeviceRef> selected_device;
+	for (const cgpu::DeviceRef& device : context_session->getDevices())
+	{
+		if (device->getCapabilities() & cgpu::Device::Capability::eCore &&
+		    device->getCapabilities() & cgpu::Device::Capability::eSwapchain)
+		{
+			selected_device = device;
+			break;
+		}
+	}
 
 	// Create GLFW window
 	glfwInitVulkanLoader(context_session->getDispatcher().vkGetInstanceProcAddr);

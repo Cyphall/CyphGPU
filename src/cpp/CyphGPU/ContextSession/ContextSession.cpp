@@ -1,6 +1,7 @@
 #include "ContextSession.hpp"
 
 #include <CyphGPU/Context/Context.hpp>
+#include <CyphGPU/Device/Device.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <magic_enum/magic_enum.hpp>
@@ -53,6 +54,7 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 	m_dispatcher.init(m_instance);
 
 	createDebugMessenger();
+	queryDevices();
 }
 
 cgpu::ContextSession::~ContextSession()
@@ -79,6 +81,18 @@ const vk::detail::DispatchLoaderDynamic& cgpu::ContextSession::getDispatcher() c
 const vk::Instance& cgpu::ContextSession::getHandle() const
 {
 	return m_instance;
+}
+
+std::vector<cgpu::DeviceRef> cgpu::ContextSession::getDevices() const
+{
+	std::vector<cgpu::DeviceRef> devices;
+	devices.reserve(m_devices.size());
+	for (const auto& device : m_devices)
+	{
+		devices.emplace_back(device->asRef());
+	}
+
+	return devices;
 }
 
 void cgpu::ContextSession::createInstance()
@@ -132,4 +146,12 @@ void cgpu::ContextSession::createDebugMessenger()
 	create_info.pUserData = nullptr;
 
 	m_messenger = m_instance.createDebugUtilsMessengerEXT(create_info, nullptr, m_dispatcher);
+}
+
+void cgpu::ContextSession::queryDevices()
+{
+	for (auto physical_device : m_instance.enumeratePhysicalDevices(m_dispatcher))
+	{
+		m_devices.emplace_back(std::make_unique<Device>(Device::PrivateKey{}, *this, physical_device));
+	}
 }
