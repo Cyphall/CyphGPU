@@ -1,6 +1,5 @@
 #pragma once
 
-#include <CyphGPU/Context/Context.hpp>
 #include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/fwd.hpp>
 

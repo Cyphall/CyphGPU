@@ -1,5 +1,7 @@
 #include "Surface.hpp"
 
+#include <CyphGPU/ContextSession/ContextSession.hpp>
+
 cgpu::SurfaceRef cgpu::Surface::create(const ContextSessionRef& context_session, Desc&& desc)
 {
 	cgpu::SurfaceRef ref = std::make_shared<cgpu::Surface>(PrivateKey{}, context_session, std::move(desc));

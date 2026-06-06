@@ -1,7 +1,7 @@
 #pragma once
 
-#include <CyphGPU/ContextSession/ContextSession.hpp>
 #include <CyphGPU/DependencyObject.hpp>
+#include <CyphGPU/fwd.hpp>
 
 namespace cgpu
 {

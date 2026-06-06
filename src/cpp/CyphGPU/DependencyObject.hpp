@@ -57,7 +57,6 @@ protected:
 };
 
 template<class TParent>
-requires std::derived_from<TParent, DependencyObject<TParent>>
 class DependencyParent
 {
 public:

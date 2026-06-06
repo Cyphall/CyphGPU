@@ -1,5 +1,6 @@
 #include "ContextSession.hpp"
 
+#include <CyphGPU/Context/Context.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <magic_enum/magic_enum.hpp>
