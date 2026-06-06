@@ -47,7 +47,7 @@ private:
 
 	struct CapabilityData
 	{
-		std::initializer_list<const char*> extensions;
+		std::vector<const char*> extensions;
 	};
 
 	vk::detail::DynamicLoader m_dynamic_loader{};
