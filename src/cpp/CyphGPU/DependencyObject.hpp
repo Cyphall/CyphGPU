@@ -31,9 +31,8 @@ public:
 	}
 
 protected:
-	template<class, class TParent>
-	requires std::derived_from<TParent, DependencyObject<TParent>>
-	friend class DependencyObjectChild;
+	template<class>
+	friend class DependencyObject;
 
 	// Self-owned constructor
 	explicit DependencyObject():
@@ -42,8 +41,10 @@ protected:
 	}
 
 	// External-owned constructor
-	explicit DependencyObject(std::weak_ptr<void>& external_owning_ptr):
-		m_owning_ptr{external_owning_ptr}
+	template<class TParent>
+	requires std::derived_from<TParent, DependencyObject<TParent>>
+	explicit DependencyObject(TParent& owning_parent):
+		m_owning_ptr{owning_parent.m_owning_ptr}
 	{
 	}
 
