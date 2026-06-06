@@ -99,6 +99,8 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	static CapabilityData surface_win32{
 		{
 			vk::KHRSurfaceExtensionName,
+			vk::KHRGetSurfaceCapabilities2ExtensionName,
+			vk::EXTSwapchainColorSpaceExtensionName,
 			vk::KHRWin32SurfaceExtensionName,
 		}
 	};
@@ -108,6 +110,8 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	static CapabilityData surface_metal{
 		{
 			vk::KHRSurfaceExtensionName,
+			vk::KHRGetSurfaceCapabilities2ExtensionName,
+			vk::EXTSwapchainColorSpaceExtensionName,
 			vk::EXTMetalSurfaceExtensionName,
 		}
 	};
@@ -117,6 +121,8 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	static CapabilityData surface_xcb{
 		{
 			vk::KHRSurfaceExtensionName,
+			vk::KHRGetSurfaceCapabilities2ExtensionName,
+			vk::EXTSwapchainColorSpaceExtensionName,
 			vk::KHRXcbSurfaceExtensionName,
 		}
 	};
@@ -126,6 +132,8 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	static CapabilityData surface_xlib{
 		{
 			vk::KHRSurfaceExtensionName,
+			vk::KHRGetSurfaceCapabilities2ExtensionName,
+			vk::EXTSwapchainColorSpaceExtensionName,
 			vk::KHRXlibSurfaceExtensionName,
 		}
 	};
@@ -135,6 +143,8 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	static CapabilityData surface_wayland{
 		{
 			vk::KHRSurfaceExtensionName,
+			vk::KHRGetSurfaceCapabilities2ExtensionName,
+			vk::EXTSwapchainColorSpaceExtensionName,
 			vk::KHRWaylandSurfaceExtensionName,
 		}
 	};
