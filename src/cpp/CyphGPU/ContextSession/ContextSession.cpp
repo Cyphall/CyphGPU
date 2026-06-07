@@ -33,7 +33,7 @@ VKAPI_ATTR vk::Bool32 VKAPI_CALL messageCallback(
 		break;
 	}
 
-	return VK_FALSE;
+	return vk::False;
 }
 }
 
