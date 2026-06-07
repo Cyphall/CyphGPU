@@ -17,8 +17,7 @@ std::span<const vk::Bool32> featureStructToBoolSpan(const cgpu::DynamicFeatureCh
 }
 
 cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDevice physical_device):
-	DependencyObject{context_session},
-	m_context_session{context_session},
+	m_context_session{&context_session},
 	m_handle{physical_device}
 {
 	checkCapabilitySupport();
@@ -26,7 +25,7 @@ cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDe
 
 cgpu::ContextSessionRef cgpu::Device::getContextSession() const
 {
-	return m_context_session.get();
+	return m_context_session->shared_from_this();
 }
 
 const vk::PhysicalDevice& cgpu::Device::getHandle() const

@@ -70,7 +70,6 @@ target_sources(CyphGPU PRIVATE
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/Utils.hpp"
 	"src/cpp/CyphGPU/fwd.hpp"
-	"src/cpp/CyphGPU/DependencyObject.hpp"
 	"src/cpp/CyphGPU/Context/Context.hpp"
 	"src/cpp/CyphGPU/ContextSession/ContextSession.hpp"
 	"src/cpp/CyphGPU/Surface/Surface.hpp"

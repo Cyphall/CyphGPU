@@ -4,9 +4,7 @@
 
 cgpu::SurfaceRef cgpu::Surface::create(const ContextSessionRef& context_session, Desc&& desc)
 {
-	cgpu::SurfaceRef ref = std::make_shared<cgpu::Surface>(PrivateKey{}, context_session, std::move(desc));
-	ref->m_weak_this = ref;
-	return ref;
+	return std::make_shared<cgpu::Surface>(PrivateKey{}, context_session, std::move(desc));
 }
 
 cgpu::Surface::Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc):
@@ -23,9 +21,9 @@ cgpu::Surface::~Surface()
 	}
 }
 
-cgpu::ContextSessionRef cgpu::Surface::getContextSession() const
+const cgpu::ContextSessionRef& cgpu::Surface::getContextSession() const
 {
-	return m_context_session.get();
+	return m_context_session;
 }
 
 const cgpu::Surface::Desc& cgpu::Surface::getDesc() const

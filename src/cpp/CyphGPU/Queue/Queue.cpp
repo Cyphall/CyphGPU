@@ -3,8 +3,7 @@
 #include <CyphGPU/DeviceSession/DeviceSession.hpp>
 
 cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue):
-	DependencyObject{device_session},
-	m_device_session{device_session},
+	m_device_session{&device_session},
 	m_handle{queue}
 {
 	createSemaphore();
@@ -17,7 +16,7 @@ cgpu::Queue::~Queue()
 
 cgpu::DeviceSessionRef cgpu::Queue::getDeviceSession() const
 {
-	return m_device_session.get();
+	return m_device_session->shared_from_this();
 }
 
 const vk::Queue& cgpu::Queue::getHandle() const

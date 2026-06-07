@@ -70,9 +70,7 @@ std::optional<uint32_t> tryReserveBestQueue(std::span<QueueFamilyInfo> available
 
 cgpu::DeviceSessionRef cgpu::DeviceSession::create(const DeviceRef& device, Desc&& desc)
 {
-	cgpu::DeviceSessionRef ref = std::make_shared<cgpu::DeviceSession>(PrivateKey{}, device, std::move(desc));
-	ref->m_weak_this = ref;
-	return ref;
+	return std::make_shared<cgpu::DeviceSession>(PrivateKey{}, device, std::move(desc));
 }
 
 cgpu::DeviceSession::DeviceSession(PrivateKey, const DeviceRef& device, Desc&& desc):
@@ -92,9 +90,9 @@ cgpu::DeviceSession::~DeviceSession()
 	m_handle.destroy(nullptr, m_dispatcher);
 }
 
-cgpu::DeviceRef cgpu::DeviceSession::getDevice() const
+const cgpu::DeviceRef& cgpu::DeviceSession::getDevice() const
 {
-	return m_device.get();
+	return m_device;
 }
 
 const cgpu::DeviceSession::Desc& cgpu::DeviceSession::getDesc() const

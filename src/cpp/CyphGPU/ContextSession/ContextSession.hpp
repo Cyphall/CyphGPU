@@ -1,13 +1,12 @@
 #pragma once
 
-#include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {
-class ContextSession final : public DependencyObject<ContextSession>
+class ContextSession final : public std::enable_shared_from_this<ContextSession>
 {
 	class PrivateKey
 	{};
@@ -28,10 +27,16 @@ public:
 
 	explicit ContextSession(PrivateKey, const ContextRef& context, Desc&& desc);
 
-	~ContextSession() override;
+	ContextSession(const ContextSession&) = delete;
+	ContextSession(ContextSession&&) = delete;
+
+	ContextSession& operator=(const ContextSession&) = delete;
+	ContextSession& operator=(ContextSession&&) = delete;
+
+	~ContextSession();
 
 	[[nodiscard]]
-	ContextRef getContext() const;
+	const ContextRef& getContext() const;
 
 	[[nodiscard]]
 	const Desc& getDesc() const;
@@ -46,7 +51,7 @@ public:
 	std::vector<DeviceRef> getDevices() const;
 
 private:
-	DependencyParent<Context> m_context;
+	ContextRef m_context;
 
 	Desc m_desc;
 

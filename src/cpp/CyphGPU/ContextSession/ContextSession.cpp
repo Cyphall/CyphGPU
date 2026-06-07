@@ -39,9 +39,7 @@ VKAPI_ATTR vk::Bool32 VKAPI_CALL messageCallback(
 
 cgpu::ContextSessionRef cgpu::ContextSession::create(const ContextRef& context, Desc&& desc)
 {
-	cgpu::ContextSessionRef ref = std::make_shared<cgpu::ContextSession>(PrivateKey{}, context, std::move(desc));
-	ref->m_weak_this = ref;
-	return ref;
+	return std::make_shared<cgpu::ContextSession>(PrivateKey{}, context, std::move(desc));
 }
 
 cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc&& desc):
@@ -60,9 +58,9 @@ cgpu::ContextSession::~ContextSession()
 	m_handle.destroy(nullptr, m_dispatcher);
 }
 
-cgpu::ContextRef cgpu::ContextSession::getContext() const
+const cgpu::ContextRef& cgpu::ContextSession::getContext() const
 {
-	return m_context.get();
+	return m_context;
 }
 
 const cgpu::ContextSession::Desc& cgpu::ContextSession::getDesc() const
@@ -86,7 +84,7 @@ std::vector<cgpu::DeviceRef> cgpu::ContextSession::getDevices() const
 	devices.reserve(m_devices.size());
 	for (const auto& device : m_devices)
 	{
-		devices.emplace_back(device->asRef());
+		devices.emplace_back(shared_from_this(), device.get());
 	}
 
 	return devices;

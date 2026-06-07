@@ -1,11 +1,10 @@
 #pragma once
 
-#include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/fwd.hpp>
 
 namespace cgpu
 {
-class Surface final : public DependencyObject<Surface>
+class Surface final
 {
 	class PrivateKey
 	{};
@@ -25,10 +24,16 @@ public:
 
 	explicit Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc);
 
-	~Surface() override;
+	Surface(const Surface&) = delete;
+	Surface(Surface&&) = delete;
+
+	Surface& operator=(const Surface&) = delete;
+	Surface& operator=(Surface&&) = delete;
+
+	~Surface();
 
 	[[nodiscard]]
-	ContextSessionRef getContextSession() const;
+	const ContextSessionRef& getContextSession() const;
 
 	[[nodiscard]]
 	const Desc& getDesc() const;
@@ -37,7 +42,7 @@ public:
 	const vk::SurfaceKHR& getHandle() const;
 
 private:
-	DependencyParent<ContextSession> m_context_session;
+	ContextSessionRef m_context_session;
 
 	Desc m_desc;
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <CyphGPU/ContextSession/ContextSession.hpp>
-#include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/Device/DynamicFeatureChain.hpp>
 #include <CyphGPU/fwd.hpp>
 
@@ -10,7 +9,7 @@
 
 namespace cgpu
 {
-class Device final : public DependencyObject<Device>
+class Device final
 {
 	class PrivateKey
 	{};
@@ -25,6 +24,12 @@ public:
 	using Capabilities = vk::Flags<Capability>;
 
 	explicit Device(PrivateKey, ContextSession& context_session, vk::PhysicalDevice physical_device);
+
+	Device(const Device&) = delete;
+	Device(Device&&) = delete;
+
+	Device& operator=(const Device&) = delete;
+	Device& operator=(Device&&) = delete;
 
 	[[nodiscard]]
 	ContextSessionRef getContextSession() const;
@@ -71,7 +76,7 @@ private:
 		FeatureCallback* feature_callback{};
 	};
 
-	DependencyParent<ContextSession> m_context_session;
+	ContextSession* m_context_session;
 
 	vk::PhysicalDevice m_handle;
 

@@ -1,13 +1,12 @@
 #pragma once
 
-#include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {
-class Queue final : public DependencyObject<Queue>
+class Queue final
 {
 	class PrivateKey
 	{};
@@ -15,7 +14,13 @@ class Queue final : public DependencyObject<Queue>
 public:
 	explicit Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue);
 
-	~Queue() override;
+	Queue(const Queue&) = delete;
+	Queue(Queue&&) = delete;
+
+	Queue& operator=(const Queue&) = delete;
+	Queue& operator=(Queue&&) = delete;
+
+	~Queue();
 
 	[[nodiscard]]
 	DeviceSessionRef getDeviceSession() const;
@@ -26,7 +31,7 @@ public:
 private:
 	friend class DeviceSession;
 
-	DependencyParent<DeviceSession> m_device_session;
+	DeviceSession* m_device_session;
 
 	vk::Queue m_handle;
 

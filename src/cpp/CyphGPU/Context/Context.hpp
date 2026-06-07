@@ -1,6 +1,5 @@
 #pragma once
 
-#include <CyphGPU/DependencyObject.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <boost/optional.hpp>
@@ -8,7 +7,7 @@
 
 namespace cgpu
 {
-class Context final : public DependencyObject<Context>
+class Context final
 {
 	class PrivateKey
 	{};
@@ -32,6 +31,12 @@ public:
 	static ContextRef create();
 
 	explicit Context(PrivateKey);
+
+	Context(const Context&) = delete;
+	Context(Context&&) = delete;
+
+	Context& operator=(const Context&) = delete;
+	Context& operator=(Context&&) = delete;
 
 	[[nodiscard]]
 	const vk::detail::DispatchLoaderDynamic& getDispatcher() const;

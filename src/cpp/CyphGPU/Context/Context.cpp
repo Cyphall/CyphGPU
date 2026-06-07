@@ -7,9 +7,7 @@
 
 cgpu::ContextRef cgpu::Context::create()
 {
-	cgpu::ContextRef ref = std::make_shared<cgpu::Context>(PrivateKey{});
-	ref->m_weak_this = ref;
-	return ref;
+	return std::make_shared<cgpu::Context>(PrivateKey{});
 }
 
 cgpu::Context::Context(PrivateKey)
