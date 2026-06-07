@@ -41,6 +41,18 @@ public:
 	[[nodiscard]]
 	const vk::Device& getHandle() const;
 
+	[[nodiscard]]
+	QueueRef getMainQueue() const;
+
+	[[nodiscard]]
+	QueueRef getAsyncGraphicsQueue() const;
+
+	[[nodiscard]]
+	QueueRef getAsyncComputeQueue() const;
+
+	[[nodiscard]]
+	QueueRef getAsyncTransferQueue() const;
+
 private:
 	DeviceRef m_device;
 

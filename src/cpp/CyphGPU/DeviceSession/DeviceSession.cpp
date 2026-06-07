@@ -110,6 +110,26 @@ const vk::Device& cgpu::DeviceSession::getHandle() const
 	return m_handle;
 }
 
+cgpu::QueueRef cgpu::DeviceSession::getMainQueue() const
+{
+	return {shared_from_this(), m_main_queue.get()};
+}
+
+cgpu::QueueRef cgpu::DeviceSession::getAsyncGraphicsQueue() const
+{
+	return {shared_from_this(), m_async_graphics_queue.get()};
+}
+
+cgpu::QueueRef cgpu::DeviceSession::getAsyncComputeQueue() const
+{
+	return {shared_from_this(), m_async_compute_queue.get()};
+}
+
+cgpu::QueueRef cgpu::DeviceSession::getAsyncTransferQueue() const
+{
+	return {shared_from_this(), m_async_transfer_queue.get()};
+}
+
 void cgpu::DeviceSession::createDevice()
 {
 	// Reserve queues
