@@ -47,7 +47,7 @@ cgpu::ContextSessionRef cgpu::ContextSession::create(const ContextRef& context, 
 cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc&& desc):
 	m_context{context},
 	m_desc{std::move(desc)},
-	m_dispatcher{m_context->getDispatcher()}
+	m_dispatcher{context->getDispatcher()}
 {
 	createInstance();
 
