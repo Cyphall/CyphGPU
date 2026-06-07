@@ -43,9 +43,9 @@ public:
 	}
 
 	[[nodiscard]]
-	vk::BaseOutStructure& getHead()
+	void* getHead()
 	{
-		return *m_head;
+		return m_head.get_ptr();
 	}
 
 private:
