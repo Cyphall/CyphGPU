@@ -18,10 +18,10 @@ public:
 	~Queue() override;
 
 	[[nodiscard]]
-	const vk::Queue& getHandle() const;
+	DeviceSessionRef getDeviceSession() const;
 
 	[[nodiscard]]
-	DeviceSessionRef getDeviceSession() const;
+	const vk::Queue& getHandle() const;
 
 private:
 	friend class DeviceSession;

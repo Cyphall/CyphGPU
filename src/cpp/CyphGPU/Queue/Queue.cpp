@@ -15,14 +15,14 @@ cgpu::Queue::~Queue()
 	m_device_session->getHandle().destroySemaphore(m_semaphore, nullptr, m_device_session->getDispatcher());
 }
 
-const vk::Queue& cgpu::Queue::getHandle() const
-{
-	return m_handle;
-}
-
 cgpu::DeviceSessionRef cgpu::Queue::getDeviceSession() const
 {
 	return m_device_session.get();
+}
+
+const vk::Queue& cgpu::Queue::getHandle() const
+{
+	return m_handle;
 }
 
 void cgpu::Queue::createSemaphore()

@@ -24,14 +24,14 @@ cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDe
 	checkCapabilitySupport();
 }
 
-const vk::PhysicalDevice& cgpu::Device::getHandle() const
-{
-	return m_handle;
-}
-
 cgpu::ContextSessionRef cgpu::Device::getContextSession() const
 {
 	return m_context_session.get();
+}
+
+const vk::PhysicalDevice& cgpu::Device::getHandle() const
+{
+	return m_handle;
 }
 
 cgpu::Device::Capabilities cgpu::Device::getCapabilities() const

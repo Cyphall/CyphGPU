@@ -27,10 +27,10 @@ public:
 	explicit Device(PrivateKey, ContextSession& context_session, vk::PhysicalDevice physical_device);
 
 	[[nodiscard]]
-	const vk::PhysicalDevice& getHandle() const;
+	ContextSessionRef getContextSession() const;
 
 	[[nodiscard]]
-	ContextSessionRef getContextSession() const;
+	const vk::PhysicalDevice& getHandle() const;
 
 	[[nodiscard]]
 	Capabilities getCapabilities() const;
