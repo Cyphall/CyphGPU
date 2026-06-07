@@ -28,7 +28,7 @@ public:
 	static constexpr uint32_t VULKAN_API_VERSION = vk::ApiVersion14;
 
 	[[nodiscard]]
-	static ContextRef create();
+	static ContextPtr create();
 
 	explicit Context(PrivateKey);
 

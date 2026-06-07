@@ -17,9 +17,9 @@ public:
 	};
 
 	[[nodiscard]]
-	static DeviceSessionRef create(const DeviceRef& device, Desc&& desc);
+	static DeviceSessionPtr create(const DevicePtr& device, Desc&& desc);
 
-	explicit DeviceSession(PrivateKey, const DeviceRef& device, Desc&& desc);
+	explicit DeviceSession(PrivateKey, const DevicePtr& device, Desc&& desc);
 
 	DeviceSession(const DeviceSession&) = delete;
 	DeviceSession(DeviceSession&&) = delete;
@@ -30,7 +30,7 @@ public:
 	~DeviceSession();
 
 	[[nodiscard]]
-	const DeviceRef& getDevice() const;
+	const DevicePtr& getDevice() const;
 
 	[[nodiscard]]
 	const Desc& getDesc() const;
@@ -42,19 +42,19 @@ public:
 	const vk::Device& getHandle() const;
 
 	[[nodiscard]]
-	QueueRef getMainQueue() const;
+	QueuePtr getMainQueue() const;
 
 	[[nodiscard]]
-	QueueRef getAsyncGraphicsQueue() const;
+	QueuePtr getAsyncGraphicsQueue() const;
 
 	[[nodiscard]]
-	QueueRef getAsyncComputeQueue() const;
+	QueuePtr getAsyncComputeQueue() const;
 
 	[[nodiscard]]
-	QueueRef getAsyncTransferQueue() const;
+	QueuePtr getAsyncTransferQueue() const;
 
 private:
-	DeviceRef m_device;
+	DevicePtr m_device;
 
 	Desc m_desc;
 

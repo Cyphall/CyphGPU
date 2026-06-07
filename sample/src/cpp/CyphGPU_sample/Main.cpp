@@ -10,10 +10,10 @@
 int main()
 {
 	// Create context
-	cgpu::ContextRef context = cgpu::Context::create();
+	cgpu::ContextPtr context = cgpu::Context::create();
 
 	// Create context session
-	cgpu::ContextSessionRef context_session = cgpu::ContextSession::create(
+	cgpu::ContextSessionPtr context_session = cgpu::ContextSession::create(
 		context,
 		{
 			.application_name = "CyphGPU sample",
@@ -21,8 +21,8 @@ int main()
 	);
 
 	// Select device
-	std::optional<cgpu::DeviceRef> selected_device;
-	for (const cgpu::DeviceRef& device : context_session->getDevices())
+	std::optional<cgpu::DevicePtr> selected_device;
+	for (const cgpu::DevicePtr& device : context_session->getDevices())
 	{
 		if (device->getCapabilities() & cgpu::Device::Capability::eCore &&
 		    device->getCapabilities() & cgpu::Device::Capability::eSwapchain)
@@ -39,7 +39,7 @@ int main()
 	}
 
 	// Create device session
-	cgpu::DeviceSessionRef device_session = cgpu::DeviceSession::create(
+	cgpu::DeviceSessionPtr device_session = cgpu::DeviceSession::create(
 		*selected_device,
 		{}
 	);
@@ -69,7 +69,7 @@ int main()
 	VkSurfaceKHR surface_raw{};
 	glfwCreateWindowSurface(context_session->getHandle(), window, nullptr, &surface_raw);
 
-	cgpu::SurfaceRef surface = cgpu::Surface::create(
+	cgpu::SurfacePtr surface = cgpu::Surface::create(
 		context_session,
 		{
 			.surface = surface_raw,

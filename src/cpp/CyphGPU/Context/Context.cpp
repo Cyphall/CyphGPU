@@ -5,7 +5,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <unordered_set>
 
-cgpu::ContextRef cgpu::Context::create()
+cgpu::ContextPtr cgpu::Context::create()
 {
 	return std::make_shared<cgpu::Context>(PrivateKey{});
 }

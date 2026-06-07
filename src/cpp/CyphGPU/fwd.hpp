@@ -11,10 +11,10 @@ class Device;
 class DeviceSession;
 class Queue;
 
-using ContextRef = std::shared_ptr<Context>;
-using ContextSessionRef = std::shared_ptr<ContextSession>;
-using SurfaceRef = std::shared_ptr<Surface>;
-using DeviceRef = std::shared_ptr<Device>;
-using DeviceSessionRef = std::shared_ptr<DeviceSession>;
-using QueueRef = std::shared_ptr<Queue>;
+using ContextPtr = std::shared_ptr<Context>;
+using ContextSessionPtr = std::shared_ptr<ContextSession>;
+using SurfacePtr = std::shared_ptr<Surface>;
+using DevicePtr = std::shared_ptr<Device>;
+using DeviceSessionPtr = std::shared_ptr<DeviceSession>;
+using QueuePtr = std::shared_ptr<Queue>;
 }

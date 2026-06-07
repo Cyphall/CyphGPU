@@ -23,9 +23,9 @@ public:
 	};
 
 	[[nodiscard]]
-	static ContextSessionRef create(const ContextRef& context, Desc&& desc);
+	static ContextSessionPtr create(const ContextPtr& context, Desc&& desc);
 
-	explicit ContextSession(PrivateKey, const ContextRef& context, Desc&& desc);
+	explicit ContextSession(PrivateKey, const ContextPtr& context, Desc&& desc);
 
 	ContextSession(const ContextSession&) = delete;
 	ContextSession(ContextSession&&) = delete;
@@ -36,7 +36,7 @@ public:
 	~ContextSession();
 
 	[[nodiscard]]
-	const ContextRef& getContext() const;
+	const ContextPtr& getContext() const;
 
 	[[nodiscard]]
 	const Desc& getDesc() const;
@@ -48,10 +48,10 @@ public:
 	const vk::Instance& getHandle() const;
 
 	[[nodiscard]]
-	std::vector<DeviceRef> getDevices() const;
+	std::vector<DevicePtr> getDevices() const;
 
 private:
-	ContextRef m_context;
+	ContextPtr m_context;
 
 	Desc m_desc;
 

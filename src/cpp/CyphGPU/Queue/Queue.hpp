@@ -23,7 +23,7 @@ public:
 	~Queue();
 
 	[[nodiscard]]
-	DeviceSessionRef getDeviceSession() const;
+	DeviceSessionPtr getDeviceSession() const;
 
 	[[nodiscard]]
 	const vk::Queue& getHandle() const;

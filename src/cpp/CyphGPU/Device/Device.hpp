@@ -32,7 +32,7 @@ public:
 	Device& operator=(Device&&) = delete;
 
 	[[nodiscard]]
-	ContextSessionRef getContextSession() const;
+	ContextSessionPtr getContextSession() const;
 
 	[[nodiscard]]
 	const vk::PhysicalDevice& getHandle() const;

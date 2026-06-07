@@ -2,12 +2,12 @@
 
 #include <CyphGPU/ContextSession/ContextSession.hpp>
 
-cgpu::SurfaceRef cgpu::Surface::create(const ContextSessionRef& context_session, Desc&& desc)
+cgpu::SurfacePtr cgpu::Surface::create(const ContextSessionPtr& context_session, Desc&& desc)
 {
 	return std::make_shared<cgpu::Surface>(PrivateKey{}, context_session, std::move(desc));
 }
 
-cgpu::Surface::Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc):
+cgpu::Surface::Surface(PrivateKey, const ContextSessionPtr& context_session, Desc&& desc):
 	m_context_session{context_session},
 	m_desc{std::move(desc)},
 	m_handle{m_desc.surface}
@@ -21,7 +21,7 @@ cgpu::Surface::~Surface()
 	}
 }
 
-const cgpu::ContextSessionRef& cgpu::Surface::getContextSession() const
+const cgpu::ContextSessionPtr& cgpu::Surface::getContextSession() const
 {
 	return m_context_session;
 }

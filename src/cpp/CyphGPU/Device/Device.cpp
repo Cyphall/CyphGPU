@@ -23,7 +23,7 @@ cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDe
 	checkCapabilitySupport();
 }
 
-cgpu::ContextSessionRef cgpu::Device::getContextSession() const
+cgpu::ContextSessionPtr cgpu::Device::getContextSession() const
 {
 	return m_context_session->shared_from_this();
 }

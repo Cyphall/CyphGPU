@@ -16,7 +16,7 @@ struct QueueFamilyInfo
 	uint32_t num_caps{};
 };
 
-std::vector<QueueFamilyInfo> queryAvailableQueues(const cgpu::DeviceRef& device)
+std::vector<QueueFamilyInfo> queryAvailableQueues(const cgpu::DevicePtr& device)
 {
 	std::vector<vk::QueueFamilyProperties> queue_family_properties = device->getHandle().getQueueFamilyProperties(device->getContextSession()->getDispatcher());
 
@@ -68,12 +68,12 @@ std::optional<uint32_t> tryReserveBestQueue(std::span<QueueFamilyInfo> available
 }
 }
 
-cgpu::DeviceSessionRef cgpu::DeviceSession::create(const DeviceRef& device, Desc&& desc)
+cgpu::DeviceSessionPtr cgpu::DeviceSession::create(const DevicePtr& device, Desc&& desc)
 {
 	return std::make_shared<cgpu::DeviceSession>(PrivateKey{}, device, std::move(desc));
 }
 
-cgpu::DeviceSession::DeviceSession(PrivateKey, const DeviceRef& device, Desc&& desc):
+cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& desc):
 	m_device{device},
 	m_desc{std::move(desc)},
 	m_dispatcher{device->getContextSession()->getDispatcher()}
@@ -90,7 +90,7 @@ cgpu::DeviceSession::~DeviceSession()
 	m_handle.destroy(nullptr, m_dispatcher);
 }
 
-const cgpu::DeviceRef& cgpu::DeviceSession::getDevice() const
+const cgpu::DevicePtr& cgpu::DeviceSession::getDevice() const
 {
 	return m_device;
 }
@@ -110,22 +110,22 @@ const vk::Device& cgpu::DeviceSession::getHandle() const
 	return m_handle;
 }
 
-cgpu::QueueRef cgpu::DeviceSession::getMainQueue() const
+cgpu::QueuePtr cgpu::DeviceSession::getMainQueue() const
 {
 	return {shared_from_this(), m_main_queue.get()};
 }
 
-cgpu::QueueRef cgpu::DeviceSession::getAsyncGraphicsQueue() const
+cgpu::QueuePtr cgpu::DeviceSession::getAsyncGraphicsQueue() const
 {
 	return {shared_from_this(), m_async_graphics_queue.get()};
 }
 
-cgpu::QueueRef cgpu::DeviceSession::getAsyncComputeQueue() const
+cgpu::QueuePtr cgpu::DeviceSession::getAsyncComputeQueue() const
 {
 	return {shared_from_this(), m_async_compute_queue.get()};
 }
 
-cgpu::QueueRef cgpu::DeviceSession::getAsyncTransferQueue() const
+cgpu::QueuePtr cgpu::DeviceSession::getAsyncTransferQueue() const
 {
 	return {shared_from_this(), m_async_transfer_queue.get()};
 }

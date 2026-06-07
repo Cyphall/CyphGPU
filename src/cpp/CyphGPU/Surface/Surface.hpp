@@ -20,9 +20,9 @@ public:
 	};
 
 	[[nodiscard]]
-	static SurfaceRef create(const ContextSessionRef& context_session, Desc&& desc);
+	static SurfacePtr create(const ContextSessionPtr& context_session, Desc&& desc);
 
-	explicit Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc);
+	explicit Surface(PrivateKey, const ContextSessionPtr& context_session, Desc&& desc);
 
 	Surface(const Surface&) = delete;
 	Surface(Surface&&) = delete;
@@ -33,7 +33,7 @@ public:
 	~Surface();
 
 	[[nodiscard]]
-	const ContextSessionRef& getContextSession() const;
+	const ContextSessionPtr& getContextSession() const;
 
 	[[nodiscard]]
 	const Desc& getDesc() const;
@@ -42,7 +42,7 @@ public:
 	const vk::SurfaceKHR& getHandle() const;
 
 private:
-	ContextSessionRef m_context_session;
+	ContextSessionPtr m_context_session;
 
 	Desc m_desc;
 

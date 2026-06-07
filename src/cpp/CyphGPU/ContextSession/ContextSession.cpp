@@ -37,12 +37,12 @@ VKAPI_ATTR vk::Bool32 VKAPI_CALL messageCallback(
 }
 }
 
-cgpu::ContextSessionRef cgpu::ContextSession::create(const ContextRef& context, Desc&& desc)
+cgpu::ContextSessionPtr cgpu::ContextSession::create(const ContextPtr& context, Desc&& desc)
 {
 	return std::make_shared<cgpu::ContextSession>(PrivateKey{}, context, std::move(desc));
 }
 
-cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc&& desc):
+cgpu::ContextSession::ContextSession(PrivateKey, const ContextPtr& context, Desc&& desc):
 	m_context{context},
 	m_desc{std::move(desc)},
 	m_dispatcher{context->getDispatcher()}
@@ -58,7 +58,7 @@ cgpu::ContextSession::~ContextSession()
 	m_handle.destroy(nullptr, m_dispatcher);
 }
 
-const cgpu::ContextRef& cgpu::ContextSession::getContext() const
+const cgpu::ContextPtr& cgpu::ContextSession::getContext() const
 {
 	return m_context;
 }
@@ -78,9 +78,9 @@ const vk::Instance& cgpu::ContextSession::getHandle() const
 	return m_handle;
 }
 
-std::vector<cgpu::DeviceRef> cgpu::ContextSession::getDevices() const
+std::vector<cgpu::DevicePtr> cgpu::ContextSession::getDevices() const
 {
-	std::vector<cgpu::DeviceRef> devices;
+	std::vector<cgpu::DevicePtr> devices;
 	devices.reserve(m_devices.size());
 	for (const auto& device : m_devices)
 	{
