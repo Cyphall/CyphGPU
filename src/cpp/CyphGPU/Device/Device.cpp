@@ -29,6 +29,11 @@ const vk::PhysicalDevice& cgpu::Device::getHandle() const
 	return m_physical_device;
 }
 
+cgpu::ContextSessionRef cgpu::Device::getContextSession() const
+{
+	return m_context_session.get();
+}
+
 cgpu::Device::Capabilities cgpu::Device::getCapabilities() const
 {
 	return m_capabilities;

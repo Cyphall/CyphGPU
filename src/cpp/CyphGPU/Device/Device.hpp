@@ -30,6 +30,9 @@ public:
 	const vk::PhysicalDevice& getHandle() const;
 
 	[[nodiscard]]
+	ContextSessionRef getContextSession() const;
+
+	[[nodiscard]]
 	Capabilities getCapabilities() const;
 
 	template<class T>
