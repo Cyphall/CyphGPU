@@ -83,6 +83,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 
 cgpu::DeviceSession::~DeviceSession()
 {
+	m_fragment_output_state_cache.clear();
 	m_vertex_input_state_cache.clear();
 	m_async_transfer_queue.reset();
 	m_async_compute_queue.reset();
@@ -302,4 +303,9 @@ void cgpu::DeviceSession::createDevice()
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
 {
 	return m_vertex_input_state_cache.get(*this, std::move(desc));
+}
+
+cgpu::FragmentOutputState& cgpu::DeviceSession::getFragmentOutputState(FragmentOutputState::Desc&& desc)
+{
+	return m_fragment_output_state_cache.get(*this, std::move(desc));
 }

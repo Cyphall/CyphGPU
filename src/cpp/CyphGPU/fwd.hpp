@@ -11,6 +11,7 @@ class Device;
 class DeviceSession;
 class Queue;
 class VertexInputState;
+class FragmentOutputState;
 
 using ContextPtr = std::shared_ptr<Context>;
 using ContextSessionPtr = std::shared_ptr<ContextSession>;
@@ -19,4 +20,5 @@ using DevicePtr = std::shared_ptr<Device>;
 using DeviceSessionPtr = std::shared_ptr<DeviceSession>;
 using QueuePtr = std::shared_ptr<Queue>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
+using FragmentOutputStatePtr = std::shared_ptr<FragmentOutputState>;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Pipeline/FragmentOutputState.hpp>
 #include <CyphGPU/Pipeline/VertexInputState.hpp>
 
 #include <mutex>
@@ -58,6 +59,7 @@ public:
 
 private:
 	friend class VertexInputState;
+	friend class FragmentOutputState;
 
 	template<class T>
 	class MetaObjectCache
@@ -87,9 +89,11 @@ private:
 	std::shared_ptr<Queue> m_async_transfer_queue;
 
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache;
+	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache;
 
 	void createDevice();
 
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
+	FragmentOutputState& getFragmentOutputState(FragmentOutputState::Desc&& desc);
 };
 }

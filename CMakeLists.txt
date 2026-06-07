@@ -66,6 +66,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/DeviceSession/DeviceSession.cpp"
 	"src/cpp/CyphGPU/Queue/Queue.cpp"
 	"src/cpp/CyphGPU/Pipeline/VertexInputState.cpp"
+	"src/cpp/CyphGPU/Pipeline/FragmentOutputState.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -79,6 +80,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/DeviceSession/DeviceSession.hpp"
 	"src/cpp/CyphGPU/Queue/Queue.hpp"
 	"src/cpp/CyphGPU/Pipeline/VertexInputState.hpp"
+	"src/cpp/CyphGPU/Pipeline/FragmentOutputState.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
