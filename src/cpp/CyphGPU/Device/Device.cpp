@@ -44,6 +44,8 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		{
 			vk::EXTDescriptorHeapExtensionName,
 			vk::KHRInternallySynchronizedQueuesExtensionName,
+			vk::KHRPipelineLibraryExtensionName,
+			vk::EXTGraphicsPipelineLibraryExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
@@ -229,6 +231,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			{
 				auto& features = chain.get<vk::PhysicalDeviceInternallySynchronizedQueuesFeaturesKHR>();
 				features.internallySynchronizedQueues = vk::True;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceGraphicsPipelineLibraryFeaturesEXT>();
+				features.graphicsPipelineLibrary = vk::True;
 			}
 
 			{

@@ -83,6 +83,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 
 cgpu::DeviceSession::~DeviceSession()
 {
+	m_vertex_input_state_cache.clear();
 	m_async_transfer_queue.reset();
 	m_async_compute_queue.reset();
 	m_async_graphics_queue.reset();
@@ -128,6 +129,25 @@ cgpu::QueuePtr cgpu::DeviceSession::getAsyncComputeQueue() const
 cgpu::QueuePtr cgpu::DeviceSession::getAsyncTransferQueue() const
 {
 	return {shared_from_this(), m_async_transfer_queue.get()};
+}
+
+template<class T>
+T& cgpu::DeviceSession::MetaObjectCache<T>::get(DeviceSession& device_session, T::Desc&& desc)
+{
+	std::unique_lock lock{m_mutex};
+	auto [it, inserted] = m_map.try_emplace(desc);
+	if (inserted)
+	{
+		it->second = std::make_unique<T>(typename T::PrivateKey{}, device_session, std::move(desc));
+	}
+
+	return *it->second;
+}
+
+template<class T>
+void cgpu::DeviceSession::MetaObjectCache<T>::clear()
+{
+	m_map.clear();
 }
 
 void cgpu::DeviceSession::createDevice()
@@ -277,4 +297,9 @@ void cgpu::DeviceSession::createDevice()
 	{
 		m_async_transfer_queue = m_main_queue;
 	}
+}
+
+cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
+{
+	return m_vertex_input_state_cache.get(*this, std::move(desc));
 }

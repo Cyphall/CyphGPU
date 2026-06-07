@@ -76,6 +76,13 @@ int main()
 		}
 	);
 
+	cgpu::VertexInputStatePtr vertex_input_state = cgpu::VertexInputState::create(
+		device_session,
+		{
+			.topology = vk::PrimitiveTopology::eTriangleList,
+		}
+	);
+
 	// Run render loop
 	while (glfwWindowShouldClose(window) == GLFW_FALSE)
 	{

@@ -1,7 +1,10 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Pipeline/VertexInputState.hpp>
 
+#include <mutex>
+#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -54,6 +57,22 @@ public:
 	QueuePtr getAsyncTransferQueue() const;
 
 private:
+	friend class VertexInputState;
+
+	template<class T>
+	class MetaObjectCache
+	{
+	public:
+		[[nodiscard]]
+		T& get(DeviceSession& device_session, T::Desc&& desc);
+
+		void clear();
+
+	private:
+		std::unordered_map<typename T::Desc, std::unique_ptr<T>> m_map{};
+		std::mutex m_mutex{};
+	};
+
 	DevicePtr m_device;
 
 	Desc m_desc;
@@ -67,6 +86,10 @@ private:
 	std::shared_ptr<Queue> m_async_compute_queue;
 	std::shared_ptr<Queue> m_async_transfer_queue;
 
+	MetaObjectCache<VertexInputState> m_vertex_input_state_cache;
+
 	void createDevice();
+
+	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
 };
 }
