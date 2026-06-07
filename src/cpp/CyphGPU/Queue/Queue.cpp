@@ -31,16 +31,13 @@ void cgpu::Queue::createSemaphore()
 		vk::SemaphoreTypeCreateInfo>
 		chain;
 
-	{
-		auto& info = chain.get<vk::SemaphoreCreateInfo>();
-		info.flags = {};
-	}
 
-	{
-		auto& info = chain.get<vk::SemaphoreTypeCreateInfo>();
-		info.semaphoreType = vk::SemaphoreType::eTimeline;
-		info.initialValue = 0;
-	}
+	auto& create_info = chain.get<vk::SemaphoreCreateInfo>();
+	create_info.flags = {};
+
+	auto& type_create_info = chain.get<vk::SemaphoreTypeCreateInfo>();
+	type_create_info.semaphoreType = vk::SemaphoreType::eTimeline;
+	type_create_info.initialValue = 0;
 
 	m_semaphore = m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher());
 }
