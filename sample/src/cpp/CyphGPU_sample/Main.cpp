@@ -2,8 +2,10 @@
 #include <CyphGPU/Context/Context.hpp>
 #include <CyphGPU/ContextSession/ContextSession.hpp>
 #include <CyphGPU/Device/Device.hpp>
+#include <CyphGPU/DeviceSession/DeviceSession.hpp>
 #include <CyphGPU/Surface/Surface.hpp>
 #include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
 
 int main()
 {
@@ -29,6 +31,18 @@ int main()
 			break;
 		}
 	}
+
+	if (!selected_device)
+	{
+		spdlog::error("Could not find a compatible device.");
+		return 1;
+	}
+
+	// Create device session
+	cgpu::DeviceSessionRef device_session = cgpu::DeviceSession::create(
+		*selected_device,
+		{}
+	);
 
 	// Create GLFW window
 	glfwInitVulkanLoader(context_session->getDispatcher().vkGetInstanceProcAddr);

@@ -61,6 +61,7 @@ public:
 
 private:
 	friend class ContextSession;
+	friend class DeviceSession;
 
 	struct CapabilityData
 	{
