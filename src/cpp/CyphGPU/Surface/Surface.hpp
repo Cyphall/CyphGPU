@@ -28,6 +28,9 @@ public:
 	~Surface() override;
 
 	[[nodiscard]]
+	ContextSessionRef getContextSession() const;
+
+	[[nodiscard]]
 	const Desc& getDesc() const;
 
 	[[nodiscard]]

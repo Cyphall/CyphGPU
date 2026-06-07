@@ -23,6 +23,11 @@ cgpu::Surface::~Surface()
 	}
 }
 
+cgpu::ContextSessionRef cgpu::Surface::getContextSession() const
+{
+	return m_context_session.get();
+}
+
 const cgpu::Surface::Desc& cgpu::Surface::getDesc() const
 {
 	return m_desc;
