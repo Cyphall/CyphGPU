@@ -44,6 +44,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 	static CapabilityData core{
 		{
 			vk::EXTDescriptorHeapExtensionName,
+			vk::KHRInternallySynchronizedQueuesExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
@@ -224,6 +225,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				auto& features = chain.get<vk::PhysicalDeviceDescriptorHeapFeaturesEXT>();
 				features.descriptorHeap = true;
 				// features.descriptorHeapCaptureReplay = true;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceInternallySynchronizedQueuesFeaturesKHR>();
+				features.internallySynchronizedQueues = true;
 			}
 
 			{
