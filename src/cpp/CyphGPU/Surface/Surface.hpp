@@ -38,6 +38,6 @@ private:
 
 	Desc m_desc;
 
-	vk::SurfaceKHR m_surface{};
+	vk::SurfaceKHR m_handle{};
 };
 }

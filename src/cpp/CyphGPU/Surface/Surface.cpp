@@ -12,14 +12,14 @@ cgpu::SurfaceRef cgpu::Surface::create(const ContextSessionRef& context_session,
 cgpu::Surface::Surface(PrivateKey, const ContextSessionRef& context_session, Desc&& desc):
 	m_context_session{context_session},
 	m_desc{std::move(desc)},
-	m_surface{m_desc.surface}
+	m_handle{m_desc.surface}
 {}
 
 cgpu::Surface::~Surface()
 {
 	if (m_desc.owned)
 	{
-		m_context_session->getHandle().destroySurfaceKHR(m_surface, nullptr, m_context_session->getDispatcher());
+		m_context_session->getHandle().destroySurfaceKHR(m_handle, nullptr, m_context_session->getDispatcher());
 	}
 }
 
@@ -30,5 +30,5 @@ const cgpu::Surface::Desc& cgpu::Surface::getDesc() const
 
 const vk::SurfaceKHR& cgpu::Surface::getHandle() const
 {
-	return m_surface;
+	return m_handle;
 }

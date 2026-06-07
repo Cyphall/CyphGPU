@@ -45,13 +45,13 @@ public:
 			if constexpr (std::is_same_v<T, vk::PhysicalDeviceProperties2>)
 			{
 				it->second = std::make_shared<T>(
-					m_physical_device.getProperties2(m_context_session->getDispatcher())
+					m_handle.getProperties2(m_context_session->getDispatcher())
 				);
 			}
 			else
 			{
 				it->second = std::make_shared<T>(
-					m_physical_device.getProperties2<vk::PhysicalDeviceProperties2, T>(m_context_session->getDispatcher()).template get<T>()
+					m_handle.getProperties2<vk::PhysicalDeviceProperties2, T>(m_context_session->getDispatcher()).template get<T>()
 				);
 			}
 		}
@@ -72,7 +72,7 @@ private:
 
 	DependencyParent<ContextSession> m_context_session;
 
-	vk::PhysicalDevice m_physical_device;
+	vk::PhysicalDevice m_handle;
 
 	Capabilities m_capabilities{};
 

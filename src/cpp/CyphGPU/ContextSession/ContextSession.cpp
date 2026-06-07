@@ -56,8 +56,8 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 
 cgpu::ContextSession::~ContextSession()
 {
-	m_instance.destroy(m_messenger, nullptr, m_dispatcher);
-	m_instance.destroy(nullptr, m_dispatcher);
+	m_handle.destroy(m_messenger, nullptr, m_dispatcher);
+	m_handle.destroy(nullptr, m_dispatcher);
 }
 
 cgpu::ContextRef cgpu::ContextSession::getContext() const
@@ -77,7 +77,7 @@ const vk::detail::DispatchLoaderDynamic& cgpu::ContextSession::getDispatcher() c
 
 const vk::Instance& cgpu::ContextSession::getHandle() const
 {
-	return m_instance;
+	return m_handle;
 }
 
 std::vector<cgpu::DeviceRef> cgpu::ContextSession::getDevices() const
@@ -123,9 +123,9 @@ void cgpu::ContextSession::createInstance()
 	create_info.enabledLayerCount = static_cast<uint32_t>(m_desc.enabled_layers.size());
 	create_info.ppEnabledLayerNames = m_desc.enabled_layers.data();
 
-	m_instance = vk::createInstance(create_info, nullptr, m_dispatcher);
+	m_handle = vk::createInstance(create_info, nullptr, m_dispatcher);
 
-	m_dispatcher.init(m_instance);
+	m_dispatcher.init(m_handle);
 }
 
 void cgpu::ContextSession::createDebugMessenger()
@@ -144,12 +144,12 @@ void cgpu::ContextSession::createDebugMessenger()
 	create_info.pfnUserCallback = &messageCallback;
 	create_info.pUserData = nullptr;
 
-	m_messenger = m_instance.createDebugUtilsMessengerEXT(create_info, nullptr, m_dispatcher);
+	m_messenger = m_handle.createDebugUtilsMessengerEXT(create_info, nullptr, m_dispatcher);
 }
 
 void cgpu::ContextSession::queryDevices()
 {
-	for (auto physical_device : m_instance.enumeratePhysicalDevices(m_dispatcher))
+	for (auto physical_device : m_handle.enumeratePhysicalDevices(m_dispatcher))
 	{
 		m_devices.emplace_back(std::make_unique<Device>(Device::PrivateKey{}, *this, physical_device));
 	}

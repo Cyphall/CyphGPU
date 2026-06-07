@@ -52,7 +52,7 @@ private:
 
 	vk::detail::DispatchLoaderDynamic m_dispatcher;
 
-	vk::Instance m_instance{};
+	vk::Instance m_handle{};
 	vk::DebugUtilsMessengerEXT m_messenger{};
 
 	std::vector<std::unique_ptr<Device>> m_devices;

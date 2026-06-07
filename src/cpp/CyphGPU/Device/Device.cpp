@@ -19,14 +19,14 @@ std::span<const vk::Bool32> featureStructToBoolSpan(const cgpu::DynamicFeatureCh
 cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDevice physical_device):
 	DependencyObject{context_session},
 	m_context_session{context_session},
-	m_physical_device{physical_device}
+	m_handle{physical_device}
 {
 	checkCapabilitySupport();
 }
 
 const vk::PhysicalDevice& cgpu::Device::getHandle() const
 {
-	return m_physical_device;
+	return m_handle;
 }
 
 cgpu::ContextSessionRef cgpu::Device::getContextSession() const
@@ -282,7 +282,7 @@ void cgpu::Device::checkCapabilitySupport()
 	}
 
 	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supported_extensions;
-	for (const vk::ExtensionProperties& extension_properties : m_physical_device.enumerateDeviceExtensionProperties(nullptr, m_context_session->getDispatcher()))
+	for (const vk::ExtensionProperties& extension_properties : m_handle.enumerateDeviceExtensionProperties(nullptr, m_context_session->getDispatcher()))
 	{
 		supported_extensions.emplace(extension_properties.extensionName.data());
 	}
@@ -306,7 +306,7 @@ void cgpu::Device::checkCapabilitySupport()
 		// This will set some features to true but the driver should overwrite that so it's fine
 		DynamicFeatureChain supported_structures;
 		capability_data->feature_callback(supported_structures);
-		m_physical_device.getFeatures2(&supported_structures.get<vk::PhysicalDeviceFeatures2>(), m_context_session->getDispatcher());
+		m_handle.getFeatures2(&supported_structures.get<vk::PhysicalDeviceFeatures2>(), m_context_session->getDispatcher());
 
 		DynamicFeatureChain required_structures;
 		capability_data->feature_callback(required_structures);
