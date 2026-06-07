@@ -50,9 +50,6 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextRef& context, Desc
 	m_dispatcher{context->getDispatcher()}
 {
 	createInstance();
-
-	m_dispatcher.init(m_instance);
-
 	createDebugMessenger();
 	queryDevices();
 }
@@ -127,6 +124,8 @@ void cgpu::ContextSession::createInstance()
 	create_info.ppEnabledLayerNames = m_desc.enabled_layers.data();
 
 	m_instance = vk::createInstance(create_info, nullptr, m_dispatcher);
+
+	m_dispatcher.init(m_instance);
 }
 
 void cgpu::ContextSession::createDebugMessenger()
