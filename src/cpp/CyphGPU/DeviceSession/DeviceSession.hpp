@@ -1,10 +1,13 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Pipeline/VertexInputState.hpp>
 
+#include <magic_enum/magic_enum.hpp>
 #include <mutex>
 #include <unordered_map>
+#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -81,15 +84,28 @@ private:
 
 	vk::Device m_handle{};
 
-	std::shared_ptr<Queue> m_main_queue;
-	std::shared_ptr<Queue> m_async_graphics_queue;
-	std::shared_ptr<Queue> m_async_compute_queue;
-	std::shared_ptr<Queue> m_async_transfer_queue;
+	std::shared_ptr<Queue> m_main_queue{};
+	std::shared_ptr<Queue> m_async_graphics_queue{};
+	std::shared_ptr<Queue> m_async_compute_queue{};
+	std::shared_ptr<Queue> m_async_transfer_queue{};
 
-	MetaObjectCache<VertexInputState> m_vertex_input_state_cache;
+	vma::Allocator m_allocator{};
+
+	std::array<vma::Pool, magic_enum::enum_count<MemoryType>()> m_memory_pools{};
+
+	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
 
 	void createDevice();
+	void createAllocator();
+	void createMemoryPools();
 
+	[[nodiscard]]
+	const vma::Allocator& getAllocator() const;
+
+	[[nodiscard]]
+	const vma::Pool& getMemoryPool(MemoryType type) const;
+
+	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
 };
 }

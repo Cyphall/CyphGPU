@@ -3,7 +3,7 @@
 	"dependencies": [
 		"glm",
 		"vulkan-headers",
-		"vulkan-memory-allocator",
+		"vulkan-memory-allocator-hpp",
 		"magic-enum",
 		"boost-optional",
 		"spdlog",

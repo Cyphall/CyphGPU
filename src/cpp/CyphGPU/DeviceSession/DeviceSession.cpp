@@ -1,5 +1,6 @@
 #include "DeviceSession.hpp"
 
+#include <CyphGPU/Context/Context.hpp>
 #include <CyphGPU/Device/Device.hpp>
 #include <CyphGPU/Queue/Queue.hpp>
 #include <CyphGPU/Utils.hpp>
@@ -79,15 +80,25 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 	m_dispatcher{device->getContextSession()->getDispatcher()}
 {
 	createDevice();
+	createAllocator();
 }
 
 cgpu::DeviceSession::~DeviceSession()
 {
 	m_vertex_input_state_cache.clear();
+
+	for (const vma::Pool& pool : m_memory_pools)
+	{
+		m_allocator.destroy(pool);
+	}
+
+	m_allocator.destroy();
+
 	m_async_transfer_queue.reset();
 	m_async_compute_queue.reset();
 	m_async_graphics_queue.reset();
 	m_main_queue.reset();
+
 	m_handle.destroy(nullptr, m_dispatcher);
 }
 
@@ -297,6 +308,114 @@ void cgpu::DeviceSession::createDevice()
 	{
 		m_async_transfer_queue = m_main_queue;
 	}
+}
+
+void cgpu::DeviceSession::createAllocator()
+{
+	vma::AllocatorCreateFlags flags;
+	flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
+	flags |= vma::AllocatorCreateFlagBits::eKhrMaintenance4;
+	flags |= vma::AllocatorCreateFlagBits::eKhrMaintenance5;
+	if (m_device->getCapabilities() & Device::Capability::eMemoryBudget)
+	{
+		flags |= vma::AllocatorCreateFlagBits::eExtMemoryBudget;
+	}
+	if (m_device->getCapabilities() & Device::Capability::eMemoryPriority)
+	{
+		flags |= vma::AllocatorCreateFlagBits::eExtMemoryPriority;
+	}
+
+	vma::VulkanFunctions functions;
+	functions.vkGetInstanceProcAddr = m_dispatcher.vkGetInstanceProcAddr;
+	functions.vkGetDeviceProcAddr = m_dispatcher.vkGetDeviceProcAddr;
+
+	vma::AllocatorCreateInfo info;
+	info.flags = flags;
+	info.physicalDevice = m_device->getHandle();
+	info.device = m_handle;
+	info.preferredLargeHeapBlockSize = 0;
+	info.pAllocationCallbacks = nullptr;
+	info.pDeviceMemoryCallbacks = nullptr;
+	info.pHeapSizeLimit = nullptr;
+	info.pVulkanFunctions = &functions;
+	info.instance = m_device->getContextSession()->getHandle();
+	info.vulkanApiVersion = Context::VULKAN_API_VERSION;
+	info.pTypeExternalMemoryHandleTypes = nullptr;
+
+	m_allocator = vma::createAllocator(info);
+}
+
+void cgpu::DeviceSession::createMemoryPools()
+{
+	auto create_pool = [&](vk::MemoryPropertyFlags flags, float priority)
+	{
+		vma::AllocationCreateInfo alloc_info;
+		alloc_info.flags = {};
+		alloc_info.usage = vma::MemoryUsage::eUnknown;
+		alloc_info.requiredFlags = flags;
+		alloc_info.preferredFlags = {};
+		alloc_info.memoryTypeBits = std::numeric_limits<uint32_t>::max();
+		alloc_info.pool = nullptr;
+		alloc_info.pUserData = nullptr;
+		alloc_info.priority = 0.5f;
+
+		uint32_t memory_type_index = m_allocator.findMemoryTypeIndex(
+			std::numeric_limits<uint32_t>::max(),
+			alloc_info
+		);
+
+		vma::PoolCreateInfo pool_info;
+		pool_info.memoryTypeIndex = memory_type_index;
+		pool_info.flags = {};
+		pool_info.blockSize = 0;
+		pool_info.minBlockCount = 0;
+		pool_info.maxBlockCount = 0;
+		pool_info.priority = priority;
+		pool_info.minAllocationAlignment = 0;
+		pool_info.pMemoryAllocateNext = nullptr;
+
+		return m_allocator.createPool(pool_info);
+	};
+
+	m_memory_pools[static_cast<size_t>(MemoryType::eGPULowPrio)] = create_pool(
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		0.5f
+	);
+
+	m_memory_pools[static_cast<size_t>(MemoryType::eGPUHighPrio)] = create_pool(
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		1.0f
+	);
+
+	m_memory_pools[static_cast<size_t>(MemoryType::eCPUCached)] = create_pool(
+		vk::MemoryPropertyFlagBits::eHostVisible |
+			vk::MemoryPropertyFlagBits::eHostCoherent |
+			vk::MemoryPropertyFlagBits::eHostCached,
+		0.0f
+	);
+
+	m_memory_pools[static_cast<size_t>(MemoryType::eCPUUncached)] = create_pool(
+		vk::MemoryPropertyFlagBits::eHostVisible |
+			vk::MemoryPropertyFlagBits::eHostCoherent,
+		0.0f
+	);
+
+	m_memory_pools[static_cast<size_t>(MemoryType::eCPUVisibleGPU)] = create_pool(
+		vk::MemoryPropertyFlagBits::eDeviceLocal |
+			vk::MemoryPropertyFlagBits::eHostVisible |
+			vk::MemoryPropertyFlagBits::eHostCoherent,
+		0.0f
+	);
+}
+
+const vma::Allocator& cgpu::DeviceSession::getAllocator() const
+{
+	return m_allocator;
+}
+
+const vma::Pool& cgpu::DeviceSession::getMemoryPool(MemoryType type) const
+{
+	return m_memory_pools[static_cast<size_t>(type)];
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)

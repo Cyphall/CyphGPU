@@ -19,6 +19,8 @@ public:
 	{
 		eCore = 1 << 0,
 		eSwapchain = 1 << 1,
+		eMemoryBudget = 1 << 2,
+		eMemoryPriority = 1 << 3,
 	};
 
 	using Capabilities = vk::Flags<Capability>;
@@ -98,7 +100,9 @@ struct vk::FlagTraits<cgpu::Device::Capability>
 	static VULKAN_HPP_CONST_OR_CONSTEXPR bool isBitmask = true;
 	static VULKAN_HPP_CONST_OR_CONSTEXPR cgpu::Device::Capabilities allFlags =
 		cgpu::Device::Capability::eCore |
-		cgpu::Device::Capability::eSwapchain;
+		cgpu::Device::Capability::eSwapchain |
+		cgpu::Device::Capability::eMemoryBudget |
+		cgpu::Device::Capability::eMemoryPriority;
 };
 
 // NOLINTEND(readability-identifier-naming)

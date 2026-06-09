@@ -37,9 +37,9 @@ find_package(glm CONFIG REQUIRED)
 
 find_package(VulkanHeaders CONFIG REQUIRED)
 
-# ---- Dependency: VulkanMemoryAllocator ----
+# ---- Dependency: YaaZ/VulkanMemoryAllocator-Hpp ----
 
-find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(unofficial-vulkan-memory-allocator-hpp CONFIG REQUIRED)
 
 # ---- Dependency: Neargye/magic_enum ----
 
@@ -66,6 +66,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/DeviceSession/DeviceSession.cpp"
 	"src/cpp/CyphGPU/Queue/Queue.cpp"
 	"src/cpp/CyphGPU/Pipeline/VertexInputState.cpp"
+	"src/cpp/CyphGPU/VMA.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -79,6 +80,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/DeviceSession/DeviceSession.hpp"
 	"src/cpp/CyphGPU/Queue/Queue.hpp"
 	"src/cpp/CyphGPU/Pipeline/VertexInputState.hpp"
+	"src/cpp/CyphGPU/MemoryType.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
@@ -156,12 +158,12 @@ target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_XCB
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_XLIB}>:VK_USE_PLATFORM_XLIB_KHR>)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_WAYLAND}>:VK_USE_PLATFORM_WAYLAND_KHR>)
 
-# ---- Dependency: VulkanMemoryAllocator ----
+# ---- Dependency: YaaZ/VulkanMemoryAllocator-Hpp ----
 
-target_link_libraries(CyphGPU PUBLIC GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(CyphGPU PUBLIC unofficial::VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp)
 
 target_compile_definitions(CyphGPU PUBLIC VMA_STATIC_VULKAN_FUNCTIONS=0)
-target_compile_definitions(CyphGPU PUBLIC VMA_DYNAMIC_VULKAN_FUNCTIONS=0)
+target_compile_definitions(CyphGPU PUBLIC VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 # ---- Dependency: Neargye/magic_enum ----
 

@@ -270,10 +270,32 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
+	static CapabilityData memory_budget{
+		{
+			vk::EXTMemoryBudgetExtensionName,
+		},
+		[](DynamicFeatureChain&) {}
+	};
+
+	static CapabilityData memory_priority{
+		{
+			vk::EXTMemoryPriorityExtensionName,
+		},
+		[](DynamicFeatureChain& chain)
+		{
+			{
+				auto& features = chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
+				features.memoryPriority = vk::True;
+			}
+		}
+	};
+
 	switch (capability)
 	{
 	case Capability::eCore: return core;
 	case Capability::eSwapchain: return swapchain;
+	case Capability::eMemoryBudget: return memory_budget;
+	case Capability::eMemoryPriority: return memory_priority;
 	default: std::terminate();
 	}
 }
