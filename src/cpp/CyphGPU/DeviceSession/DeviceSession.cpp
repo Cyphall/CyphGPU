@@ -414,7 +414,7 @@ void cgpu::DeviceSession::createMemoryPools()
 
 void cgpu::DeviceSession::createDescriptorHeaps()
 {
-	auto create_heap = [&](uint32_t count, uint32_t descriptor_size, uint32_t reserved_range) -> Heap
+	auto create_heap = [&](uint32_t count, vk::DeviceSize descriptor_size, vk::DeviceSize reserved_range) -> Heap
 	{
 		vk::BufferCreateInfo buffer_info;
 		buffer_info.flags = {};

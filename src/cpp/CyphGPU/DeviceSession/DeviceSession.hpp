@@ -68,8 +68,8 @@ private:
 		vma::Allocation alloc{};
 		vk::DeviceAddress device_ptr{};
 		void* host_ptr{};
-		uint32_t descriptor_size{};
-		uint32_t reserved_range_offset{};
+		vk::DeviceSize descriptor_size{};
+		vk::DeviceSize reserved_range_offset{};
 		std::vector<uint32_t> available_indices{};
 	};
 
