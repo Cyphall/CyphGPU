@@ -152,6 +152,7 @@ target_compile_definitions(CyphGPU PUBLIC VK_NO_PROTOTYPES)
 target_compile_definitions(CyphGPU PUBLIC VULKAN_HPP_NO_DEFAULT_DISPATCHER)
 target_compile_definitions(CyphGPU PUBLIC VULKAN_HPP_NO_SETTERS)
 target_compile_definitions(CyphGPU PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+target_compile_definitions(CyphGPU PUBLIC NOMINMAX)
 
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_WIN32}>:VK_USE_PLATFORM_WIN32_KHR>)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_METAL}>:VK_USE_PLATFORM_METAL_EXT>)
