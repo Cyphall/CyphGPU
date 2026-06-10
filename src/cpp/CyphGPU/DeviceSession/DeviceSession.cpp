@@ -81,11 +81,15 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 {
 	createDevice();
 	createAllocator();
+	createDescriptorHeaps();
 }
 
 cgpu::DeviceSession::~DeviceSession()
 {
 	m_vertex_input_state_cache.clear();
+
+	m_allocator.destroyBuffer(m_resource_heap.buffer, m_resource_heap.alloc);
+	m_allocator.destroyBuffer(m_sampler_heap.buffer, m_sampler_heap.alloc);
 
 	for (const vma::Pool& pool : m_memory_pools)
 	{
@@ -406,6 +410,61 @@ void cgpu::DeviceSession::createMemoryPools()
 			vk::MemoryPropertyFlagBits::eHostCoherent,
 		0.0f
 	);
+}
+
+void cgpu::DeviceSession::createDescriptorHeaps()
+{
+	auto create_heap = [&](uint32_t count, uint32_t descriptor_size, uint32_t reserved_range) -> Heap
+	{
+		vk::BufferCreateInfo buffer_info;
+		buffer_info.flags = {};
+		buffer_info.size = count * descriptor_size + reserved_range;
+		buffer_info.usage = vk::BufferUsageFlagBits::eDescriptorHeapEXT | vk::BufferUsageFlagBits::eShaderDeviceAddress;
+		buffer_info.sharingMode = vk::SharingMode::eExclusive;
+		buffer_info.queueFamilyIndexCount = 0;
+		buffer_info.pQueueFamilyIndices = nullptr;
+
+		vma::AllocationCreateInfo alloc_create_info;
+		alloc_create_info.flags = vma::AllocationCreateFlagBits::eMapped;
+		alloc_create_info.usage = vma::MemoryUsage::eUnknown;
+		alloc_create_info.requiredFlags = {};
+		alloc_create_info.preferredFlags = {};
+		alloc_create_info.memoryTypeBits = {};
+		alloc_create_info.pool = m_memory_pools[static_cast<size_t>(MemoryType::eCPUVisibleGPU)];
+		alloc_create_info.pUserData = nullptr;
+		alloc_create_info.priority = 0.0f;
+
+		vma::AllocationInfo alloc_info;
+		auto [alloc, buffer] = m_allocator.createBuffer(buffer_info, alloc_create_info, alloc_info);
+
+		vk::BufferDeviceAddressInfo bda_info;
+		bda_info.buffer = buffer;
+
+		vk::DeviceAddress device_ptr = m_handle.getBufferAddress(bda_info, m_dispatcher);
+
+		Heap heap{
+			.buffer = buffer,
+			.alloc = alloc,
+			.device_ptr = device_ptr,
+			.host_ptr = alloc_info.pMappedData,
+			.descriptor_size = descriptor_size,
+			.reserved_range_offset = count * descriptor_size,
+		};
+
+		heap.available_indices.reserve(count - 1);
+		for (uint32_t i = count - 1; i > 0; i--)
+		{
+			heap.available_indices.emplace_back(i);
+		}
+
+		return heap;
+	};
+
+	const auto& props = m_device->getProperties<vk::PhysicalDeviceDescriptorHeapPropertiesEXT>();
+
+	// The specs guarantee at least this many descriptors
+	m_sampler_heap = create_heap(4000, props.samplerDescriptorSize, props.minSamplerHeapReservedRange);
+	m_resource_heap = create_heap(1015808, props.imageDescriptorSize, props.minResourceHeapReservedRange);
 }
 
 const vma::Allocator& cgpu::DeviceSession::getAllocator() const

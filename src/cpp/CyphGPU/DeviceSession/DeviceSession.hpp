@@ -62,6 +62,17 @@ public:
 private:
 	friend class VertexInputState;
 
+	struct Heap
+	{
+		vk::Buffer buffer{};
+		vma::Allocation alloc{};
+		vk::DeviceAddress device_ptr{};
+		void* host_ptr{};
+		uint32_t descriptor_size{};
+		uint32_t reserved_range_offset{};
+		std::vector<uint32_t> available_indices{};
+	};
+
 	template<class T>
 	class MetaObjectCache
 	{
@@ -93,11 +104,15 @@ private:
 
 	std::array<vma::Pool, magic_enum::enum_count<MemoryType>()> m_memory_pools{};
 
+	Heap m_sampler_heap;
+	Heap m_resource_heap;
+
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
 
 	void createDevice();
 	void createAllocator();
 	void createMemoryPools();
+	void createDescriptorHeaps();
 
 	[[nodiscard]]
 	const vma::Allocator& getAllocator() const;
