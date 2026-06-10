@@ -7,7 +7,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>
 #include <unordered_map>
-#include <vulkan-memory-allocator-hpp/vk_mem_alloc.hpp>
+#include <vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
