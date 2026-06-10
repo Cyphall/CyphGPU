@@ -24,6 +24,8 @@ Checks:
   - -*-pro-bounds-pointer-arithmetic
   - -*-exception-escape
   - -*-uppercase-literal-suffix
+  - -*-math-missing-parentheses
+  - -*-pro-bounds-constant-array-index
 CheckOptions:
   - { key: readability-identifier-naming.ClassCase,                          value: CamelCase }
 
