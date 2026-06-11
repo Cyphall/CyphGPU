@@ -81,6 +81,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 {
 	createDevice();
 	createAllocator();
+	createMemoryPools();
 	createDescriptorHeaps();
 }
 
