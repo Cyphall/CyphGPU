@@ -121,7 +121,7 @@ const vk::detail::DispatchLoaderDynamic& cgpu::DeviceSession::getDispatcher() co
 	return m_dispatcher;
 }
 
-const vk::Device& cgpu::DeviceSession::getHandle() const
+const vk::Device& cgpu::DeviceSession::getHandle()
 {
 	return m_handle;
 }

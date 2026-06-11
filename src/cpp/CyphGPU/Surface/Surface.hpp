@@ -39,7 +39,7 @@ public:
 	const Desc& getDesc() const;
 
 	[[nodiscard]]
-	const vk::SurfaceKHR& getHandle() const;
+	const vk::SurfaceKHR& getHandle();
 
 private:
 	ContextSessionPtr m_context_session;

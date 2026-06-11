@@ -45,7 +45,7 @@ public:
 	const vk::detail::DispatchLoaderDynamic& getDispatcher() const;
 
 	[[nodiscard]]
-	const vk::Instance& getHandle() const;
+	const vk::Instance& getHandle();
 
 	[[nodiscard]]
 	std::vector<DevicePtr> getDevices() const;

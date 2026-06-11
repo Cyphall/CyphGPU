@@ -40,7 +40,7 @@ public:
 	const Desc& getDesc() const;
 
 	[[nodiscard]]
-	const vk::Pipeline& getHandle() const;
+	const vk::Pipeline& getHandle();
 
 private:
 	friend class DeviceSession;

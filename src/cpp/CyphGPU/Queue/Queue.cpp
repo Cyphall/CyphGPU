@@ -19,7 +19,7 @@ cgpu::DeviceSessionPtr cgpu::Queue::getDeviceSession() const
 	return m_device_session->shared_from_this();
 }
 
-const vk::Queue& cgpu::Queue::getHandle() const
+const vk::Queue& cgpu::Queue::getHandle()
 {
 	return m_handle;
 }

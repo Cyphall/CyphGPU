@@ -37,7 +37,7 @@ public:
 	ContextSessionPtr getContextSession() const;
 
 	[[nodiscard]]
-	const vk::PhysicalDevice& getHandle() const;
+	const vk::PhysicalDevice& getHandle();
 
 	[[nodiscard]]
 	Capabilities getCapabilities() const;

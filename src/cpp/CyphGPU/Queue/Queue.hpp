@@ -26,7 +26,7 @@ public:
 	DeviceSessionPtr getDeviceSession() const;
 
 	[[nodiscard]]
-	const vk::Queue& getHandle() const;
+	const vk::Queue& getHandle();
 
 private:
 	friend class DeviceSession;

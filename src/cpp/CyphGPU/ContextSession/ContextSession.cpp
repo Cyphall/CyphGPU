@@ -73,7 +73,7 @@ const vk::detail::DispatchLoaderDynamic& cgpu::ContextSession::getDispatcher() c
 	return m_dispatcher;
 }
 
-const vk::Instance& cgpu::ContextSession::getHandle() const
+const vk::Instance& cgpu::ContextSession::getHandle()
 {
 	return m_handle;
 }

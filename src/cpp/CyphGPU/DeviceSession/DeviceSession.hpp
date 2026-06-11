@@ -45,7 +45,7 @@ public:
 	const vk::detail::DispatchLoaderDynamic& getDispatcher() const;
 
 	[[nodiscard]]
-	const vk::Device& getHandle() const;
+	const vk::Device& getHandle();
 
 	[[nodiscard]]
 	QueuePtr getMainQueue() const;

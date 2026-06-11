@@ -31,7 +31,7 @@ const cgpu::Surface::Desc& cgpu::Surface::getDesc() const
 	return m_desc;
 }
 
-const vk::SurfaceKHR& cgpu::Surface::getHandle() const
+const vk::SurfaceKHR& cgpu::Surface::getHandle()
 {
 	return m_handle;
 }

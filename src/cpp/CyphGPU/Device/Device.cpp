@@ -28,7 +28,7 @@ cgpu::ContextSessionPtr cgpu::Device::getContextSession() const
 	return m_context_session->shared_from_this();
 }
 
-const vk::PhysicalDevice& cgpu::Device::getHandle() const
+const vk::PhysicalDevice& cgpu::Device::getHandle()
 {
 	return m_handle;
 }
