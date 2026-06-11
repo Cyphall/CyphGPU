@@ -64,7 +64,7 @@ uint32_t cgpu::Buffer::getUniformTexelDescriptorHandle(vk::Format format, const 
 {
 	UniformTexelDescriptorInfo info;
 	info.format = format;
-	info.byte_range = overrides.byte_range.value_or({0, m_desc.size});
+	info.byte_range = overrides.byte_range.value_or(Range<vk::DeviceSize>{0, m_desc.size});
 
 	auto [it, inserted] = m_uniform_texel_cache.try_emplace(info);
 	if (inserted)
@@ -88,7 +88,7 @@ uint32_t cgpu::Buffer::getStorageTexelDescriptorHandle(vk::Format format, const 
 {
 	StorageTexelDescriptorInfo info;
 	info.format = format;
-	info.byte_range = overrides.byte_range.value_or({0, m_desc.size});
+	info.byte_range = overrides.byte_range.value_or(Range<vk::DeviceSize>{0, m_desc.size});
 
 	auto [it, inserted] = m_storage_texel_cache.try_emplace(info);
 	if (inserted)
