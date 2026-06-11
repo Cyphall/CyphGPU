@@ -32,4 +32,13 @@ void hashCombine(size_t& seed, const T& value)
 	seed *= 0xe9846af9b1a615d;
 	seed ^= seed >> 28;
 }
+
+template<class T>
+struct Range
+{
+	T offset{};
+	T size{};
+
+	auto operator<=>(const Range&) const = default;
+};
 }
