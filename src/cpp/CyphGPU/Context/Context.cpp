@@ -4,6 +4,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 #include <unordered_set>
+#include <utility>
 
 cgpu::ContextPtr cgpu::Context::create()
 {
@@ -138,7 +139,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #else
 	case Capability::eSurfaceWayland: return boost::none;
 #endif
-	default: std::terminate();
+	default: std::unreachable();
 	}
 }
 

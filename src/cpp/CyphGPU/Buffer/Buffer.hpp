@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
-#include <map>
+#include <flat_map>
 #include <optional>
 
 namespace cgpu
@@ -117,9 +117,8 @@ private:
 	vk::DeviceAddress m_device_ptr{};
 	std::optional<std::byte*> m_host_ptr{};
 
-	//TODO: replace with flat_map
-	std::map<UniformTexelDescriptorInfo, uint32_t> m_uniform_texel_cache;
-	std::map<StorageTexelDescriptorInfo, uint32_t> m_storage_texel_cache;
+	std::flat_map<UniformTexelDescriptorInfo, uint32_t> m_uniform_texel_cache;
+	std::flat_map<StorageTexelDescriptorInfo, uint32_t> m_storage_texel_cache;
 
 	void createBuffer();
 };

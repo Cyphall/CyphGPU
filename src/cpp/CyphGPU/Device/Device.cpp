@@ -5,6 +5,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 #include <unordered_set>
+#include <utility>
 
 namespace
 {
@@ -296,7 +297,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 	case Capability::eSwapchain: return swapchain;
 	case Capability::eMemoryBudget: return memory_budget;
 	case Capability::eMemoryPriority: return memory_priority;
-	default: std::terminate();
+	default: std::unreachable();
 	}
 }
 

@@ -87,7 +87,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
 
-set_target_properties(CyphGPU PROPERTIES CXX_STANDARD 20)
+set_target_properties(CyphGPU PROPERTIES CXX_STANDARD 23)
 set_target_properties(CyphGPU PROPERTIES CXX_STANDARD_REQUIRED ON)
 set_target_properties(CyphGPU PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(CyphGPU PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)

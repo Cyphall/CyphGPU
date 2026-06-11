@@ -17,7 +17,7 @@ target_sources(CyphGPU_sample PRIVATE
 target_sources(CyphGPU_sample PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 )
 
-set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD 20)
+set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD 23)
 set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD_REQUIRED ON)
 set_target_properties(CyphGPU_sample PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(CyphGPU_sample PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
