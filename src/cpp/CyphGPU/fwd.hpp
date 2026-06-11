@@ -10,6 +10,7 @@ class Surface;
 class Device;
 class DeviceSession;
 class Queue;
+class Buffer;
 class VertexInputState;
 
 using ContextPtr = std::shared_ptr<Context>;
@@ -18,5 +19,6 @@ using SurfacePtr = std::shared_ptr<Surface>;
 using DevicePtr = std::shared_ptr<Device>;
 using DeviceSessionPtr = std::shared_ptr<DeviceSession>;
 using QueuePtr = std::shared_ptr<Queue>;
+using BufferPtr = std::shared_ptr<Buffer>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
 }

@@ -1,4 +1,5 @@
 #include <boost/scope/scope_exit.hpp>
+#include <CyphGPU/Buffer/Buffer.hpp>
 #include <CyphGPU/Context/Context.hpp>
 #include <CyphGPU/ContextSession/ContextSession.hpp>
 #include <CyphGPU/Device/Device.hpp>
@@ -75,6 +76,19 @@ int main()
 			.surface = surface_raw,
 		}
 	);
+
+	cgpu::BufferPtr buffer = cgpu::Buffer::create(
+		device_session,
+		{
+			.name = "Buffer",
+			.size = 1024,
+			.usages = vk::BufferUsageFlagBits2::eUniformTexelBuffer |
+	                  vk::BufferUsageFlagBits2::eStorageTexelBuffer,
+		}
+	);
+
+	std::ignore = buffer->getUniformTexelDescriptorHandle(vk::Format::eR8G8B8A8Unorm);
+	std::ignore = buffer->getStorageTexelDescriptorHandle(vk::Format::eR8G8B8A8Unorm);
 
 	cgpu::VertexInputStatePtr vertex_input_state = cgpu::VertexInputState::create(
 		device_session,

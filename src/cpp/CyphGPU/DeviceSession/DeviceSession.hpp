@@ -60,6 +60,7 @@ public:
 	QueuePtr getAsyncTransferQueue() const;
 
 private:
+	friend class Buffer;
 	friend class VertexInputState;
 
 	struct Heap
