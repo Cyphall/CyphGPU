@@ -67,10 +67,16 @@ private:
 		vk::Buffer buffer{};
 		vma::Allocation alloc{};
 		vk::DeviceAddress device_ptr{};
-		void* host_ptr{};
+		std::byte* host_ptr{};
 		vk::DeviceSize descriptor_size{};
 		vk::DeviceSize reserved_range_offset{};
 		std::vector<uint32_t> available_indices{};
+		std::mutex mutex{};
+
+		[[nodiscard]]
+		std::pair<uint32_t, vk::HostAddressRangeEXT> reserveIndex();
+
+		void releaseIndex(uint32_t index);
 	};
 
 	template<class T>
@@ -119,6 +125,16 @@ private:
 
 	[[nodiscard]]
 	const vma::Pool& getMemoryPool(MemoryType type) const;
+
+	[[nodiscard]]
+	uint32_t createResourceDescriptor(const vk::ResourceDescriptorInfoEXT& info);
+
+	[[nodiscard]]
+	uint32_t createSamplerDescriptor(const vk::SamplerCreateInfo& info);
+
+	void deleteResourceDescriptor(uint32_t index);
+
+	void deleteSamplerDescriptor(uint32_t index);
 
 	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);

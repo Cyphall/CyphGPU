@@ -146,6 +146,27 @@ cgpu::QueuePtr cgpu::DeviceSession::getAsyncTransferQueue() const
 	return {shared_from_this(), m_async_transfer_queue.get()};
 }
 
+std::pair<uint32_t, vk::HostAddressRangeEXT> cgpu::DeviceSession::Heap::reserveIndex()
+{
+	uint32_t index;
+	{
+		std::unique_lock lock{mutex};
+		index = available_indices.back();
+		available_indices.pop_back();
+	}
+
+	vk::HostAddressRangeEXT dst;
+	dst.address = host_ptr + descriptor_size * index;
+	dst.size = descriptor_size;
+
+	return {index, dst};
+}
+
+void cgpu::DeviceSession::Heap::releaseIndex(uint32_t index)
+{
+	available_indices.emplace_back(index);
+}
+
 template<class T>
 T& cgpu::DeviceSession::MetaObjectCache<T>::get(DeviceSession& device_session, T::Desc&& desc)
 {
@@ -414,7 +435,7 @@ void cgpu::DeviceSession::createMemoryPools()
 
 void cgpu::DeviceSession::createDescriptorHeaps()
 {
-	auto create_heap = [&](uint32_t count, vk::DeviceSize descriptor_size, vk::DeviceSize reserved_range) -> Heap
+	auto create_heap = [&](Heap& heap, uint32_t count, vk::DeviceSize descriptor_size, vk::DeviceSize reserved_range)
 	{
 		vk::BufferCreateInfo buffer_info;
 		buffer_info.flags = {};
@@ -430,7 +451,7 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 		alloc_create_info.requiredFlags = {};
 		alloc_create_info.preferredFlags = {};
 		alloc_create_info.memoryTypeBits = {};
-		alloc_create_info.pool = m_memory_pools[static_cast<size_t>(MemoryType::eCPUVisibleGPU)];
+		alloc_create_info.pool = getMemoryPool(MemoryType::eCPUVisibleGPU);
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
 
@@ -442,29 +463,25 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 
 		vk::DeviceAddress device_ptr = m_handle.getBufferAddress(bda_info, m_dispatcher);
 
-		Heap heap{
-			.buffer = buffer,
-			.alloc = alloc,
-			.device_ptr = device_ptr,
-			.host_ptr = alloc_info.pMappedData,
-			.descriptor_size = descriptor_size,
-			.reserved_range_offset = count * descriptor_size,
-		};
+		heap.buffer = buffer;
+		heap.alloc = alloc;
+		heap.device_ptr = device_ptr;
+		heap.host_ptr = static_cast<std::byte*>(alloc_info.pMappedData);
+		heap.descriptor_size = descriptor_size;
+		heap.reserved_range_offset = count * descriptor_size;
 
 		heap.available_indices.reserve(count - 1);
 		for (uint32_t i = count - 1; i > 0; i--)
 		{
 			heap.available_indices.emplace_back(i);
 		}
-
-		return heap;
 	};
 
 	const auto& props = m_device->getProperties<vk::PhysicalDeviceDescriptorHeapPropertiesEXT>();
 
 	// The specs guarantee at least this many descriptors
-	m_sampler_heap = create_heap(4000, props.samplerDescriptorSize, props.minSamplerHeapReservedRange);
-	m_resource_heap = create_heap(1015808, props.imageDescriptorSize, props.minResourceHeapReservedRange);
+	create_heap(m_sampler_heap, 4000, props.samplerDescriptorSize, props.minSamplerHeapReservedRange);
+	create_heap(m_resource_heap, 1015808, props.imageDescriptorSize, props.minResourceHeapReservedRange);
 }
 
 const vma::Allocator& cgpu::DeviceSession::getAllocator() const
@@ -475,6 +492,34 @@ const vma::Allocator& cgpu::DeviceSession::getAllocator() const
 const vma::Pool& cgpu::DeviceSession::getMemoryPool(MemoryType type) const
 {
 	return m_memory_pools[static_cast<size_t>(type)];
+}
+
+uint32_t cgpu::DeviceSession::createResourceDescriptor(const vk::ResourceDescriptorInfoEXT& info)
+{
+	auto [index, dst] = m_resource_heap.reserveIndex();
+
+	m_handle.writeResourceDescriptorsEXT(info, dst, m_dispatcher);
+
+	return index;
+}
+
+uint32_t cgpu::DeviceSession::createSamplerDescriptor(const vk::SamplerCreateInfo& info)
+{
+	auto [index, dst] = m_resource_heap.reserveIndex();
+
+	m_handle.writeSamplerDescriptorsEXT(info, dst, m_dispatcher);
+
+	return index;
+}
+
+void cgpu::DeviceSession::deleteResourceDescriptor(uint32_t index)
+{
+	m_resource_heap.releaseIndex(index);
+}
+
+void cgpu::DeviceSession::deleteSamplerDescriptor(uint32_t index)
+{
+	m_sampler_heap.releaseIndex(index);
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
