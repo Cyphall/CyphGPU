@@ -31,12 +31,12 @@ public:
 
 	struct UniformTexelDescriptorOverrides
 	{
-		std::optional<Range<vk::DeviceSize>> byte_range;
+		std::optional<Range<vk::DeviceSize>> byte_range; /// Default: Whole range.
 	};
 
 	struct StorageTexelDescriptorOverrides
 	{
-		std::optional<Range<vk::DeviceSize>> byte_range;
+		std::optional<Range<vk::DeviceSize>> byte_range; /// Default: Whole range.
 	};
 
 	[[nodiscard]]
