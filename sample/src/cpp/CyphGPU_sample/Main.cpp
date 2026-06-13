@@ -5,6 +5,7 @@
 #include <CyphGPU/Device/Device.hpp>
 #include <CyphGPU/DeviceSession/DeviceSession.hpp>
 #include <CyphGPU/Image/Image.hpp>
+#include <CyphGPU/Sampler/Sampler.hpp>
 #include <CyphGPU/Surface/Surface.hpp>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
@@ -103,6 +104,14 @@ int main()
 	std::ignore = image->getSampledDescriptor();
 	std::ignore = image->getStorageDescriptor();
 	std::ignore = image->getAttachmentView(vk::Format::eR8G8B8A8Unorm, 0, {0, 1}, vk::ImageAspectFlagBits::eColor, true, vk::ImageUsageFlagBits::eColorAttachment);
+
+	cgpu::SamplerPtr sampler = cgpu::Sampler::create(
+		device_session,
+		{
+			.min_filter = vk::Filter::eLinear,
+			.mag_filter = vk::Filter::eLinear,
+		}
+	);
 
 	// Run render loop
 	while (glfwWindowShouldClose(window) == GLFW_FALSE)

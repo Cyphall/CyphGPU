@@ -69,6 +69,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/VMA.cpp"
 	"src/cpp/CyphGPU/Buffer/Buffer.cpp"
 	"src/cpp/CyphGPU/Image/Image.cpp"
+	"src/cpp/CyphGPU/Sampler/Sampler.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -85,6 +86,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/MemoryType.hpp"
 	"src/cpp/CyphGPU/Buffer/Buffer.hpp"
 	"src/cpp/CyphGPU/Image/Image.hpp"
+	"src/cpp/CyphGPU/Sampler/Sampler.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)

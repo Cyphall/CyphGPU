@@ -524,11 +524,6 @@ void cgpu::DeviceSession::deleteResourceDescriptor(uint32_t index)
 	m_resource_heap.releaseIndex(index);
 }
 
-void cgpu::DeviceSession::deleteSamplerDescriptor(uint32_t index)
-{
-	m_sampler_heap.releaseIndex(index);
-}
-
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
 {
 	return m_vertex_input_state_cache.get(*this, std::move(desc));

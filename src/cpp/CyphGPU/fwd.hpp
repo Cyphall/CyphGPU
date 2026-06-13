@@ -12,6 +12,7 @@ class DeviceSession;
 class Queue;
 class Buffer;
 class Image;
+class Sampler;
 class VertexInputState;
 
 using ContextPtr = std::shared_ptr<Context>;
@@ -22,5 +23,6 @@ using DeviceSessionPtr = std::shared_ptr<DeviceSession>;
 using QueuePtr = std::shared_ptr<Queue>;
 using BufferPtr = std::shared_ptr<Buffer>;
 using ImagePtr = std::shared_ptr<Image>;
+using SamplerPtr = std::shared_ptr<Sampler>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
 }

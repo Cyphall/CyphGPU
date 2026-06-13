@@ -62,6 +62,7 @@ public:
 private:
 	friend class Buffer;
 	friend class Image;
+	friend class Sampler;
 	friend class VertexInputState;
 
 	struct Heap
@@ -139,8 +140,6 @@ private:
 	uint32_t createSamplerDescriptor(const vk::SamplerCreateInfo& info);
 
 	void deleteResourceDescriptor(uint32_t index);
-
-	void deleteSamplerDescriptor(uint32_t index);
 
 	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
