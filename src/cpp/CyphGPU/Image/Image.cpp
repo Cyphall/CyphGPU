@@ -54,8 +54,8 @@ uint32_t cgpu::Image::getSampledDescriptorHandle(const SampledDescriptorOverride
 	info.format = overrides.format.value_or(m_desc.format);
 	info.levels = overrides.levels.value_or(Range<uint32_t>{0, vk::RemainingMipLevels});
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
-	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 	info.aspects = overrides.aspects.value_or(m_default_view_aspects);
+	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 
 	assert(getLinearEquivalent(info.format) == info.format);
 
@@ -100,7 +100,6 @@ uint32_t cgpu::Image::getStorageDescriptorHandle(const StorageDescriptorOverride
 	info.format = overrides.format.value_or(m_desc.format);
 	info.level = overrides.level.value_or(0u);
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
-	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 	info.aspects = overrides.aspects.value_or(m_default_view_aspects);
 
 	assert(getLinearEquivalent(info.format) == info.format);
@@ -113,7 +112,7 @@ uint32_t cgpu::Image::getStorageDescriptorHandle(const StorageDescriptorOverride
 		view_info.image = m_handle;
 		view_info.viewType = info.type;
 		view_info.format = info.format;
-		view_info.components = info.swizzle;
+		view_info.components = {};
 		view_info.subresourceRange.aspectMask = info.aspects;
 		view_info.subresourceRange.baseMipLevel = info.level;
 		view_info.subresourceRange.levelCount = 1;
