@@ -144,7 +144,9 @@ void cgpu::Buffer::createBuffer()
 	m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 
 	if (alloc_info.pMappedData)
+	{
 		m_host_ptr = static_cast<std::byte*>(alloc_info.pMappedData);
+	}
 
 	vk::BufferDeviceAddressInfo bda_info;
 	bda_info.buffer = m_handle;

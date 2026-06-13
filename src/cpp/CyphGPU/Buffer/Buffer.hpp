@@ -4,11 +4,11 @@
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <flat_map>
 #include <glm/glm.hpp>
+#include <optional>
 #include <vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
-#include <flat_map>
-#include <optional>
 
 namespace cgpu
 {

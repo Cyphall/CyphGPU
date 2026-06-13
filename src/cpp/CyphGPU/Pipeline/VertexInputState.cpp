@@ -2,6 +2,7 @@
 
 #include <CyphGPU/DeviceSession/DeviceSession.hpp>
 #include <CyphGPU/Utils.hpp>
+
 #include <vulkan/vulkan_hash.hpp>
 
 cgpu::VertexInputStatePtr cgpu::VertexInputState::create(const DeviceSessionPtr& device_session, Desc&& desc)
