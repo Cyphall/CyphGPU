@@ -85,10 +85,10 @@ public:
 	}
 
 	[[nodiscard]]
-	uint32_t getUniformTexelDescriptorHandle(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
+	uint32_t getUniformTexelDescriptor(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	uint32_t getStorageTexelDescriptorHandle(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
+	uint32_t getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
 
 private:
 	struct UniformTexelDescriptorInfo

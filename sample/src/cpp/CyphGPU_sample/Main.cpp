@@ -78,8 +78,8 @@ int main()
 		}
 	);
 
-	std::ignore = buffer->getUniformTexelDescriptorHandle(vk::Format::eR8G8B8A8Unorm);
-	std::ignore = buffer->getStorageTexelDescriptorHandle(vk::Format::eR8G8B8A8Unorm);
+	std::ignore = buffer->getUniformTexelDescriptor(vk::Format::eR8G8B8A8Unorm);
+	std::ignore = buffer->getStorageTexelDescriptor(vk::Format::eR8G8B8A8Unorm);
 
 	cgpu::VertexInputStatePtr vertex_input_state = cgpu::VertexInputState::create(
 		device_session,
@@ -100,8 +100,8 @@ int main()
 		}
 	);
 
-	std::ignore = image->getSampledDescriptorHandle();
-	std::ignore = image->getStorageDescriptorHandle();
+	std::ignore = image->getSampledDescriptor();
+	std::ignore = image->getStorageDescriptor();
 	std::ignore = image->getAttachmentView(vk::Format::eR8G8B8A8Unorm, 0, {0, 1}, vk::ImageAspectFlagBits::eColor, true, vk::ImageUsageFlagBits::eColorAttachment);
 
 	// Run render loop

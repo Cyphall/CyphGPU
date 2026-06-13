@@ -80,10 +80,10 @@ public:
 	const vk::Image& getHandle();
 
 	[[nodiscard]]
-	uint32_t getSampledDescriptorHandle(const SampledDescriptorOverrides& overrides = {});
+	uint32_t getSampledDescriptor(const SampledDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	uint32_t getStorageDescriptorHandle(const StorageDescriptorOverrides& overrides = {});
+	uint32_t getStorageDescriptor(const StorageDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, bool srgb_conversion, vk::ImageUsageFlagBits usage);
