@@ -112,7 +112,7 @@ uint32_t cgpu::Image::getStorageDescriptorHandle(const StorageDescriptorOverride
 		view_info.image = m_handle;
 		view_info.viewType = info.type;
 		view_info.format = info.format;
-		view_info.components = {};
+		view_info.components = vk::ComponentMapping{};
 		view_info.subresourceRange.aspectMask = info.aspects;
 		view_info.subresourceRange.baseMipLevel = info.level;
 		view_info.subresourceRange.levelCount = 1;
