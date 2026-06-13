@@ -2,6 +2,7 @@
 
 #include <CyphGPU/DeviceSession/DeviceSession.hpp>
 
+#include <bit>
 #include <cassert>
 #include <flat_set>
 #include <ranges>
