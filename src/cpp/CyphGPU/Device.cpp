@@ -1,6 +1,6 @@
 #include "Device.hpp"
 
-#include <CyphGPU/Context/Context.hpp>
+#include <CyphGPU/Context.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <magic_enum/magic_enum.hpp>

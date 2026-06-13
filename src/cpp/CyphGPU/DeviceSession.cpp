@@ -1,8 +1,8 @@
 #include "DeviceSession.hpp"
 
-#include <CyphGPU/Context/Context.hpp>
-#include <CyphGPU/Device/Device.hpp>
-#include <CyphGPU/Queue/Queue.hpp>
+#include <CyphGPU/Context.hpp>
+#include <CyphGPU/Device.hpp>
+#include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <magic_enum/magic_enum.hpp>

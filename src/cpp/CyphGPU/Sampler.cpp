@@ -1,6 +1,6 @@
 #include "Sampler.hpp"
 
-#include <CyphGPU/DeviceSession/DeviceSession.hpp>
+#include <CyphGPU/DeviceSession.hpp>
 
 cgpu::SamplerPtr cgpu::Sampler::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {

@@ -1,6 +1,6 @@
 #include "VertexInputState.hpp"
 
-#include <CyphGPU/DeviceSession/DeviceSession.hpp>
+#include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <vulkan/vulkan_hash.hpp>

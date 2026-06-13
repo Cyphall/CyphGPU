@@ -2,7 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
-#include <CyphGPU/Pipeline/VertexInputState.hpp>
+#include <CyphGPU/VertexInputState.hpp>
 
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>

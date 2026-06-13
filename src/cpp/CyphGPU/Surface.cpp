@@ -1,6 +1,6 @@
 #include "Surface.hpp"
 
-#include <CyphGPU/ContextSession/ContextSession.hpp>
+#include <CyphGPU/ContextSession.hpp>
 
 cgpu::SurfacePtr cgpu::Surface::create(const ContextSessionPtr& context_session, Desc&& desc)
 {

@@ -1,6 +1,6 @@
 #include "Buffer.hpp"
 
-#include <CyphGPU/DeviceSession/DeviceSession.hpp>
+#include <CyphGPU/DeviceSession.hpp>
 
 #include <ranges>
 

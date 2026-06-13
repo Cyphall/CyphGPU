@@ -1,7 +1,7 @@
 #pragma once
 
-#include <CyphGPU/ContextSession/ContextSession.hpp>
-#include <CyphGPU/Device/DynamicFeatureChain.hpp>
+#include <CyphGPU/ContextSession.hpp>
+#include <CyphGPU/DynamicFeatureChain.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <boost/optional.hpp>

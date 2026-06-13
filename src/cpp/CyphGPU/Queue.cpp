@@ -1,6 +1,6 @@
 #include "Queue.hpp"
 
-#include <CyphGPU/DeviceSession/DeviceSession.hpp>
+#include <CyphGPU/DeviceSession.hpp>
 
 cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue):
 	m_device_session{&device_session},

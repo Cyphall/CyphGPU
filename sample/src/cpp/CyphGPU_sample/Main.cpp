@@ -1,12 +1,12 @@
 #include <boost/scope/scope_exit.hpp>
-#include <CyphGPU/Buffer/Buffer.hpp>
-#include <CyphGPU/Context/Context.hpp>
-#include <CyphGPU/ContextSession/ContextSession.hpp>
-#include <CyphGPU/Device/Device.hpp>
-#include <CyphGPU/DeviceSession/DeviceSession.hpp>
-#include <CyphGPU/Image/Image.hpp>
-#include <CyphGPU/Sampler/Sampler.hpp>
-#include <CyphGPU/Surface/Surface.hpp>
+#include <CyphGPU/Buffer.hpp>
+#include <CyphGPU/Context.hpp>
+#include <CyphGPU/ContextSession.hpp>
+#include <CyphGPU/Device.hpp>
+#include <CyphGPU/DeviceSession.hpp>
+#include <CyphGPU/Image.hpp>
+#include <CyphGPU/Sampler.hpp>
+#include <CyphGPU/Surface.hpp>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
