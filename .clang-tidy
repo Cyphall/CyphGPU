@@ -26,6 +26,8 @@ Checks:
   - -*-uppercase-literal-suffix
   - -*-math-missing-parentheses
   - -*-pro-bounds-constant-array-index
+  - -*-pro-type-union-access
+  - -*-identifier-length
 CheckOptions:
   - { key: readability-identifier-naming.ClassCase,                          value: CamelCase }
 

@@ -4,6 +4,7 @@
 #include <CyphGPU/ContextSession/ContextSession.hpp>
 #include <CyphGPU/Device/Device.hpp>
 #include <CyphGPU/DeviceSession/DeviceSession.hpp>
+#include <CyphGPU/Image/Image.hpp>
 #include <CyphGPU/Surface/Surface.hpp>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
@@ -96,6 +97,20 @@ int main()
 			.topology = vk::PrimitiveTopology::eTriangleList,
 		}
 	);
+
+	cgpu::ImagePtr image = cgpu::Image::create(
+		device_session,
+		{
+			.name = "Buffer",
+			.format = vk::Format::eR8G8B8A8Unorm,
+			.extent = {1024, 1024, 1},
+			.usages = vk::ImageUsageFlagBits::eSampled |
+	                  vk::ImageUsageFlagBits::eStorage,
+		}
+	);
+
+	std::ignore = image->getSampledDescriptorHandle();
+	std::ignore = image->getStorageDescriptorHandle();
 
 	// Run render loop
 	while (glfwWindowShouldClose(window) == GLFW_FALSE)

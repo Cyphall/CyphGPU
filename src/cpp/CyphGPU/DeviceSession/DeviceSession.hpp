@@ -61,6 +61,7 @@ public:
 
 private:
 	friend class Buffer;
+	friend class Image;
 	friend class VertexInputState;
 
 	struct Heap

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {
@@ -41,4 +42,13 @@ struct Range
 
 	auto operator<=>(const Range&) const = default;
 };
+
+[[nodiscard]]
+vk::Format getLinearEquivalent(vk::Format format);
+
+[[nodiscard]]
+vk::Format getSrgbEquivalent(vk::Format format);
+
+[[nodiscard]]
+vk::ImageAspectFlags getAspects(vk::Format format);
 }
