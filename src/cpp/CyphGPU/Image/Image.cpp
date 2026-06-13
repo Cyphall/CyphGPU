@@ -49,12 +49,14 @@ const vk::Image& cgpu::Image::getHandle()
 
 uint32_t cgpu::Image::getSampledDescriptorHandle(const SampledDescriptorOverrides& overrides)
 {
+	assert(overrides.aspect || m_default_view_aspect);
+
 	SampledDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
 	info.format = overrides.format.value_or(m_desc.format);
 	info.levels = overrides.levels.value_or(Range<uint32_t>{0, vk::RemainingMipLevels});
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
-	info.aspects = overrides.aspects.value_or(m_default_view_aspects);
+	info.aspect = *overrides.aspect.or_else([&] { return m_default_view_aspect; });
 	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 
 	assert(getLinearEquivalent(info.format) == info.format);
@@ -73,7 +75,7 @@ uint32_t cgpu::Image::getSampledDescriptorHandle(const SampledDescriptorOverride
 		view_info.viewType = info.type;
 		view_info.format = info.format;
 		view_info.components = info.swizzle;
-		view_info.subresourceRange.aspectMask = info.aspects;
+		view_info.subresourceRange.aspectMask = info.aspect;
 		view_info.subresourceRange.baseMipLevel = info.levels.offset;
 		view_info.subresourceRange.levelCount = info.levels.size;
 		view_info.subresourceRange.baseArrayLayer = info.layers.offset;
@@ -95,12 +97,14 @@ uint32_t cgpu::Image::getSampledDescriptorHandle(const SampledDescriptorOverride
 
 uint32_t cgpu::Image::getStorageDescriptorHandle(const StorageDescriptorOverrides& overrides)
 {
+	assert(overrides.aspect || m_default_view_aspect);
+
 	StorageDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
 	info.format = overrides.format.value_or(m_desc.format);
 	info.level = overrides.level.value_or(0u);
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
-	info.aspects = overrides.aspects.value_or(m_default_view_aspects);
+	info.aspect = *overrides.aspect.or_else([&] { return m_default_view_aspect; });
 
 	assert(getLinearEquivalent(info.format) == info.format);
 
@@ -113,7 +117,7 @@ uint32_t cgpu::Image::getStorageDescriptorHandle(const StorageDescriptorOverride
 		view_info.viewType = info.type;
 		view_info.format = info.format;
 		view_info.components = vk::ComponentMapping{};
-		view_info.subresourceRange.aspectMask = info.aspects;
+		view_info.subresourceRange.aspectMask = info.aspect;
 		view_info.subresourceRange.baseMipLevel = info.level;
 		view_info.subresourceRange.levelCount = 1;
 		view_info.subresourceRange.baseArrayLayer = info.layers.offset;
@@ -224,7 +228,11 @@ void cgpu::Image::createImage()
 
 	m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 
-	m_default_view_aspects = getAspects(m_desc.format);
+	vk::ImageAspectFlags aspects = getAspects(m_desc.format);
+	if (std::has_single_bit(static_cast<vk::ImageAspectFlags::MaskType>(aspects)))
+	{
+		m_default_view_aspect = std::bit_cast<vk::ImageAspectFlagBits>(aspects);
+	}
 }
 
 uint32_t cgpu::Image::calcDefaultLayerCount(vk::ImageViewType type)

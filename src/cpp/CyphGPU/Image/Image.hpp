@@ -43,7 +43,7 @@ public:
 		std::optional<vk::Format> format; /// Default: Image format. Do not use an sRGB format here. Instead, set srgb_conversion.
 		std::optional<Range<uint32_t>> levels; /// Default: All levels.
 		std::optional<Range<uint32_t>> layers; /// Default: First layer = 0. Layer count = 6 if type is Cube, image layer count if type is 1D/2D/CubeArray, 1 otherwise.
-		std::optional<vk::ImageAspectFlags> aspects; /// Default: All aspects.
+		std::optional<vk::ImageAspectFlagBits> aspect; /// Default: Main aspect. For multi-aspect formats, this field must be set.
 		std::optional<vk::ComponentMapping> swizzle; /// Default: Identity.
 		std::optional<bool> srgb_conversion; /// Default: false.
 	};
@@ -54,7 +54,7 @@ public:
 		std::optional<vk::Format> format; /// Default: Image format. Do not use an sRGB format here. sRGB is not supported for storage descriptors.
 		std::optional<uint32_t> level; /// Default: 0.
 		std::optional<Range<uint32_t>> layers; /// Default: First layer = 0. Layer count = 6 if type is Cube, image layer count if type is 1D/2D/CubeArray, 1 otherwise.
-		std::optional<vk::ImageAspectFlags> aspects; /// Default: All aspects.
+		std::optional<vk::ImageAspectFlagBits> aspect; /// Default: Main aspect. For multi-aspect formats, this field must be set.
 	};
 
 	[[nodiscard]]
@@ -92,7 +92,7 @@ private:
 		vk::Format format{};
 		Range<uint32_t> levels{};
 		Range<uint32_t> layers{};
-		vk::ImageAspectFlags aspects{};
+		vk::ImageAspectFlagBits aspect{};
 		vk::ComponentMapping swizzle{};
 
 		auto operator<=>(const SampledDescriptorInfo&) const = default;
@@ -104,7 +104,7 @@ private:
 		vk::Format format{};
 		uint32_t level{};
 		Range<uint32_t> layers{};
-		vk::ImageAspectFlags aspects{};
+		vk::ImageAspectFlagBits aspect{};
 
 		auto operator<=>(const StorageDescriptorInfo&) const = default;
 	};
@@ -117,7 +117,7 @@ private:
 	vma::Allocation m_alloc{};
 
 	vk::ImageViewType m_default_view_type{};
-	vk::ImageAspectFlags m_default_view_aspects{};
+	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};
 
 	std::flat_map<SampledDescriptorInfo, uint32_t> m_sampled_cache;
 	std::flat_map<StorageDescriptorInfo, uint32_t> m_storage_cache;
