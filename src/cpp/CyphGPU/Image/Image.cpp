@@ -20,6 +20,10 @@ cgpu::Image::Image(PrivateKey, const DeviceSessionPtr& device_session, Desc&& de
 
 cgpu::Image::~Image()
 {
+	for (vk::ImageView view : m_attachment_cache | std::views::values)
+	{
+		m_device_session->getHandle().destroyImageView(view, nullptr, m_device_session->getDispatcher());
+	}
 	for (uint32_t index : m_storage_cache | std::views::values)
 	{
 		m_device_session->deleteResourceDescriptor(index);
@@ -132,6 +136,50 @@ uint32_t cgpu::Image::getStorageDescriptorHandle(const StorageDescriptorOverride
 		desc_info.data.pImage = &typed_info;
 
 		it->second = m_device_session->createResourceDescriptor(desc_info);
+	}
+
+	return it->second;
+}
+
+vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, bool srgb_conversion, vk::ImageUsageFlagBits usage)
+{
+	AttachmentViewInfo info;
+	info.format = format;
+	info.level = level;
+	info.layers = layers;
+	info.aspects = aspects;
+
+	assert(getLinearEquivalent(info.format) == info.format);
+
+	if (srgb_conversion)
+	{
+		info.format = getSrgbEquivalent(info.format);
+	}
+
+	auto [it, inserted] = m_attachment_cache.try_emplace(info);
+	if (inserted)
+	{
+		vk::StructureChain<
+			vk::ImageViewCreateInfo,
+			vk::ImageViewUsageCreateInfo>
+			chain;
+
+		auto& view_info = chain.get<vk::ImageViewCreateInfo>();
+		view_info.flags = {};
+		view_info.image = m_handle;
+		view_info.viewType = vk::ImageViewType::e2D;
+		view_info.format = info.format;
+		view_info.components = vk::ComponentMapping{};
+		view_info.subresourceRange.aspectMask = info.aspects;
+		view_info.subresourceRange.baseMipLevel = info.level;
+		view_info.subresourceRange.levelCount = 1;
+		view_info.subresourceRange.baseArrayLayer = info.layers.offset;
+		view_info.subresourceRange.layerCount = info.layers.size;
+
+		auto& view_usage_info = chain.get<vk::ImageViewUsageCreateInfo>();
+		view_usage_info.usage = usage;
+
+		it->second = m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher());
 	}
 
 	return it->second;

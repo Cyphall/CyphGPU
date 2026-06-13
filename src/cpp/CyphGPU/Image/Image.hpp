@@ -85,6 +85,9 @@ public:
 	[[nodiscard]]
 	uint32_t getStorageDescriptorHandle(const StorageDescriptorOverrides& overrides = {});
 
+	[[nodiscard]]
+	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, bool srgb_conversion, vk::ImageUsageFlagBits usage);
+
 private:
 	struct SampledDescriptorInfo
 	{
@@ -109,6 +112,16 @@ private:
 		auto operator<=>(const StorageDescriptorInfo&) const = default;
 	};
 
+	struct AttachmentViewInfo
+	{
+		vk::Format format{};
+		uint32_t level{};
+		Range<uint32_t> layers{};
+		vk::ImageAspectFlags aspects{};
+
+		auto operator<=>(const AttachmentViewInfo&) const = default;
+	};
+
 	DeviceSessionPtr m_device_session;
 
 	Desc m_desc;
@@ -121,6 +134,9 @@ private:
 
 	std::flat_map<SampledDescriptorInfo, uint32_t> m_sampled_cache;
 	std::flat_map<StorageDescriptorInfo, uint32_t> m_storage_cache;
+
+	//TODO: remove once we have an extension to remove image views from attachments
+	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;
 
 	void createImage();
 

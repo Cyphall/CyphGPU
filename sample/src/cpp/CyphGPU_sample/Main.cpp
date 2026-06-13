@@ -95,12 +95,14 @@ int main()
 			.format = vk::Format::eR8G8B8A8Unorm,
 			.extent = {1024, 1024, 1},
 			.usages = vk::ImageUsageFlagBits::eSampled |
-	                  vk::ImageUsageFlagBits::eStorage,
+	                  vk::ImageUsageFlagBits::eStorage |
+	                  vk::ImageUsageFlagBits::eColorAttachment,
 		}
 	);
 
 	std::ignore = image->getSampledDescriptorHandle();
 	std::ignore = image->getStorageDescriptorHandle();
+	std::ignore = image->getAttachmentView(vk::Format::eR8G8B8A8Unorm, 0, {0, 1}, vk::ImageAspectFlagBits::eColor, true, vk::ImageUsageFlagBits::eColorAttachment);
 
 	// Run render loop
 	while (glfwWindowShouldClose(window) == GLFW_FALSE)
