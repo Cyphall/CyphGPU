@@ -103,6 +103,8 @@ private:
 
 	vk::Device m_handle{};
 
+	std::vector<uint32_t> m_active_queue_families{};
+
 	std::shared_ptr<Queue> m_main_queue{};
 	std::shared_ptr<Queue> m_async_graphics_queue{};
 	std::shared_ptr<Queue> m_async_compute_queue{};
@@ -127,6 +129,8 @@ private:
 
 	[[nodiscard]]
 	const vma::Pool& getMemoryPool(MemoryType type) const;
+
+	std::span<const uint32_t> getActiveQueueFamilies() const;
 
 	[[nodiscard]]
 	uint32_t createResourceDescriptor(const vk::ResourceDescriptorInfoEXT& info);

@@ -110,6 +110,8 @@ uint32_t cgpu::Buffer::getStorageTexelDescriptorHandle(vk::Format format, const 
 
 void cgpu::Buffer::createBuffer()
 {
+	std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
+
 	vk::StructureChain<
 		vk::BufferCreateInfo,
 		vk::BufferUsageFlags2CreateInfo>
@@ -119,9 +121,9 @@ void cgpu::Buffer::createBuffer()
 	buffer_info.flags = {};
 	buffer_info.size = m_desc.size;
 	buffer_info.usage = {};
-	buffer_info.sharingMode = vk::SharingMode::eExclusive;
-	buffer_info.queueFamilyIndexCount = 0;
-	buffer_info.pQueueFamilyIndices = nullptr;
+	buffer_info.sharingMode = vk::SharingMode::eConcurrent;
+	buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
+	buffer_info.pQueueFamilyIndices = queue_families.data();
 
 	auto& buffer_usage_info = chain.get<vk::BufferUsageFlags2CreateInfo>();
 	buffer_usage_info.usage = m_desc.usages | vk::BufferUsageFlagBits2::eShaderDeviceAddress;

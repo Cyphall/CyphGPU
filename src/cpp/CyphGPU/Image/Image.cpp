@@ -182,6 +182,8 @@ void cgpu::Image::createImage()
 
 	std::vector<vk::Format> view_formats = std::move(view_formats_set).extract();
 
+	std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
+
 	vk::StructureChain<
 		vk::ImageCreateInfo,
 		vk::ImageFormatListCreateInfo>
@@ -199,9 +201,9 @@ void cgpu::Image::createImage()
 	image_info.samples = m_desc.samples;
 	image_info.tiling = vk::ImageTiling::eOptimal;
 	image_info.usage = m_desc.usages;
-	image_info.sharingMode = vk::SharingMode::eExclusive;
-	image_info.queueFamilyIndexCount = 0;
-	image_info.pQueueFamilyIndices = nullptr;
+	image_info.sharingMode = vk::SharingMode::eConcurrent;
+	image_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
+	image_info.pQueueFamilyIndices = queue_families.data();
 	image_info.initialLayout = vk::ImageLayout::eUndefined;
 
 	auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();

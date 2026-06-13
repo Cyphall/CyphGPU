@@ -305,6 +305,11 @@ void cgpu::DeviceSession::createDevice()
 			return {};
 		}
 
+		if (!std::ranges::contains(m_active_queue_families, *family))
+		{
+			m_active_queue_families.emplace_back(*family);
+		}
+
 		vk::DeviceQueueInfo2 info;
 		info.flags = vk::DeviceQueueCreateFlagBits::eInternallySynchronizedKHR;
 		info.queueFamilyIndex = *family;
@@ -493,6 +498,11 @@ const vma::Allocator& cgpu::DeviceSession::getAllocator() const
 const vma::Pool& cgpu::DeviceSession::getMemoryPool(MemoryType type) const
 {
 	return m_memory_pools[static_cast<size_t>(type)];
+}
+
+std::span<const uint32_t> cgpu::DeviceSession::getActiveQueueFamilies() const
+{
+	return m_active_queue_families;
 }
 
 uint32_t cgpu::DeviceSession::createResourceDescriptor(const vk::ResourceDescriptorInfoEXT& info)
