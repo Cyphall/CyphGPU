@@ -158,8 +158,7 @@ void cgpu::Context::checkCapabilitySupport()
 		supported_extensions.emplace(extension_properties.extensionName.data());
 	}
 
-	auto is_capability_supported = [&](Capability capability) -> bool
-	{
+	auto is_capability_supported = [&](Capability capability) -> bool {
 		boost::optional<const CapabilityData&> capability_data = getCapabilityData(capability);
 		if (!capability_data)
 		{

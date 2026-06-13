@@ -49,23 +49,13 @@ int main()
 	// Create GLFW window
 	glfwInitVulkanLoader(context_session->getDispatcher().vkGetInstanceProcAddr);
 	glfwInit();
-	auto terminate_glfw = boost::scope::make_scope_exit(
-		[&]
-		{
-			glfwTerminate();
-		}
-	);
+	auto terminate_glfw = boost::scope::make_scope_exit([&] { glfwTerminate(); });
 
 	glfwDefaultWindowHints();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 	GLFWwindow* window = glfwCreateWindow(800, 600, "CyphGPU sample", nullptr, nullptr);
-	auto destroy_glfw_window = boost::scope::make_scope_exit(
-		[&]
-		{
-			glfwDestroyWindow(window);
-		}
-	);
+	auto destroy_glfw_window = boost::scope::make_scope_exit([&] { glfwDestroyWindow(window); });
 
 	// Create surface
 	VkSurfaceKHR surface_raw{};

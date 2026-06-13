@@ -51,8 +51,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
 		},
-		[](DynamicFeatureChain& chain)
-		{
+		[](DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceFeatures2>().features;
 				// features.robustBufferAccess = vk::True;
@@ -262,8 +261,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRSwapchainMutableFormatExtensionName,
 			vk::KHRSwapchainMaintenance1ExtensionName,
 		},
-		[](DynamicFeatureChain& chain)
-		{
+		[](DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>();
 				features.swapchainMaintenance1 = vk::True;
@@ -282,8 +280,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		{
 			vk::EXTMemoryPriorityExtensionName,
 		},
-		[](DynamicFeatureChain& chain)
-		{
+		[](DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
 				features.memoryPriority = vk::True;
@@ -316,8 +313,7 @@ void cgpu::Device::checkCapabilitySupport()
 		supported_extensions.emplace(extension_properties.extensionName.data());
 	}
 
-	auto is_capability_supported = [&](Capability capability) -> bool
-	{
+	auto is_capability_supported = [&](Capability capability) -> bool {
 		boost::optional<const CapabilityData&> capability_data = getCapabilityData(capability);
 		if (!capability_data)
 		{

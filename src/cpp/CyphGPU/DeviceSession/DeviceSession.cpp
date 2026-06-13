@@ -222,8 +222,7 @@ void cgpu::DeviceSession::createDevice()
 	std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
 	std::vector<std::vector<float>> queue_priorities;
 
-	auto try_register_queue = [&](const std::optional<uint32_t>& family, float priority) -> std::optional<uint32_t>
-	{
+	auto try_register_queue = [&](const std::optional<uint32_t>& family, float priority) -> std::optional<uint32_t> {
 		if (!family)
 		{
 			return std::nullopt;
@@ -298,8 +297,7 @@ void cgpu::DeviceSession::createDevice()
 
 	// Create queues
 
-	auto try_create_queue = [&](const std::optional<uint32_t>& family, const std::optional<uint32_t>& index) -> std::shared_ptr<Queue>
-	{
+	auto try_create_queue = [&](const std::optional<uint32_t>& family, const std::optional<uint32_t>& index) -> std::shared_ptr<Queue> {
 		if (!family || !index)
 		{
 			return {};
@@ -378,8 +376,7 @@ void cgpu::DeviceSession::createAllocator()
 
 void cgpu::DeviceSession::createMemoryPools()
 {
-	auto create_pool = [&](vk::MemoryPropertyFlags flags, float priority)
-	{
+	auto create_pool = [&](vk::MemoryPropertyFlags flags, float priority) {
 		vma::AllocationCreateInfo alloc_info;
 		alloc_info.flags = {};
 		alloc_info.usage = vma::MemoryUsage::eUnknown;
@@ -441,8 +438,7 @@ void cgpu::DeviceSession::createMemoryPools()
 
 void cgpu::DeviceSession::createDescriptorHeaps()
 {
-	auto create_heap = [&](Heap& heap, uint32_t count, vk::DeviceSize descriptor_size, vk::DeviceSize reserved_range)
-	{
+	auto create_heap = [&](Heap& heap, uint32_t count, vk::DeviceSize descriptor_size, vk::DeviceSize reserved_range) {
 		vk::BufferCreateInfo buffer_info;
 		buffer_info.flags = {};
 		buffer_info.size = count * descriptor_size + reserved_range;
