@@ -1,8 +1,10 @@
 #include "Device.hpp"
 
 #include <CyphGPU/Context.hpp>
+#include <CyphGPU/Surface.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <flat_set>
 #include <magic_enum/magic_enum.hpp>
 #include <unordered_set>
 #include <utility>
@@ -37,6 +39,33 @@ const vk::PhysicalDevice& cgpu::Device::getHandle()
 cgpu::Device::Capabilities cgpu::Device::getCapabilities() const
 {
 	return m_capabilities;
+}
+
+std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
+	const cgpu::SurfacePtr& surface,
+	std::span<const vk::SurfaceFormatKHR> formats
+) const
+{
+	std::flat_set supported_formats = m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher());
+
+	for (const vk::SurfaceFormatKHR& format : formats)
+	{
+		assert(getLinearEquivalent(format.format) == format.format);
+
+		if (supported_formats.contains(format))
+		{
+			return format;
+		}
+	}
+
+	return std::nullopt;
+}
+
+vk::SurfaceFormatKHR cgpu::Device::getDefaultSurfaceFormat(const cgpu::SurfacePtr& surface) const
+{
+	auto format = m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher())[0];
+	format.format = getLinearEquivalent(format.format);
+	return format;
 }
 
 boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapabilityData(Capability capability)

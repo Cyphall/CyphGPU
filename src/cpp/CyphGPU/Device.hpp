@@ -66,6 +66,15 @@ public:
 		return *static_cast<const T*>(it->second.get());
 	}
 
+	[[nodiscard]]
+	std::optional<vk::SurfaceFormatKHR> selectBestSurfaceFormat(
+		const cgpu::SurfacePtr& surface,
+		std::span<const vk::SurfaceFormatKHR> formats
+	) const;
+
+	[[nodiscard]]
+	vk::SurfaceFormatKHR getDefaultSurfaceFormat(const cgpu::SurfacePtr& surface) const;
+
 private:
 	friend class ContextSession;
 	friend class DeviceSession;
