@@ -13,6 +13,7 @@ class Queue;
 class Buffer;
 class Image;
 class Sampler;
+class Swapchain;
 class VertexInputState;
 
 using ContextPtr = std::shared_ptr<Context>;
@@ -24,5 +25,6 @@ using QueuePtr = std::shared_ptr<Queue>;
 using BufferPtr = std::shared_ptr<Buffer>;
 using ImagePtr = std::shared_ptr<Image>;
 using SamplerPtr = std::shared_ptr<Sampler>;
+using SwapchainPtr = std::shared_ptr<Swapchain>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
 }

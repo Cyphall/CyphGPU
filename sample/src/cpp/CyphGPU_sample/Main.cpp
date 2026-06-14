@@ -7,6 +7,7 @@
 #include <CyphGPU/Image.hpp>
 #include <CyphGPU/Sampler.hpp>
 #include <CyphGPU/Surface.hpp>
+#include <CyphGPU/Swapchain.hpp>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
@@ -110,6 +111,19 @@ int main()
 		{
 			.min_filter = vk::Filter::eLinear,
 			.mag_filter = vk::Filter::eLinear,
+		}
+	);
+
+	glm::ivec2 extent;
+	glfwGetFramebufferSize(window, &extent.x, &extent.y);
+
+	cgpu::SwapchainPtr swapchain = cgpu::Swapchain::create(
+		device_session,
+		surface,
+		{
+			.format = (*selected_device)->getDefaultSurfaceFormat(surface),
+			.preferred_extent = extent,
+			.usages = vk::ImageUsageFlagBits::eTransferDst,
 		}
 	);
 

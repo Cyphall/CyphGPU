@@ -63,6 +63,7 @@ private:
 	friend class Buffer;
 	friend class Image;
 	friend class Sampler;
+	friend class Swapchain;
 	friend class VertexInputState;
 
 	struct Heap
