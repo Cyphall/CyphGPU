@@ -467,10 +467,12 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 
 		heap.buffer = buffer;
 		heap.alloc = alloc;
-		heap.device_ptr = device_ptr;
 		heap.host_ptr = static_cast<std::byte*>(alloc_info.pMappedData);
 		heap.descriptor_size = descriptor_size;
-		heap.reserved_range_offset = count * descriptor_size;
+		heap.bind_heap_info.heapRange.address = device_ptr;
+		heap.bind_heap_info.heapRange.size = buffer_info.size;
+		heap.bind_heap_info.reservedRangeOffset = count * descriptor_size;
+		heap.bind_heap_info.reservedRangeSize = reserved_range;
 
 		heap.available_indices.reserve(count - 1);
 		for (uint32_t i = count - 1; i > 0; i--)
@@ -522,6 +524,16 @@ uint32_t cgpu::DeviceSession::createSamplerDescriptor(const vk::SamplerCreateInf
 void cgpu::DeviceSession::deleteResourceDescriptor(uint32_t index)
 {
 	m_resource_heap.releaseIndex(index);
+}
+
+const vk::BindHeapInfoEXT& cgpu::DeviceSession::getResourceBindHeapInfo() const
+{
+	return m_resource_heap.bind_heap_info;
+}
+
+const vk::BindHeapInfoEXT& cgpu::DeviceSession::getSamplerBindHeapInfo() const
+{
+	return m_sampler_heap.bind_heap_info;
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)

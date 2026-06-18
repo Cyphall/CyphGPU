@@ -70,10 +70,9 @@ private:
 	{
 		vk::Buffer buffer{};
 		vma::Allocation alloc{};
-		vk::DeviceAddress device_ptr{};
 		std::byte* host_ptr{};
 		vk::DeviceSize descriptor_size{};
-		vk::DeviceSize reserved_range_offset{};
+		vk::BindHeapInfoEXT bind_heap_info{};
 		std::vector<uint32_t> available_indices{};
 		std::mutex mutex{};
 
@@ -141,6 +140,12 @@ private:
 	uint32_t createSamplerDescriptor(const vk::SamplerCreateInfo& info);
 
 	void deleteResourceDescriptor(uint32_t index);
+
+	[[nodiscard]]
+	const vk::BindHeapInfoEXT& getResourceBindHeapInfo() const;
+
+	[[nodiscard]]
+	const vk::BindHeapInfoEXT& getSamplerBindHeapInfo() const;
 
 	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
