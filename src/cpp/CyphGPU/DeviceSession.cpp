@@ -87,6 +87,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 
 cgpu::DeviceSession::~DeviceSession()
 {
+	m_fragment_output_state_cache.clear();
 	m_vertex_input_state_cache.clear();
 	m_sampler_cache.clear();
 
@@ -551,4 +552,9 @@ cgpu::Sampler& cgpu::DeviceSession::getSampler(Sampler::Desc&& desc)
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
 {
 	return m_vertex_input_state_cache.get(*this, std::move(desc));
+}
+
+cgpu::FragmentOutputState& cgpu::DeviceSession::getFragmentOutputState(FragmentOutputState::Desc&& desc)
+{
+	return m_fragment_output_state_cache.get(*this, std::move(desc));
 }

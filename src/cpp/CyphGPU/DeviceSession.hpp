@@ -4,6 +4,7 @@
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Sampler.hpp>
 #include <CyphGPU/VertexInputState.hpp>
+#include <CyphGPU/FragmentOutputState.hpp>
 
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>
@@ -66,6 +67,7 @@ private:
 	friend class Sampler;
 	friend class Swapchain;
 	friend class VertexInputState;
+	friend class FragmentOutputState;
 
 	struct Heap
 	{
@@ -121,6 +123,7 @@ private:
 
 	MetaObjectCache<Sampler> m_sampler_cache{};
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
+	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache;
 
 	void createDevice();
 	void createAllocator();
@@ -156,5 +159,8 @@ private:
 
 	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
+
+	[[nodiscard]]
+	FragmentOutputState& getFragmentOutputState(FragmentOutputState::Desc&& desc);
 };
 }

@@ -90,6 +90,17 @@ int main()
 		}
 	);
 
+	cgpu::FragmentOutputStatePtr fragment_output_state = cgpu::FragmentOutputState::create(
+		device_session,
+		{
+			.color_attachments = {
+				{
+					.format = vk::Format::eR8G8B8A8Unorm,
+				},
+			},
+		}
+	);
+
 	cgpu::ImagePtr image = cgpu::Image::create(
 		device_session,
 		{

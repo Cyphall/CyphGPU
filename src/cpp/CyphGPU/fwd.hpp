@@ -15,6 +15,7 @@ class Image;
 class Sampler;
 class Swapchain;
 class VertexInputState;
+class FragmentOutputState;
 
 using ContextPtr = std::shared_ptr<Context>;
 using ContextSessionPtr = std::shared_ptr<ContextSession>;
@@ -27,4 +28,5 @@ using ImagePtr = std::shared_ptr<Image>;
 using SamplerPtr = std::shared_ptr<Sampler>;
 using SwapchainPtr = std::shared_ptr<Swapchain>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
+using FragmentOutputStatePtr = std::shared_ptr<FragmentOutputState>;
 }
