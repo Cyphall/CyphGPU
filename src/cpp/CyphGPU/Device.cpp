@@ -46,7 +46,9 @@ std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
 	std::span<const vk::SurfaceFormatKHR> formats
 ) const
 {
-	std::flat_set supported_formats = m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher());
+	std::flat_set<vk::SurfaceFormatKHR> supported_formats{
+		m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher())
+	};
 
 	for (const vk::SurfaceFormatKHR& format : formats)
 	{
