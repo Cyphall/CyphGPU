@@ -93,16 +93,16 @@ public:
 private:
 	struct UniformTexelDescriptorInfo
 	{
-		vk::Format format;
-		Range<vk::DeviceSize> byte_range;
+		vk::Format format{};
+		Range<vk::DeviceSize> byte_range{};
 
 		auto operator<=>(const UniformTexelDescriptorInfo&) const = default;
 	};
 
 	struct StorageTexelDescriptorInfo
 	{
-		vk::Format format;
-		Range<vk::DeviceSize> byte_range;
+		vk::Format format{};
+		Range<vk::DeviceSize> byte_range{};
 
 		auto operator<=>(const StorageTexelDescriptorInfo&) const = default;
 	};

@@ -143,7 +143,7 @@ void cgpu::Buffer::createBuffer()
 
 	m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 
-	if (alloc_info.pMappedData)
+	if (alloc_info.pMappedData != nullptr)
 	{
 		m_host_ptr = static_cast<std::byte*>(alloc_info.pMappedData);
 	}

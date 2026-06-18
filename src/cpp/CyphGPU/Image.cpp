@@ -190,7 +190,7 @@ void cgpu::Image::createImage()
 {
 	assert(getLinearEquivalent(m_desc.format) == m_desc.format);
 
-	vk::ImageType type;
+	vk::ImageType type{};
 	if (m_desc.extent.z > 1)
 	{
 		type = vk::ImageType::e3D;

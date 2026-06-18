@@ -1,13 +1,10 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
-#include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Utils.hpp>
 
-#include <flat_map>
 #include <glm/glm.hpp>
 #include <optional>
-#include <vk_mem_alloc.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu

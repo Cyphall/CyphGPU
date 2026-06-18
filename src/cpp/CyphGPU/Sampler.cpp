@@ -48,10 +48,26 @@ void cgpu::Sampler::createSampler()
 	sampler_info.addressModeV = m_desc.wrapping_v;
 	sampler_info.addressModeW = m_desc.wrapping_w;
 	sampler_info.mipLodBias = m_desc.mip_lod_bias;
-	sampler_info.anisotropyEnable = m_desc.anisotropy.has_value();
-	sampler_info.maxAnisotropy = m_desc.anisotropy.value_or(0.0f);
-	sampler_info.compareEnable = m_desc.comparison_mode.has_value();
-	sampler_info.compareOp = m_desc.comparison_mode.value_or(vk::CompareOp::eNever);
+	if (m_desc.anisotropy)
+	{
+		sampler_info.anisotropyEnable = vk::True;
+		sampler_info.maxAnisotropy = *m_desc.anisotropy;
+	}
+	else
+	{
+		sampler_info.anisotropyEnable = vk::False;
+		// sampler_info.maxAnisotropy;
+	}
+	if (m_desc.comparison_mode)
+	{
+		sampler_info.compareEnable = vk::True;
+		sampler_info.compareOp = *m_desc.comparison_mode;
+	}
+	else
+	{
+		sampler_info.compareEnable = vk::False;
+		// sampler_info.compareOp;
+	}
 	sampler_info.minLod = m_desc.min_lod;
 	sampler_info.maxLod = m_desc.max_lod;
 	sampler_info.borderColor = m_desc.border_color;

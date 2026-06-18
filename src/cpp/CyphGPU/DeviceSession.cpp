@@ -151,7 +151,7 @@ cgpu::QueuePtr cgpu::DeviceSession::getAsyncTransferQueue() const
 
 std::pair<uint32_t, vk::HostAddressRangeEXT> cgpu::DeviceSession::Heap::reserveIndex()
 {
-	uint32_t index;
+	uint32_t index{};
 	{
 		std::unique_lock lock{mutex};
 		index = available_indices.back();

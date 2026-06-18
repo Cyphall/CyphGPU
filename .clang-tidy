@@ -28,6 +28,9 @@ Checks:
   - -*-pro-bounds-constant-array-index
   - -*-pro-type-union-access
   - -*-identifier-length
+  - -*-pass-by-value
+  - -*-make-member-function-const
+  - -*-std-namespace-modification
 CheckOptions:
   - { key: readability-identifier-naming.ClassCase,                          value: CamelCase }
 
