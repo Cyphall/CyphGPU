@@ -165,6 +165,7 @@ std::pair<uint32_t, vk::HostAddressRangeEXT> cgpu::DeviceSession::Heap::reserveI
 
 void cgpu::DeviceSession::Heap::releaseIndex(uint32_t index)
 {
+	std::unique_lock lock{mutex};
 	available_indices.emplace_back(index);
 }
 
