@@ -17,7 +17,7 @@ public:
 		// Optional
 		vk::PrimitiveTopology topology{vk::PrimitiveTopology::eTriangleList};
 
-		auto operator<=>(const Desc&) const = default;
+		bool operator==(const Desc&) const = default;
 	};
 
 	[[nodiscard]]
