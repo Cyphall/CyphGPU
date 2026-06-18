@@ -14,6 +14,31 @@ cgpu::VertexInputState::VertexInputState(PrivateKey, DeviceSession& device_sessi
 	m_device_session{&device_session},
 	m_desc{std::move(desc)}
 {
+	createPipelineState();
+}
+
+cgpu::VertexInputState::~VertexInputState()
+{
+	m_device_session->getHandle().destroy(m_handle, nullptr, m_device_session->getDispatcher());
+}
+
+cgpu::DeviceSessionPtr cgpu::VertexInputState::getDeviceSession() const
+{
+	return m_device_session->shared_from_this();
+}
+
+const cgpu::VertexInputState::Desc& cgpu::VertexInputState::getDesc() const
+{
+	return m_desc;
+}
+
+const vk::Pipeline& cgpu::VertexInputState::getHandle()
+{
+	return m_handle;
+}
+
+void cgpu::VertexInputState::createPipelineState()
+{
 	vk::PipelineVertexInputStateCreateInfo vertex_input_state;
 	vertex_input_state.flags = {};
 	vertex_input_state.vertexBindingDescriptionCount = 0;
@@ -61,26 +86,6 @@ cgpu::VertexInputState::VertexInputState(PrivateKey, DeviceSession& device_sessi
 	library_create_info.flags = vk::GraphicsPipelineLibraryFlagBitsEXT::eVertexInputInterface;
 
 	m_handle = m_device_session->getHandle().createGraphicsPipeline(nullptr, chain.get(), nullptr, m_device_session->getDispatcher()).value;
-}
-
-cgpu::VertexInputState::~VertexInputState()
-{
-	m_device_session->getHandle().destroy(m_handle, nullptr, m_device_session->getDispatcher());
-}
-
-cgpu::DeviceSessionPtr cgpu::VertexInputState::getDeviceSession() const
-{
-	return m_device_session->shared_from_this();
-}
-
-const cgpu::VertexInputState::Desc& cgpu::VertexInputState::getDesc() const
-{
-	return m_desc;
-}
-
-const vk::Pipeline& cgpu::VertexInputState::getHandle()
-{
-	return m_handle;
 }
 
 std::size_t std::hash<cgpu::VertexInputState::Desc>::operator()(const cgpu::VertexInputState::Desc& key) const noexcept

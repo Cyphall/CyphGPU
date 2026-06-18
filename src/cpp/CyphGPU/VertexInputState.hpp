@@ -50,6 +50,8 @@ private:
 	Desc m_desc;
 
 	vk::Pipeline m_handle;
+
+	void createPipelineState();
 };
 }
 
