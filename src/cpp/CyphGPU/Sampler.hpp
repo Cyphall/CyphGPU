@@ -40,6 +40,8 @@ public:
 	Sampler& operator=(const Sampler&) = delete;
 	Sampler& operator=(Sampler&&) = delete;
 
+	~Sampler();
+
 	[[nodiscard]]
 	const DeviceSessionPtr& getDeviceSession() const;
 

@@ -141,6 +141,8 @@ private:
 
 	void deleteResourceDescriptor(uint32_t index);
 
+	void deleteSamplerDescriptor(uint32_t index);
+
 	[[nodiscard]]
 	const vk::BindHeapInfoEXT& getResourceBindHeapInfo() const;
 

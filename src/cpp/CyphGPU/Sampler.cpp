@@ -14,6 +14,11 @@ cgpu::Sampler::Sampler(PrivateKey, const DeviceSessionPtr& device_session, Desc&
 	createSampler();
 }
 
+cgpu::Sampler::~Sampler()
+{
+	m_device_session->deleteSamplerDescriptor(m_descriptor);
+}
+
 const cgpu::DeviceSessionPtr& cgpu::Sampler::getDeviceSession() const
 {
 	return m_device_session;
