@@ -42,9 +42,9 @@ void cgpu::VertexInputState::createPipelineState()
 	vk::PipelineVertexInputStateCreateInfo vertex_input_state;
 	vertex_input_state.flags = {};
 	vertex_input_state.vertexBindingDescriptionCount = 0;
-	vertex_input_state.pVertexBindingDescriptions = nullptr;
+	// vertex_input_state.pVertexBindingDescriptions;
 	vertex_input_state.vertexAttributeDescriptionCount = 0;
-	vertex_input_state.pVertexAttributeDescriptions = nullptr;
+	// vertex_input_state.pVertexAttributeDescriptions;
 
 	vk::PipelineInputAssemblyStateCreateInfo input_assembly_state;
 	input_assembly_state.flags = {};
@@ -59,22 +59,22 @@ void cgpu::VertexInputState::createPipelineState()
 
 	auto& create_info = chain.get<vk::GraphicsPipelineCreateInfo>();
 	create_info.flags = {};
-	create_info.stageCount = 0;
-	create_info.pStages = nullptr;
+	// create_info.stageCount;
+	// create_info.pStages;
 	create_info.pVertexInputState = &vertex_input_state;
 	create_info.pInputAssemblyState = &input_assembly_state;
-	create_info.pTessellationState = nullptr;
-	create_info.pViewportState = nullptr;
-	create_info.pRasterizationState = nullptr;
-	create_info.pMultisampleState = nullptr;
-	create_info.pDepthStencilState = nullptr;
-	create_info.pColorBlendState = nullptr;
-	create_info.pDynamicState = nullptr;
-	create_info.layout = nullptr;
-	create_info.renderPass = nullptr;
-	create_info.subpass = 0;
-	create_info.basePipelineHandle = nullptr;
-	create_info.basePipelineIndex = 0;
+	// create_info.pTessellationState;
+	// create_info.pViewportState;
+	// create_info.pRasterizationState;
+	// create_info.pMultisampleState;
+	// create_info.pDepthStencilState;
+	// create_info.pColorBlendState;
+	// create_info.pDynamicState;
+	// create_info.layout;
+	// create_info.renderPass;
+	// create_info.subpass;
+	// create_info.basePipelineHandle;
+	// create_info.basePipelineIndex;
 
 	auto& flags_create_info = chain.get<vk::PipelineCreateFlags2CreateInfo>();
 	flags_create_info.flags =
