@@ -114,7 +114,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				features.shaderImageGatherExtended = vk::True;
 				features.shaderStorageImageExtendedFormats = vk::True;
 				// features.shaderStorageImageMultisample = vk::True;
-				features.shaderStorageImageReadWithoutFormat = vk::True;
+				// features.shaderStorageImageReadWithoutFormat = vk::True;
 				features.shaderStorageImageWriteWithoutFormat = vk::True;
 				// features.shaderUniformBufferArrayDynamicIndexing = vk::True;
 			    // features.shaderSampledImageArrayDynamicIndexing = vk::True;
