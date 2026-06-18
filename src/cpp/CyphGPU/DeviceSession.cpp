@@ -88,6 +88,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 cgpu::DeviceSession::~DeviceSession()
 {
 	m_vertex_input_state_cache.clear();
+	m_sampler_cache.clear();
 
 	m_allocator.destroyBuffer(m_resource_heap.buffer, m_resource_heap.alloc);
 	m_allocator.destroyBuffer(m_sampler_heap.buffer, m_sampler_heap.alloc);
@@ -540,6 +541,11 @@ const vk::BindHeapInfoEXT& cgpu::DeviceSession::getResourceBindHeapInfo() const
 const vk::BindHeapInfoEXT& cgpu::DeviceSession::getSamplerBindHeapInfo() const
 {
 	return m_sampler_heap.bind_heap_info;
+}
+
+cgpu::Sampler& cgpu::DeviceSession::getSampler(Sampler::Desc&& desc)
+{
+	return m_sampler_cache.get(*this, std::move(desc));
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)

@@ -1,14 +1,17 @@
 #include "Sampler.hpp"
 
 #include <CyphGPU/DeviceSession.hpp>
+#include <CyphGPU/Utils.hpp>
+
+#include <vulkan/vulkan_hash.hpp>
 
 cgpu::SamplerPtr cgpu::Sampler::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {
-	return std::make_shared<cgpu::Sampler>(PrivateKey{}, device_session, std::move(desc));
+	return {device_session->shared_from_this(), &device_session->getSampler(std::move(desc))};
 }
 
-cgpu::Sampler::Sampler(PrivateKey, const DeviceSessionPtr& device_session, Desc&& desc):
-	m_device_session{device_session},
+cgpu::Sampler::Sampler(PrivateKey, DeviceSession& device_session, Desc&& desc):
+	m_device_session{&device_session},
 	m_desc{std::move(desc)}
 {
 	createSampler();
@@ -19,9 +22,9 @@ cgpu::Sampler::~Sampler()
 	m_device_session->deleteSamplerDescriptor(m_descriptor);
 }
 
-const cgpu::DeviceSessionPtr& cgpu::Sampler::getDeviceSession() const
+cgpu::DeviceSessionPtr cgpu::Sampler::getDeviceSession() const
 {
-	return m_device_session;
+	return m_device_session->shared_from_this();
 }
 
 const cgpu::Sampler::Desc& cgpu::Sampler::getDesc() const
@@ -55,4 +58,22 @@ void cgpu::Sampler::createSampler()
 	sampler_info.unnormalizedCoordinates = vk::False;
 
 	m_descriptor = m_device_session->createSamplerDescriptor(sampler_info);
+}
+
+std::size_t std::hash<cgpu::Sampler::Desc>::operator()(const cgpu::Sampler::Desc& key) const noexcept
+{
+	size_t seed = 0;
+	cgpu::hashCombine(seed, key.min_filter);
+	cgpu::hashCombine(seed, key.mag_filter);
+	cgpu::hashCombine(seed, key.mipmap_mode);
+	cgpu::hashCombine(seed, key.wrapping_u);
+	cgpu::hashCombine(seed, key.wrapping_v);
+	cgpu::hashCombine(seed, key.wrapping_w);
+	cgpu::hashCombine(seed, key.anisotropy);
+	cgpu::hashCombine(seed, key.comparison_mode);
+	cgpu::hashCombine(seed, key.min_lod);
+	cgpu::hashCombine(seed, key.max_lod);
+	cgpu::hashCombine(seed, key.mip_lod_bias);
+	cgpu::hashCombine(seed, key.border_color);
+	return seed;
 }

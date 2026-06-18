@@ -27,12 +27,14 @@ public:
 		float max_lod{1000.0f};
 		float mip_lod_bias{0.0f};
 		vk::BorderColor border_color{vk::BorderColor::eFloatOpaqueBlack};
+
+		auto operator<=>(const Desc&) const = default;
 	};
 
 	[[nodiscard]]
 	static SamplerPtr create(const DeviceSessionPtr& device_session, Desc&& desc);
 
-	explicit Sampler(PrivateKey, const DeviceSessionPtr& device_session, Desc&& desc);
+	explicit Sampler(PrivateKey, DeviceSession& device_session, Desc&& desc);
 
 	Sampler(const Sampler&) = delete;
 	Sampler(Sampler&&) = delete;
@@ -43,7 +45,7 @@ public:
 	~Sampler();
 
 	[[nodiscard]]
-	const DeviceSessionPtr& getDeviceSession() const;
+	DeviceSessionPtr getDeviceSession() const;
 
 	[[nodiscard]]
 	const Desc& getDesc() const;
@@ -52,7 +54,9 @@ public:
 	uint32_t getDescriptor() const;
 
 private:
-	DeviceSessionPtr m_device_session;
+	friend class DeviceSession;
+
+	DeviceSession* m_device_session;
 
 	Desc m_desc;
 
@@ -61,3 +65,9 @@ private:
 	void createSampler();
 };
 }
+
+template<>
+struct std::hash<cgpu::Sampler::Desc>
+{
+	std::size_t operator()(const cgpu::Sampler::Desc& key) const noexcept;
+};

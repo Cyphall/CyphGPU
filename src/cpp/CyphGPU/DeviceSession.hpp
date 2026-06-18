@@ -2,6 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
+#include <CyphGPU/Sampler.hpp>
 #include <CyphGPU/VertexInputState.hpp>
 
 #include <magic_enum/magic_enum.hpp>
@@ -118,6 +119,7 @@ private:
 	Heap m_sampler_heap;
 	Heap m_resource_heap;
 
+	MetaObjectCache<Sampler> m_sampler_cache{};
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
 
 	void createDevice();
@@ -148,6 +150,9 @@ private:
 
 	[[nodiscard]]
 	const vk::BindHeapInfoEXT& getSamplerBindHeapInfo() const;
+
+	[[nodiscard]]
+	Sampler& getSampler(Sampler::Desc&& desc);
 
 	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);
