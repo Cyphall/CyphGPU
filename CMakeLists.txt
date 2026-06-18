@@ -89,6 +89,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/Image.hpp"
 	"src/cpp/CyphGPU/Sampler.hpp"
 	"src/cpp/CyphGPU/Swapchain.hpp"
+	"src/cpp/CyphGPU/HashExt.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)

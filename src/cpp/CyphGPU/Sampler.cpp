@@ -1,7 +1,7 @@
 #include "Sampler.hpp"
 
 #include <CyphGPU/DeviceSession.hpp>
-#include <CyphGPU/Utils.hpp>
+#include <CyphGPU/HashExt.hpp>
 
 #include <vulkan/vulkan_hash.hpp>
 
