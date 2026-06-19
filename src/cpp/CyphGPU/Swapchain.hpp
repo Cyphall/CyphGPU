@@ -30,16 +30,6 @@ public:
 		std::optional<std::weak_ptr<Swapchain>> old_swapchain{};
 	};
 
-	struct UniformTexelDescriptorOverrides
-	{
-		std::optional<Range<vk::DeviceSize>> byte_range; /// Default: Whole range.
-	};
-
-	struct StorageTexelDescriptorOverrides
-	{
-		std::optional<Range<vk::DeviceSize>> byte_range; /// Default: Whole range.
-	};
-
 	[[nodiscard]]
 	static SwapchainPtr create(const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc);
 
