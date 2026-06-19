@@ -3,7 +3,6 @@
 #include <CyphGPU/DeviceSession.hpp>
 
 #include <bit>
-#include <cassert>
 #include <flat_set>
 #include <ranges>
 
@@ -54,8 +53,6 @@ const vk::Image& cgpu::Image::getHandle()
 
 uint32_t cgpu::Image::getSampledDescriptor(const SampledDescriptorOverrides& overrides)
 {
-	assert(overrides.aspect || m_default_view_aspect);
-
 	SampledDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
 	info.format = overrides.format.value_or(m_desc.format);
@@ -95,8 +92,6 @@ uint32_t cgpu::Image::getSampledDescriptor(const SampledDescriptorOverrides& ove
 
 uint32_t cgpu::Image::getStorageDescriptor(const StorageDescriptorOverrides& overrides)
 {
-	assert(overrides.aspect || m_default_view_aspect);
-
 	StorageDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
 	info.format = getLinearEquivalent(overrides.format.value_or(m_desc.format));
