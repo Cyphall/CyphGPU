@@ -2,8 +2,8 @@
 
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
+#include <CyphGPU/Image.hpp>
 #include <CyphGPU/Surface.hpp>
-#include <CyphGPU/SwapchainImage.hpp>
 
 #include <flat_set>
 #include <ranges>
@@ -115,9 +115,10 @@ void cgpu::Swapchain::createSwapchain()
 		m_device_session->getHandle().setDebugUtilsObjectNameEXT(images[i], name, m_device_session->getDispatcher());
 
 		m_images.emplace_back(
-			std::make_unique<SwapchainImage>(
-				SwapchainImage::PrivateKey{},
-				SwapchainImage::Desc{
+			std::make_unique<Image>(
+				Image::PrivateKey{},
+				m_device_session,
+				Image::Desc{
 					.name = std::move(name),
 					.format = m_desc.format.format,
 					.extent = {extent, 1},
@@ -127,9 +128,7 @@ void cgpu::Swapchain::createSwapchain()
 					.existing_handle = {{
 						.image = images[i],
 					}},
-				},
-				*this,
-				i
+				}
 			)
 		);
 	}

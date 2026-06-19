@@ -14,7 +14,6 @@ class Buffer;
 class Image;
 class Sampler;
 class Swapchain;
-class SwapchainImage;
 class VertexInputState;
 class FragmentOutputState;
 
@@ -28,7 +27,6 @@ using BufferPtr = std::shared_ptr<Buffer>;
 using ImagePtr = std::shared_ptr<Image>;
 using SamplerPtr = std::shared_ptr<Sampler>;
 using SwapchainPtr = std::shared_ptr<Swapchain>;
-using SwapchainImagePtr = std::shared_ptr<SwapchainImage>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
 using FragmentOutputStatePtr = std::shared_ptr<FragmentOutputState>;
 }

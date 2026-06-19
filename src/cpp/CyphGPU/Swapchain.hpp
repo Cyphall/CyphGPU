@@ -61,7 +61,7 @@ private:
 	Desc m_desc;
 
 	vk::SwapchainKHR m_handle{};
-	std::vector<std::unique_ptr<SwapchainImage>> m_images{};
+	std::vector<std::unique_ptr<Image>> m_images{};
 
 	void createSwapchain();
 };

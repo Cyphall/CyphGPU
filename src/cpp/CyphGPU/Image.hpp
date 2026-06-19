@@ -12,9 +12,8 @@
 
 namespace cgpu
 {
-class Image
+class Image final
 {
-protected:
 	class PrivateKey
 	{};
 
@@ -113,6 +112,8 @@ public:
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
 
 private:
+	friend class Swapchain;
+
 	struct SampledDescriptorInfo
 	{
 		vk::ImageViewType type{};
