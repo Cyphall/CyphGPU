@@ -18,7 +18,7 @@ public:
 	struct Desc
 	{
 		// Required
-		vk::SurfaceFormatKHR format; /// Do not use an sRGB format here. sRGB conversion is controlled per-image-descriptor/attachment.
+		vk::SurfaceFormatKHR format;
 		glm::uvec2 preferred_extent;
 		vk::ImageUsageFlags usages;
 

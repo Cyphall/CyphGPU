@@ -47,14 +47,12 @@ const vk::SwapchainKHR& cgpu::Swapchain::getHandle()
 
 void cgpu::Swapchain::createSwapchain()
 {
-	assert(getLinearEquivalent(m_desc.format.format) == m_desc.format.format);
-
 	std::flat_set<vk::Format> view_formats_set;
-	view_formats_set.emplace(m_desc.format.format);
+	view_formats_set.emplace(getLinearEquivalent(m_desc.format.format));
 	view_formats_set.emplace(getSrgbEquivalent(m_desc.format.format));
 	for (vk::Format format : m_desc.additional_view_formats)
 	{
-		view_formats_set.emplace(format);
+		view_formats_set.emplace(getLinearEquivalent(format));
 		view_formats_set.emplace(getSrgbEquivalent(format));
 	}
 

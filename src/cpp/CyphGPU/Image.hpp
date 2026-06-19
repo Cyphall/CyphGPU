@@ -22,7 +22,7 @@ public:
 	{
 		// Required
 		std::string name;
-		vk::Format format; /// Do not use an sRGB format here. sRGB conversion is controlled per-descriptor/attachment.
+		vk::Format format;
 		glm::uvec3 extent;
 		vk::ImageUsageFlags usages; //TODO: Use vk::ImageUsageFlags2 when VK_KHR_extended_flags becomes more widely supported.
 
@@ -40,18 +40,17 @@ public:
 	struct SampledDescriptorOverrides
 	{
 		std::optional<vk::ImageViewType> type; /// Default: 1D/2D/3D depending on image extent.
-		std::optional<vk::Format> format; /// Default: Image format. Do not use an sRGB format here. Instead, set srgb_conversion.
+		std::optional<vk::Format> format; /// Default: Image format.
 		std::optional<Range<uint32_t>> levels; /// Default: All levels.
 		std::optional<Range<uint32_t>> layers; /// Default: First layer = 0. Layer count = 6 if type is Cube, image layer count if type is 1D/2D/CubeArray, 1 otherwise.
 		std::optional<vk::ImageAspectFlagBits> aspect; /// Default: Main aspect. For multi-aspect formats, this field must be set.
 		std::optional<vk::ComponentMapping> swizzle; /// Default: Identity.
-		std::optional<bool> srgb_conversion; /// Default: false.
 	};
 
 	struct StorageDescriptorOverrides
 	{
 		std::optional<vk::ImageViewType> type; /// Default: 1D/2D/3D depending on image extent.
-		std::optional<vk::Format> format; /// Default: Image format. Do not use an sRGB format here. sRGB is not supported for storage descriptors.
+		std::optional<vk::Format> format; /// Default: Image format. If the format is an sRGB format, the equivalent linear format will be used instead.
 		std::optional<uint32_t> level; /// Default: 0.
 		std::optional<Range<uint32_t>> layers; /// Default: First layer = 0. Layer count = 6 if type is Cube, image layer count if type is 1D/2D/CubeArray, 1 otherwise.
 		std::optional<vk::ImageAspectFlagBits> aspect; /// Default: Main aspect. For multi-aspect formats, this field must be set.
@@ -86,7 +85,7 @@ public:
 	uint32_t getStorageDescriptor(const StorageDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, bool srgb_conversion, vk::ImageUsageFlagBits usage);
+	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
 
 private:
 	struct SampledDescriptorInfo

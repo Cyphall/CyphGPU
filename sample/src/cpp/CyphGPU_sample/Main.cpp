@@ -115,7 +115,7 @@ int main()
 
 	std::ignore = image->getSampledDescriptor();
 	std::ignore = image->getStorageDescriptor();
-	std::ignore = image->getAttachmentView(vk::Format::eR8G8B8A8Unorm, 0, {0, 1}, vk::ImageAspectFlagBits::eColor, true, vk::ImageUsageFlagBits::eColorAttachment);
+	std::ignore = image->getAttachmentView(vk::Format::eR8G8B8A8Srgb, 0, {0, 1}, vk::ImageAspectFlagBits::eColor, vk::ImageUsageFlagBits::eColorAttachment);
 
 	cgpu::SamplerPtr sampler = cgpu::Sampler::create(
 		device_session,

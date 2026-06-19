@@ -52,8 +52,6 @@ std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
 
 	for (const vk::SurfaceFormatKHR& format : formats)
 	{
-		assert(getLinearEquivalent(format.format) == format.format);
-
 		if (supported_formats.contains(format))
 		{
 			return format;
@@ -65,9 +63,7 @@ std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
 
 vk::SurfaceFormatKHR cgpu::Device::getDefaultSurfaceFormat(const cgpu::SurfacePtr& surface) const
 {
-	auto format = m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher())[0];
-	format.format = getLinearEquivalent(format.format);
-	return format;
+	return m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher())[0];
 }
 
 boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapabilityData(Capability capability)

@@ -64,13 +64,6 @@ uint32_t cgpu::Image::getSampledDescriptor(const SampledDescriptorOverrides& ove
 	info.aspect = *overrides.aspect.or_else([&] { return m_default_view_aspect; });
 	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 
-	assert(getLinearEquivalent(info.format) == info.format);
-
-	if (overrides.srgb_conversion.value_or(false))
-	{
-		info.format = getSrgbEquivalent(info.format);
-	}
-
 	auto [it, inserted] = m_sampled_cache.try_emplace(info);
 	if (inserted)
 	{
@@ -106,12 +99,10 @@ uint32_t cgpu::Image::getStorageDescriptor(const StorageDescriptorOverrides& ove
 
 	StorageDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
-	info.format = overrides.format.value_or(m_desc.format);
+	info.format = getLinearEquivalent(overrides.format.value_or(m_desc.format));
 	info.level = overrides.level.value_or(0u);
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
 	info.aspect = *overrides.aspect.or_else([&] { return m_default_view_aspect; });
-
-	assert(getLinearEquivalent(info.format) == info.format);
 
 	auto [it, inserted] = m_storage_cache.try_emplace(info);
 	if (inserted)
@@ -142,20 +133,13 @@ uint32_t cgpu::Image::getStorageDescriptor(const StorageDescriptorOverrides& ove
 	return it->second;
 }
 
-vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, bool srgb_conversion, vk::ImageUsageFlagBits usage)
+vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage)
 {
 	AttachmentViewInfo info;
 	info.format = format;
 	info.level = level;
 	info.layers = layers;
 	info.aspects = aspects;
-
-	assert(getLinearEquivalent(info.format) == info.format);
-
-	if (srgb_conversion)
-	{
-		info.format = getSrgbEquivalent(info.format);
-	}
 
 	auto [it, inserted] = m_attachment_cache.try_emplace(info);
 	if (inserted)
@@ -188,8 +172,6 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 
 void cgpu::Image::createImage()
 {
-	assert(getLinearEquivalent(m_desc.format) == m_desc.format);
-
 	vk::ImageType type{};
 	if (m_desc.extent.z > 1)
 	{
@@ -224,11 +206,11 @@ void cgpu::Image::createImage()
 	}
 
 	std::flat_set<vk::Format> view_formats_set;
-	view_formats_set.emplace(m_desc.format);
+	view_formats_set.emplace(getLinearEquivalent(m_desc.format));
 	view_formats_set.emplace(getSrgbEquivalent(m_desc.format));
 	for (vk::Format format : m_desc.additional_view_formats)
 	{
-		view_formats_set.emplace(format);
+		view_formats_set.emplace(getLinearEquivalent(format));
 		view_formats_set.emplace(getSrgbEquivalent(format));
 	}
 
