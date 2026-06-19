@@ -33,7 +33,10 @@ cgpu::Image::~Image()
 		m_device_session->deleteResourceDescriptor(index);
 	}
 
-	m_device_session->getAllocator().destroyImage(m_handle, m_alloc);
+	if (m_alloc)
+	{
+		m_device_session->getAllocator().destroyImage(m_handle, *m_alloc);
+	}
 }
 
 const cgpu::DeviceSessionPtr& cgpu::Image::getDeviceSession() const
@@ -167,92 +170,108 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 
 void cgpu::Image::createImage()
 {
-	vk::ImageType type{};
+	if (m_desc.existing_handle)
+	{
+		m_handle = m_desc.existing_handle->image;
+	}
+	else
+	{
+		vk::ImageType type{};
+		if (m_desc.extent.z > 1)
+		{
+			type = vk::ImageType::e3D;
+		}
+		else if (m_desc.extent.y > 1)
+		{
+			type = vk::ImageType::e2D;
+		}
+		else
+		{
+			type = vk::ImageType::e1D;
+		}
+
+		vk::ImageCreateFlags flags;
+		flags |= vk::ImageCreateFlagBits::eMutableFormat;
+		flags |= vk::ImageCreateFlagBits::eExtendedUsage;
+		if (m_desc.allow_cube_view)
+		{
+			flags |= vk::ImageCreateFlagBits::eCubeCompatible;
+		}
+		if (m_desc.allow_2d_array_view)
+		{
+			flags |= vk::ImageCreateFlagBits::e2DArrayCompatible;
+		}
+		if (m_desc.allow_block_texel_view)
+		{
+			flags |= vk::ImageCreateFlagBits::eBlockTexelViewCompatible;
+		}
+
+		std::flat_set<vk::Format> view_formats_set;
+		view_formats_set.emplace(getLinearEquivalent(m_desc.format));
+		view_formats_set.emplace(getSrgbEquivalent(m_desc.format));
+		for (vk::Format format : m_desc.additional_view_formats)
+		{
+			view_formats_set.emplace(getLinearEquivalent(format));
+			view_formats_set.emplace(getSrgbEquivalent(format));
+		}
+
+		std::vector<vk::Format> view_formats = std::move(view_formats_set).extract();
+
+		std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
+
+		vk::StructureChain<
+			vk::ImageCreateInfo,
+			vk::ImageFormatListCreateInfo>
+			chain;
+
+		auto& image_info = chain.get<vk::ImageCreateInfo>();
+		image_info.flags = flags;
+		image_info.imageType = type;
+		image_info.format = m_desc.format;
+		image_info.extent.width = m_desc.extent.x;
+		image_info.extent.height = m_desc.extent.y;
+		image_info.extent.depth = m_desc.extent.z;
+		image_info.mipLevels = m_desc.levels;
+		image_info.arrayLayers = m_desc.layers;
+		image_info.samples = m_desc.samples;
+		image_info.tiling = vk::ImageTiling::eOptimal;
+		image_info.usage = m_desc.usages;
+		image_info.sharingMode = vk::SharingMode::eConcurrent;
+		image_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
+		image_info.pQueueFamilyIndices = queue_families.data();
+		image_info.initialLayout = vk::ImageLayout::eUndefined;
+
+		auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();
+		image_format_list_info.viewFormatCount = static_cast<uint32_t>(view_formats.size());
+		image_format_list_info.pViewFormats = view_formats.data();
+
+		vma::AllocationCreateInfo alloc_create_info;
+		alloc_create_info.flags = {};
+		alloc_create_info.usage = vma::MemoryUsage::eUnknown;
+		alloc_create_info.requiredFlags = {};
+		alloc_create_info.preferredFlags = {};
+		alloc_create_info.memoryTypeBits = {};
+		alloc_create_info.pool = m_device_session->getMemoryPool(m_desc.memory_type).handle;
+		alloc_create_info.pUserData = nullptr;
+		alloc_create_info.priority = 0.0f;
+
+		std::tie(m_alloc, m_handle) = m_device_session->getAllocator().createImage(image_info, alloc_create_info);
+
+		m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
+	}
+
 	if (m_desc.extent.z > 1)
 	{
-		type = vk::ImageType::e3D;
 		m_default_view_type = vk::ImageViewType::e3D;
 	}
 	else if (m_desc.extent.y > 1)
 	{
-		type = vk::ImageType::e2D;
 		m_default_view_type = vk::ImageViewType::e2D;
 	}
 	else
 	{
-		type = vk::ImageType::e1D;
 		m_default_view_type = vk::ImageViewType::e1D;
 	}
-
-	vk::ImageCreateFlags flags;
-	flags |= vk::ImageCreateFlagBits::eMutableFormat;
-	flags |= vk::ImageCreateFlagBits::eExtendedUsage;
-	if (m_desc.allow_cube_view)
-	{
-		flags |= vk::ImageCreateFlagBits::eCubeCompatible;
-	}
-	if (m_desc.allow_2d_array_view)
-	{
-		flags |= vk::ImageCreateFlagBits::e2DArrayCompatible;
-	}
-	if (m_desc.allow_block_texel_view)
-	{
-		flags |= vk::ImageCreateFlagBits::eBlockTexelViewCompatible;
-	}
-
-	std::flat_set<vk::Format> view_formats_set;
-	view_formats_set.emplace(getLinearEquivalent(m_desc.format));
-	view_formats_set.emplace(getSrgbEquivalent(m_desc.format));
-	for (vk::Format format : m_desc.additional_view_formats)
-	{
-		view_formats_set.emplace(getLinearEquivalent(format));
-		view_formats_set.emplace(getSrgbEquivalent(format));
-	}
-
-	std::vector<vk::Format> view_formats = std::move(view_formats_set).extract();
-
-	std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
-
-	vk::StructureChain<
-		vk::ImageCreateInfo,
-		vk::ImageFormatListCreateInfo>
-		chain;
-
-	auto& image_info = chain.get<vk::ImageCreateInfo>();
-	image_info.flags = flags;
-	image_info.imageType = type;
-	image_info.format = m_desc.format;
-	image_info.extent.width = m_desc.extent.x;
-	image_info.extent.height = m_desc.extent.y;
-	image_info.extent.depth = m_desc.extent.z;
-	image_info.mipLevels = m_desc.levels;
-	image_info.arrayLayers = m_desc.layers;
-	image_info.samples = m_desc.samples;
-	image_info.tiling = vk::ImageTiling::eOptimal;
-	image_info.usage = m_desc.usages;
-	image_info.sharingMode = vk::SharingMode::eConcurrent;
-	image_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
-	image_info.pQueueFamilyIndices = queue_families.data();
-	image_info.initialLayout = vk::ImageLayout::eUndefined;
-
-	auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();
-	image_format_list_info.viewFormatCount = static_cast<uint32_t>(view_formats.size());
-	image_format_list_info.pViewFormats = view_formats.data();
-
-	vma::AllocationCreateInfo alloc_create_info;
-	alloc_create_info.flags = {};
-	alloc_create_info.usage = vma::MemoryUsage::eUnknown;
-	alloc_create_info.requiredFlags = {};
-	alloc_create_info.preferredFlags = {};
-	alloc_create_info.memoryTypeBits = {};
-	alloc_create_info.pool = m_device_session->getMemoryPool(m_desc.memory_type);
-	alloc_create_info.pUserData = nullptr;
-	alloc_create_info.priority = 0.0f;
-
-	vma::AllocationInfo alloc_info;
-	std::tie(m_alloc, m_handle) = m_device_session->getAllocator().createImage(image_info, alloc_create_info, alloc_info);
-
-	m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 
 	vk::ImageAspectFlags aspects = getAspects(m_desc.format);
 	if (std::has_single_bit(static_cast<vk::ImageAspectFlags::MaskType>(aspects)))

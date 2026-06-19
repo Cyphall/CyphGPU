@@ -94,9 +94,9 @@ cgpu::DeviceSession::~DeviceSession()
 	m_allocator.destroyBuffer(m_resource_heap.buffer, m_resource_heap.alloc);
 	m_allocator.destroyBuffer(m_sampler_heap.buffer, m_sampler_heap.alloc);
 
-	for (const vma::Pool& pool : m_memory_pools)
+	for (const auto& pool : m_memory_pools)
 	{
-		m_allocator.destroy(pool);
+		m_allocator.destroy(pool.handle);
 	}
 
 	m_allocator.destroy();
@@ -379,7 +379,7 @@ void cgpu::DeviceSession::createAllocator()
 
 void cgpu::DeviceSession::createMemoryPools()
 {
-	auto create_pool = [&](vk::MemoryPropertyFlags flags, float priority) {
+	auto create_pool = [&](vk::MemoryPropertyFlags flags, float priority) -> MemoryPool {
 		vma::AllocationCreateInfo alloc_info;
 		alloc_info.flags = {};
 		alloc_info.usage = vma::MemoryUsage::eUnknown;
@@ -405,7 +405,10 @@ void cgpu::DeviceSession::createMemoryPools()
 		pool_info.minAllocationAlignment = 0;
 		pool_info.pMemoryAllocateNext = nullptr;
 
-		return m_allocator.createPool(pool_info);
+		return {
+			.handle = m_allocator.createPool(pool_info),
+			.is_host_visible = static_cast<bool>(flags & vk::MemoryPropertyFlagBits::eHostVisible),
+		};
 	};
 
 	m_memory_pools[static_cast<size_t>(MemoryType::eGPULowPrio)] = create_pool(
@@ -456,7 +459,7 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 		alloc_create_info.requiredFlags = {};
 		alloc_create_info.preferredFlags = {};
 		alloc_create_info.memoryTypeBits = {};
-		alloc_create_info.pool = getMemoryPool(MemoryType::eCPUVisibleGPU);
+		alloc_create_info.pool = getMemoryPool(MemoryType::eCPUVisibleGPU).handle;
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
 
@@ -496,7 +499,7 @@ const vma::Allocator& cgpu::DeviceSession::getAllocator() const
 	return m_allocator;
 }
 
-const vma::Pool& cgpu::DeviceSession::getMemoryPool(MemoryType type) const
+const cgpu::DeviceSession::MemoryPool& cgpu::DeviceSession::getMemoryPool(MemoryType type) const
 {
 	return m_memory_pools[static_cast<size_t>(type)];
 }

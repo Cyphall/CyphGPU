@@ -69,6 +69,12 @@ private:
 	friend class VertexInputState;
 	friend class FragmentOutputState;
 
+	struct MemoryPool
+	{
+		vma::Pool handle;
+		bool is_host_visible;
+	};
+
 	struct Heap
 	{
 		vk::Buffer buffer{};
@@ -116,7 +122,7 @@ private:
 
 	vma::Allocator m_allocator{};
 
-	std::array<vma::Pool, magic_enum::enum_count<MemoryType>()> m_memory_pools{};
+	std::array<MemoryPool, magic_enum::enum_count<MemoryType>()> m_memory_pools{};
 
 	Heap m_sampler_heap;
 	Heap m_resource_heap;
@@ -134,7 +140,7 @@ private:
 	const vma::Allocator& getAllocator() const;
 
 	[[nodiscard]]
-	const vma::Pool& getMemoryPool(MemoryType type) const;
+	const MemoryPool& getMemoryPool(MemoryType type) const;
 
 	std::span<const uint32_t> getActiveQueueFamilies() const;
 

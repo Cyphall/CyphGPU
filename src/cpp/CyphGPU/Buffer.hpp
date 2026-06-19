@@ -20,6 +20,13 @@ class Buffer final
 public:
 	struct Desc
 	{
+		struct ExistingHandle
+		{
+			vk::Buffer buffer;
+			/// Must be valid for host-visible memory
+			std::optional<std::byte*> host_ptr;
+		};
+
 		// Required
 		std::string name;
 		vk::DeviceSize size;
@@ -27,6 +34,8 @@ public:
 
 		// Optional
 		MemoryType memory_type{MemoryType::eGPUHighPrio};
+		/// Other desc parameters must still match what the buffer was created with.
+		std::optional<ExistingHandle> existing_handle{};
 	};
 
 	struct UniformTexelDescriptorOverrides
@@ -114,7 +123,7 @@ private:
 	Desc m_desc;
 
 	vk::Buffer m_handle{};
-	vma::Allocation m_alloc{};
+	std::optional<vma::Allocation> m_alloc{};
 
 	vk::DeviceAddress m_device_ptr{};
 	std::optional<std::byte*> m_host_ptr{};

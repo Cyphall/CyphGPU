@@ -20,6 +20,11 @@ class Image final
 public:
 	struct Desc
 	{
+		struct ExistingHandle
+		{
+			vk::Image image;
+		};
+
 		// Required
 		std::string name;
 		vk::Format format;
@@ -38,6 +43,8 @@ public:
 		bool allow_2d_array_view{false};
 		/// For compressed images.
 		bool allow_block_texel_view{false};
+		/// Other desc parameters must still match what the image was created with.
+		std::optional<ExistingHandle> existing_handle{};
 	};
 
 	struct SampledDescriptorOverrides
@@ -143,7 +150,7 @@ private:
 	Desc m_desc;
 
 	vk::Image m_handle{};
-	vma::Allocation m_alloc{};
+	std::optional<vma::Allocation> m_alloc{};
 
 	vk::ImageViewType m_default_view_type{};
 	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};

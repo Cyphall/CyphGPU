@@ -27,7 +27,10 @@ cgpu::Buffer::~Buffer()
 		m_device_session->deleteResourceDescriptor(index);
 	}
 
-	m_device_session->getAllocator().destroyBuffer(m_handle, m_alloc);
+	if (m_alloc)
+	{
+		m_device_session->getAllocator().destroyBuffer(m_handle, *m_alloc);
+	}
 }
 
 const cgpu::DeviceSessionPtr& cgpu::Buffer::getDeviceSession() const
@@ -110,42 +113,54 @@ uint32_t cgpu::Buffer::getStorageTexelDescriptor(vk::Format format, const Storag
 
 void cgpu::Buffer::createBuffer()
 {
-	std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
-
-	vk::StructureChain<
-		vk::BufferCreateInfo,
-		vk::BufferUsageFlags2CreateInfo>
-		chain;
-
-	auto& buffer_info = chain.get<vk::BufferCreateInfo>();
-	buffer_info.flags = {};
-	buffer_info.size = m_desc.size;
-	buffer_info.usage = {};
-	buffer_info.sharingMode = vk::SharingMode::eConcurrent;
-	buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
-	buffer_info.pQueueFamilyIndices = queue_families.data();
-
-	auto& buffer_usage_info = chain.get<vk::BufferUsageFlags2CreateInfo>();
-	buffer_usage_info.usage = m_desc.usages | vk::BufferUsageFlagBits2::eShaderDeviceAddress;
-
-	vma::AllocationCreateInfo alloc_create_info;
-	alloc_create_info.flags = vma::AllocationCreateFlagBits::eMapped;
-	alloc_create_info.usage = vma::MemoryUsage::eUnknown;
-	alloc_create_info.requiredFlags = {};
-	alloc_create_info.preferredFlags = {};
-	alloc_create_info.memoryTypeBits = {};
-	alloc_create_info.pool = m_device_session->getMemoryPool(m_desc.memory_type);
-	alloc_create_info.pUserData = nullptr;
-	alloc_create_info.priority = 0.0f;
-
-	vma::AllocationInfo alloc_info;
-	std::tie(m_alloc, m_handle) = m_device_session->getAllocator().createBuffer(buffer_info, alloc_create_info, alloc_info);
-
-	m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
-
-	if (alloc_info.pMappedData != nullptr)
+	if (m_desc.existing_handle)
 	{
-		m_host_ptr = static_cast<std::byte*>(alloc_info.pMappedData);
+		m_handle = m_desc.existing_handle->buffer;
+
+		if (m_device_session->getMemoryPool(m_desc.memory_type).is_host_visible)
+		{
+			m_host_ptr = *m_desc.existing_handle->host_ptr;
+		}
+	}
+	else
+	{
+		std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
+
+		vk::StructureChain<
+			vk::BufferCreateInfo,
+			vk::BufferUsageFlags2CreateInfo>
+			chain;
+
+		auto& buffer_info = chain.get<vk::BufferCreateInfo>();
+		buffer_info.flags = {};
+		buffer_info.size = m_desc.size;
+		buffer_info.usage = {};
+		buffer_info.sharingMode = vk::SharingMode::eConcurrent;
+		buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
+		buffer_info.pQueueFamilyIndices = queue_families.data();
+
+		auto& buffer_usage_info = chain.get<vk::BufferUsageFlags2CreateInfo>();
+		buffer_usage_info.usage = m_desc.usages | vk::BufferUsageFlagBits2::eShaderDeviceAddress;
+
+		vma::AllocationCreateInfo alloc_create_info;
+		alloc_create_info.flags = vma::AllocationCreateFlagBits::eMapped;
+		alloc_create_info.usage = vma::MemoryUsage::eUnknown;
+		alloc_create_info.requiredFlags = {};
+		alloc_create_info.preferredFlags = {};
+		alloc_create_info.memoryTypeBits = {};
+		alloc_create_info.pool = m_device_session->getMemoryPool(m_desc.memory_type).handle;
+		alloc_create_info.pUserData = nullptr;
+		alloc_create_info.priority = 0.0f;
+
+		vma::AllocationInfo alloc_info;
+		std::tie(m_alloc, m_handle) = m_device_session->getAllocator().createBuffer(buffer_info, alloc_create_info, alloc_info);
+
+		m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
+
+		if (alloc_info.pMappedData != nullptr)
+		{
+			m_host_ptr = static_cast<std::byte*>(alloc_info.pMappedData);
+		}
 	}
 
 	vk::BufferDeviceAddressInfo bda_info;
