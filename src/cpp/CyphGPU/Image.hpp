@@ -32,28 +32,45 @@ public:
 		uint32_t layers{1};
 		vk::SampleCountFlagBits samples{vk::SampleCountFlagBits::e1};
 		std::vector<vk::Format> additional_view_formats{};
-		bool allow_cube_view{false}; /// For 2D images, must have extent.x == extent.y, layers >= 6 and samples == 1.
-		bool allow_2d_array_view{false}; /// For 3D images.
-		bool allow_block_texel_view{false}; /// For 3D images.
+		/// For 2D images, must have extent.x == extent.y, layers >= 6 and samples == 1.
+		bool allow_cube_view{false};
+		/// For 3D images.
+		bool allow_2d_array_view{false};
+		/// For compressed images.
+		bool allow_block_texel_view{false};
 	};
 
 	struct SampledDescriptorOverrides
 	{
-		std::optional<vk::ImageViewType> type; /// Default: 1D/2D/3D depending on image extent.
-		std::optional<vk::Format> format; /// Default: Image format.
-		std::optional<Range<uint32_t>> levels; /// Default: All levels.
-		std::optional<Range<uint32_t>> layers; /// Default: First layer = 0. Layer count = 6 if type is Cube, image layer count if type is 1D/2D/CubeArray, 1 otherwise.
-		std::optional<vk::ImageAspectFlagBits> aspect; /// Default: Main aspect. For multi-aspect formats, this field must be set.
-		std::optional<vk::ComponentMapping> swizzle; /// Default: Identity.
+		/// Default: 1D/2D/3D depending on image extent.
+		std::optional<vk::ImageViewType> type;
+		/// Default: Image format.
+		std::optional<vk::Format> format;
+		/// Default: All levels.
+		std::optional<Range<uint32_t>> levels;
+		/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
+		std::optional<Range<uint32_t>> layers;
+		/// Default: Main aspect. For multi-aspect formats, this field must be set.
+		std::optional<vk::ImageAspectFlagBits> aspect;
+		/// Default: Identity.
+		std::optional<vk::ComponentMapping> swizzle;
 	};
 
 	struct StorageDescriptorOverrides
 	{
-		std::optional<vk::ImageViewType> type; /// Default: 1D/2D/3D depending on image extent.
-		std::optional<vk::Format> format; /// Default: Image format. If the format is an sRGB format, the equivalent linear format will be used instead.
-		std::optional<uint32_t> level; /// Default: 0.
-		std::optional<Range<uint32_t>> layers; /// Default: First layer = 0. Layer count = 6 if type is Cube, image layer count if type is 1D/2D/CubeArray, 1 otherwise.
-		std::optional<vk::ImageAspectFlagBits> aspect; /// Default: Main aspect. For multi-aspect formats, this field must be set.
+		/// Default: 1D/2D/3D depending on image extent.
+		std::optional<vk::ImageViewType> type;
+		/// Default: Image format.
+		///
+		/// Storage descriptors do not support sRGB formats.
+		/// If the format is an sRGB format, the equivalent linear format will be used instead.
+		std::optional<vk::Format> format;
+		/// Default: 0.
+		std::optional<uint32_t> level;
+		/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
+		std::optional<Range<uint32_t>> layers;
+		/// Default: Main aspect. For multi-aspect formats, this field must be set.
+		std::optional<vk::ImageAspectFlagBits> aspect;
 	};
 
 	[[nodiscard]]
