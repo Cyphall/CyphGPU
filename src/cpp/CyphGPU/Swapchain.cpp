@@ -3,6 +3,7 @@
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Surface.hpp>
+#include <CyphGPU/SwapchainImage.hpp>
 
 #include <flat_set>
 #include <ranges>
@@ -105,4 +106,31 @@ void cgpu::Swapchain::createSwapchain()
 	image_format_list_info.pViewFormats = view_formats.data();
 
 	m_handle = m_device_session->getHandle().createSwapchainKHR(swapchain_info, nullptr, m_device_session->getDispatcher());
+
+	std::vector<vk::Image> images = m_device_session->getHandle().getSwapchainImagesKHR(m_handle, m_device_session->getDispatcher());
+	m_images.reserve(images.size());
+	for (uint32_t i = 0; i < images.size(); i++)
+	{
+		std::string name = std::format("Swapchain image {}", i);
+		m_device_session->getHandle().setDebugUtilsObjectNameEXT(images[i], name, m_device_session->getDispatcher());
+
+		m_images.emplace_back(
+			std::make_unique<SwapchainImage>(
+				SwapchainImage::PrivateKey{},
+				SwapchainImage::Desc{
+					.name = std::move(name),
+					.format = m_desc.format.format,
+					.extent = {extent, 1},
+					.usages = m_desc.usages,
+					.layers = m_desc.layers,
+					.additional_view_formats = m_desc.additional_view_formats,
+					.existing_handle = {{
+						.image = images[i],
+					}},
+				},
+				*this,
+				i
+			)
+		);
+	}
 }

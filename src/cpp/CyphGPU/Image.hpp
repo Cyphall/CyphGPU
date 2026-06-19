@@ -12,8 +12,9 @@
 
 namespace cgpu
 {
-class Image final
+class Image
 {
+protected:
 	class PrivateKey
 	{};
 

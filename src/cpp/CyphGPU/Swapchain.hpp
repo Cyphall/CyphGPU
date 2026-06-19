@@ -1,7 +1,6 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
-#include <CyphGPU/Utils.hpp>
 
 #include <glm/glm.hpp>
 #include <optional>
@@ -9,7 +8,7 @@
 
 namespace cgpu
 {
-class Swapchain final
+class Swapchain final : public std::enable_shared_from_this<Swapchain>
 {
 	class PrivateKey
 	{};
@@ -62,6 +61,7 @@ private:
 	Desc m_desc;
 
 	vk::SwapchainKHR m_handle{};
+	std::vector<std::unique_ptr<SwapchainImage>> m_images{};
 
 	void createSwapchain();
 };
