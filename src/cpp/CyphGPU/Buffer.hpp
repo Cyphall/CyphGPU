@@ -3,6 +3,7 @@
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Utils.hpp>
+#include <CyphGPU/Queue.hpp>
 
 #include <flat_map>
 #include <glm/glm.hpp>
@@ -101,6 +102,11 @@ public:
 	[[nodiscard]]
 	uint32_t getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
 
+	[[nodiscard]]
+	const std::optional<Queue::SubmitSync>& tryGetSubmitSync() const;
+
+	void setSubmitSync(const Queue::SubmitSync& submit_sync);
+
 private:
 	struct UniformTexelDescriptorInfo
 	{
@@ -130,6 +136,8 @@ private:
 
 	std::flat_map<UniformTexelDescriptorInfo, uint32_t> m_uniform_texel_cache;
 	std::flat_map<StorageTexelDescriptorInfo, uint32_t> m_storage_texel_cache;
+
+	std::optional<Queue::SubmitSync> m_submit_sync;
 
 	void createBuffer();
 };

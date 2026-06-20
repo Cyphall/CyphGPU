@@ -1,6 +1,7 @@
 #include "Queue.hpp"
 
 #include <CyphGPU/DeviceSession.hpp>
+#include <CyphGPU/Swapchain.hpp>
 
 cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue):
 	m_device_session{&device_session},
@@ -11,6 +12,14 @@ cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue):
 
 cgpu::Queue::~Queue()
 {
+	waitIdle();
+
+	while (!m_free_fences.empty())
+	{
+		m_device_session->getHandle().destroyFence(m_free_fences.top(), nullptr, m_device_session->getDispatcher());
+		m_free_fences.pop();
+	}
+
 	m_device_session->getHandle().destroySemaphore(m_semaphore, nullptr, m_device_session->getDispatcher());
 }
 
@@ -24,13 +33,20 @@ const vk::Queue& cgpu::Queue::getHandle()
 	return m_handle;
 }
 
+void cgpu::Queue::waitIdle()
+{
+	m_handle.waitIdle(m_device_session->getDispatcher());
+	clearCompletedPayloads();
+	assert(m_submit_payloads.empty());
+	assert(m_present_payloads.empty());
+}
+
 void cgpu::Queue::createSemaphore()
 {
 	vk::StructureChain<
 		vk::SemaphoreCreateInfo,
 		vk::SemaphoreTypeCreateInfo>
 		chain;
-
 
 	auto& create_info = chain.get<vk::SemaphoreCreateInfo>();
 	create_info.flags = {};
@@ -40,4 +56,167 @@ void cgpu::Queue::createSemaphore()
 	type_create_info.initialValue = 0;
 
 	m_semaphore = m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher());
+}
+
+cgpu::Queue::SubmitSync cgpu::Queue::binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore)
+{
+	std::unique_lock lock{m_mutex};
+
+	clearCompletedPayloads();
+
+	vk::SemaphoreSubmitInfo wait{
+		.semaphore = semaphore,
+		.value = 0,
+		.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+		.deviceIndex = 0,
+	};
+
+	vk::SemaphoreSubmitInfo signal{
+		.semaphore = m_semaphore,
+		.value = m_next_index++,
+		.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+		.deviceIndex = 0,
+	};
+
+	vk::SubmitInfo2 info;
+	info.flags = {};
+	info.waitSemaphoreInfoCount = 1;
+	info.pWaitSemaphoreInfos = &wait;
+	info.commandBufferInfoCount = 0;
+	// info.pCommandBufferInfos;
+	info.signalSemaphoreInfoCount = 1;
+	info.pSignalSemaphoreInfos = &signal;
+
+	vk::Fence fence = acquireFence();
+
+	m_handle.submit2(info, fence, m_device_session->getDispatcher());
+
+	Payload& payload = m_submit_payloads.emplace();
+	payload.objects.emplace_back(swapchain);
+	payload.fence = fence;
+
+	return {
+		.semaphore = signal.semaphore,
+		.value = signal.value,
+	};
+}
+
+void cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, const SubmitSync& submit_sync)
+{
+	std::unique_lock lock{m_mutex};
+
+	clearCompletedPayloads();
+
+	vk::SemaphoreSubmitInfo wait{
+		.semaphore = submit_sync.semaphore,
+		.value = submit_sync.value,
+		.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+		.deviceIndex = 0,
+	};
+
+	vk::SemaphoreSubmitInfo signal{
+		.semaphore = semaphore,
+		.value = 0,
+		.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+		.deviceIndex = 0,
+	};
+
+	vk::SubmitInfo2 info;
+	info.flags = {};
+	info.waitSemaphoreInfoCount = 1;
+	info.pWaitSemaphoreInfos = &wait;
+	info.commandBufferInfoCount = 0;
+	// info.pCommandBufferInfos;
+	info.signalSemaphoreInfoCount = 1;
+	info.pSignalSemaphoreInfos = &signal;
+
+	vk::Fence fence = acquireFence();
+
+	m_handle.submit2(info, fence, m_device_session->getDispatcher());
+
+	Payload& payload = m_submit_payloads.emplace();
+	payload.objects.emplace_back(swapchain);
+	payload.fence = fence;
+}
+
+bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore)
+{
+	std::unique_lock lock{m_mutex};
+
+	clearCompletedPayloads();
+
+	vk::Fence fence = acquireFence();
+
+	vk::StructureChain<
+		vk::PresentInfoKHR,
+		vk::SwapchainPresentFenceInfoKHR>
+		chain;
+
+	auto& present_info = chain.get<vk::PresentInfoKHR>();
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores = &semaphore;
+	present_info.swapchainCount = 1;
+	present_info.pSwapchains = &swapchain->getHandle();
+	present_info.pImageIndices = &index;
+	present_info.pResults = nullptr;
+
+	auto& present_fence_info = chain.get<vk::SwapchainPresentFenceInfoKHR>();
+	present_fence_info.swapchainCount = 1;
+	present_fence_info.pFences = &fence;
+
+	bool present_success{};
+	try
+	{
+		present_success = m_handle.presentKHR(chain.get(), m_device_session->getDispatcher()) == vk::Result::eSuccess;
+	}
+	catch (const vk::OutOfDateKHRError&)
+	{
+		present_success = false;
+	}
+
+	Payload& payload = m_present_payloads.emplace();
+	payload.objects.emplace_back(swapchain);
+	payload.fence = fence;
+
+	return present_success;
+}
+
+vk::Fence cgpu::Queue::acquireFence()
+{
+	std::unique_lock lock{m_mutex};
+
+	if (!m_free_fences.empty())
+	{
+		vk::Fence fence = m_free_fences.top();
+		m_free_fences.pop();
+		return fence;
+	}
+
+	vk::FenceCreateInfo info;
+	info.flags = {};
+
+	return m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher());
+}
+
+void cgpu::Queue::releaseFence(vk::Fence fence)
+{
+	std::unique_lock lock{m_mutex};
+
+	m_free_fences.push(fence);
+}
+
+void cgpu::Queue::clearCompletedPayloads()
+{
+	auto clear = [&](std::queue<Payload>& queue) {
+		while (!queue.empty() &&
+		       m_device_session->getHandle().getFenceStatus(queue.front().fence, m_device_session->getDispatcher()) == vk::Result::eSuccess)
+		{
+			m_device_session->getHandle().resetFences(queue.front().fence, m_device_session->getDispatcher());
+			releaseFence(queue.front().fence);
+			queue.pop();
+		}
+	};
+
+	clear(m_submit_payloads);
+	clear(m_present_payloads);
 }

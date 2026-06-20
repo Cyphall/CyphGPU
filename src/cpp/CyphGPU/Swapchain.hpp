@@ -54,6 +54,13 @@ public:
 	[[nodiscard]]
 	const vk::SwapchainKHR& getHandle();
 
+	[[nodiscard]]
+	ImagePtr getImage();
+
+	/// If presentImage() returns false, the swapchain is considered out-of-date
+	/// and getImage() MUST NOT be called.
+	bool presentImage();
+
 private:
 	DeviceSessionPtr m_device_session;
 	SurfacePtr m_surface;
@@ -63,6 +70,16 @@ private:
 	vk::SwapchainKHR m_handle{};
 	std::vector<std::unique_ptr<Image>> m_images{};
 
+	uint32_t m_acquired_image_count{0};
+	std::vector<vk::Semaphore> m_acquire_semahores{};
+	std::vector<vk::Semaphore> m_present_semahores{};
+	vk::Fence m_acquire_fence{};
+	uint32_t m_acquired_image{};
+
 	void createSwapchain();
+	void createSyncObjects();
+
+	bool performAcquire();
+	bool performPresent();
 };
 }

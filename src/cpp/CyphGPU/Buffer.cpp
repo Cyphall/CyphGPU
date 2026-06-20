@@ -111,6 +111,16 @@ uint32_t cgpu::Buffer::getStorageTexelDescriptor(vk::Format format, const Storag
 	return it->second;
 }
 
+const std::optional<cgpu::Queue::SubmitSync>& cgpu::Buffer::tryGetSubmitSync() const
+{
+	return m_submit_sync;
+}
+
+void cgpu::Buffer::setSubmitSync(const Queue::SubmitSync& submit_sync)
+{
+	m_submit_sync = submit_sync;
+}
+
 void cgpu::Buffer::createBuffer()
 {
 	if (m_desc.existing_handle)

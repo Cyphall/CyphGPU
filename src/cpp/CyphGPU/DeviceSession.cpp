@@ -149,6 +149,14 @@ cgpu::QueuePtr cgpu::DeviceSession::getAsyncTransferQueue() const
 	return {shared_from_this(), m_async_transfer_queue.get()};
 }
 
+void cgpu::DeviceSession::waitIdle()
+{
+	m_main_queue->waitIdle();
+	m_async_graphics_queue->waitIdle();
+	m_async_compute_queue->waitIdle();
+	m_async_transfer_queue->waitIdle();
+}
+
 std::pair<uint32_t, vk::HostAddressRangeEXT> cgpu::DeviceSession::Heap::reserveIndex()
 {
 	uint32_t index{};

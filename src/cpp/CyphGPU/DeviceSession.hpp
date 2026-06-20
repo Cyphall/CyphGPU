@@ -61,6 +61,8 @@ public:
 	[[nodiscard]]
 	QueuePtr getAsyncTransferQueue() const;
 
+	void waitIdle();
+
 private:
 	friend class Buffer;
 	friend class Image;

@@ -3,6 +3,7 @@
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Image.hpp>
+#include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Surface.hpp>
 
 #include <flat_set>
@@ -10,7 +11,14 @@
 
 cgpu::SwapchainPtr cgpu::Swapchain::create(const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc)
 {
-	return std::make_shared<cgpu::Swapchain>(PrivateKey{}, device_session, surface, std::move(desc));
+	auto swapchain = std::make_shared<cgpu::Swapchain>(PrivateKey{}, device_session, surface, std::move(desc));
+
+	if (!swapchain->performAcquire())
+	{
+		throw std::runtime_error("Failed to acquire initial swapchain image.");
+	}
+
+	return swapchain;
 }
 
 cgpu::Swapchain::Swapchain(PrivateKey, const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc):
@@ -19,10 +27,17 @@ cgpu::Swapchain::Swapchain(PrivateKey, const DeviceSessionPtr& device_session, c
 	m_desc{std::move(desc)}
 {
 	createSwapchain();
+	createSyncObjects();
 }
 
 cgpu::Swapchain::~Swapchain()
 {
+	for (size_t i = 0; i < m_images.size(); i++)
+	{
+		m_device_session->getHandle().destroySemaphore(m_acquire_semahores[i], nullptr, m_device_session->getDispatcher());
+		m_device_session->getHandle().destroySemaphore(m_present_semahores[i], nullptr, m_device_session->getDispatcher());
+	}
+	m_device_session->getHandle().destroyFence(m_acquire_fence, nullptr, m_device_session->getDispatcher());
 	m_device_session->getHandle().destroySwapchainKHR(m_handle, nullptr, m_device_session->getDispatcher());
 }
 
@@ -44,6 +59,26 @@ const cgpu::Swapchain::Desc& cgpu::Swapchain::getDesc() const
 const vk::SwapchainKHR& cgpu::Swapchain::getHandle()
 {
 	return m_handle;
+}
+
+cgpu::ImagePtr cgpu::Swapchain::getImage()
+{
+	return {shared_from_this(), m_images[m_acquired_image].get()};
+}
+
+bool cgpu::Swapchain::presentImage()
+{
+	if (!performPresent())
+	{
+		return false;
+	}
+
+	if (!performAcquire())
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void cgpu::Swapchain::createSwapchain()
@@ -132,4 +167,82 @@ void cgpu::Swapchain::createSwapchain()
 			)
 		);
 	}
+}
+
+void cgpu::Swapchain::createSyncObjects()
+{
+	{
+		vk::StructureChain<
+			vk::SemaphoreCreateInfo,
+			vk::SemaphoreTypeCreateInfo>
+			chain;
+
+		auto& create_info = chain.get<vk::SemaphoreCreateInfo>();
+		create_info.flags = {};
+
+		auto& type_create_info = chain.get<vk::SemaphoreTypeCreateInfo>();
+		type_create_info.semaphoreType = vk::SemaphoreType::eBinary;
+		type_create_info.initialValue = 0;
+
+		m_acquire_semahores.reserve(m_images.size());
+		m_present_semahores.reserve(m_images.size());
+		for (size_t i = 0; i < m_images.size(); i++)
+		{
+			m_acquire_semahores.emplace_back(m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher()));
+			m_present_semahores.emplace_back(m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher()));
+		}
+	}
+
+	{
+		vk::FenceCreateInfo info;
+		info.flags = {};
+
+		m_acquire_fence = m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher());
+	}
+}
+
+bool cgpu::Swapchain::performAcquire()
+{
+	vk::AcquireNextImageInfoKHR info;
+	info.swapchain = m_handle;
+	info.timeout = UINT64_MAX;
+	info.semaphore = m_acquire_semahores[m_acquired_image_count++ % m_images.size()];
+	info.fence = m_acquire_fence;
+	info.deviceMask = 1;
+
+	try
+	{
+		vk::Result result;
+		std::tie(result, m_acquired_image) = m_device_session->getHandle().acquireNextImage2KHR(info, m_device_session->getDispatcher());
+		if (result == vk::Result::eSuboptimalKHR)
+		{
+			return false;
+		}
+	}
+	catch (const vk::OutOfDateKHRError&)
+	{
+		return false;
+	}
+
+	std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fence, false, UINT64_MAX, m_device_session->getDispatcher());
+	m_device_session->getHandle().resetFences(m_acquire_fence, m_device_session->getDispatcher());
+
+	m_images[m_acquired_image]->setSubmitSync(m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), info.semaphore));
+
+	return true;
+}
+
+bool cgpu::Swapchain::performPresent()
+{
+	m_device_session->getMainQueue()->submitSyncToBinary(
+		shared_from_this(),
+		m_present_semahores[m_acquired_image],
+		*m_images[m_acquired_image]->tryGetSubmitSync()
+	);
+
+	return m_device_session->getMainQueue()->swapchainPresent(
+		shared_from_this(),
+		m_acquired_image,
+		m_present_semahores[m_acquired_image]
+	);
 }

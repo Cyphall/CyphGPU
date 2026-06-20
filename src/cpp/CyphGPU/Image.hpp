@@ -3,6 +3,7 @@
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Utils.hpp>
+#include <CyphGPU/Queue.hpp>
 
 #include <flat_map>
 #include <glm/glm.hpp>
@@ -111,6 +112,11 @@ public:
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
 
+	[[nodiscard]]
+	const std::optional<Queue::SubmitSync>& tryGetSubmitSync() const;
+
+	void setSubmitSync(const Queue::SubmitSync& submit_sync);
+
 private:
 	friend class Swapchain;
 
@@ -162,6 +168,8 @@ private:
 
 	//TODO: remove once we have an extension to remove image views from attachments
 	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;
+
+	std::optional<Queue::SubmitSync> m_submit_sync;
 
 	void createImage();
 

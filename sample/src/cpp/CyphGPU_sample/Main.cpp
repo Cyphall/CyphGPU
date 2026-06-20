@@ -42,12 +42,6 @@ int main()
 		return 1;
 	}
 
-	// Create device session
-	cgpu::DeviceSessionPtr device_session = cgpu::DeviceSession::create(
-		*selected_device,
-		{}
-	);
-
 	// Create GLFW window
 	glfwInitVulkanLoader(context_session->getDispatcher().vkGetInstanceProcAddr);
 	glfwInit();
@@ -69,6 +63,13 @@ int main()
 			.surface = surface_raw,
 		}
 	);
+
+	// Create device session
+	cgpu::DeviceSessionPtr device_session = cgpu::DeviceSession::create(
+		*selected_device,
+		{}
+	);
+	auto clean_device = boost::scope::make_scope_exit([&] { device_session->waitIdle(); });
 
 	cgpu::BufferPtr buffer = cgpu::Buffer::create(
 		device_session,
@@ -142,6 +143,11 @@ int main()
 	while (glfwWindowShouldClose(window) == GLFW_FALSE)
 	{
 		glfwPollEvents();
+
+		if (!swapchain->presentImage())
+		{
+			break;
+		}
 	}
 
 	return 0;

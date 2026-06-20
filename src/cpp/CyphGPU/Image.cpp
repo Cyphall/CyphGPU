@@ -168,6 +168,16 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	return it->second;
 }
 
+const std::optional<cgpu::Queue::SubmitSync>& cgpu::Image::tryGetSubmitSync() const
+{
+	return m_submit_sync;
+}
+
+void cgpu::Image::setSubmitSync(const Queue::SubmitSync& submit_sync)
+{
+	m_submit_sync = submit_sync;
+}
+
 void cgpu::Image::createImage()
 {
 	if (m_desc.existing_handle)
