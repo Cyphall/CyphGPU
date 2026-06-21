@@ -224,10 +224,10 @@ bool cgpu::Swapchain::performAcquire()
 		return false;
 	}
 
+	m_images[m_acquired_image]->setSubmitSync(m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), info.semaphore));
+
 	std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
 	m_device_session->getHandle().resetFences(m_acquire_fence, m_device_session->getDispatcher());
-
-	m_images[m_acquired_image]->setSubmitSync(m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), info.semaphore));
 
 	return true;
 }
