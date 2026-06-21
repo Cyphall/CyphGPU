@@ -206,7 +206,7 @@ void cgpu::DeviceSession::createDevice()
 
 	std::optional<uint32_t> main_queue_family = tryReserveBestQueue(
 		available_queues,
-		vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
+		vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute
 	);
 
 	std::optional<uint32_t> async_graphics_queue_family = tryReserveBestQueue(
