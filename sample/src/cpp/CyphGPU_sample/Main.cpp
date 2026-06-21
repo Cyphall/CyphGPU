@@ -10,6 +10,7 @@
 #include <CyphGPU/Swapchain.hpp>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
 
 int main()
 {
@@ -148,6 +149,8 @@ int main()
 		{
 			break;
 		}
+
+		FrameMark;
 	}
 
 	return 0;

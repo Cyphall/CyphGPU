@@ -18,6 +18,7 @@ endif ()
 
 option(CYPHGPU_INSTALL "Install CyphGPU." OFF)
 option(CYPHGPU_ENABLE_SAMPLE "Enable CyphGPU sample." OFF)
+option(CYPHGPU_ENABLE_TRACY "Enable tracy." OFF)
 
 string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Windows" CYPHGPU_IS_WINDOWS)
 string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Darwin" CYPHGPU_IS_MACOS)
@@ -52,6 +53,10 @@ find_package(boost_optional CONFIG REQUIRED)
 # ---- Dependency: gabime/spdlog ----
 
 find_package(spdlog CONFIG REQUIRED)
+
+# ---- Dependency: wolfpld/tracy ----
+
+find_package(Tracy CONFIG REQUIRED)
 
 # ---- Library ----
 
@@ -188,6 +193,14 @@ target_link_libraries(CyphGPU PUBLIC Boost::optional)
 # ---- Dependency: gabime/spdlog ----
 
 target_link_libraries(CyphGPU PUBLIC spdlog::spdlog)
+
+# ---- Dependency: wolfpld/tracy ----
+
+if (CYPHGPU_ENABLE_TRACY)
+	target_link_libraries(CyphGPU PUBLIC Tracy::TracyClient)
+else ()
+	target_include_directories(CyphGPU PUBLIC $<TARGET_PROPERTY:Tracy::TracyClient,INTERFACE_INCLUDE_DIRECTORIES>)
+endif ()
 
 # ---- Sample ----
 
