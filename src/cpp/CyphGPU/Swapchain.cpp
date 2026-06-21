@@ -212,7 +212,7 @@ bool cgpu::Swapchain::performAcquire()
 
 	try
 	{
-		vk::Result result;
+		vk::Result result{};
 		std::tie(result, m_acquired_image) = m_device_session->getHandle().acquireNextImage2KHR(info, m_device_session->getDispatcher());
 		if (result == vk::Result::eSuboptimalKHR)
 		{
@@ -224,7 +224,7 @@ bool cgpu::Swapchain::performAcquire()
 		return false;
 	}
 
-	std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fence, false, UINT64_MAX, m_device_session->getDispatcher());
+	std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
 	m_device_session->getHandle().resetFences(m_acquire_fence, m_device_session->getDispatcher());
 
 	m_images[m_acquired_image]->setSubmitSync(m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), info.semaphore));
