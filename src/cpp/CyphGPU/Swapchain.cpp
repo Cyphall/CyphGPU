@@ -265,6 +265,8 @@ bool cgpu::Swapchain::performAcquire()
 
 void cgpu::Swapchain::throttle()
 {
+	ZoneScoped;
+
 	uint64_t max_latency = m_desc.image_count - 1;
 
 	if (m_current_frame_index < max_latency)
