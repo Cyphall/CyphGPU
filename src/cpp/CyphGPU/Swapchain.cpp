@@ -35,10 +35,11 @@ cgpu::Swapchain::~Swapchain()
 {
 	for (size_t i = 0; i < m_images.size(); i++)
 	{
+		std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fences[i], vk::False, UINT64_MAX, m_device_session->getDispatcher());
+		m_device_session->getHandle().destroyFence(m_acquire_fences[i], nullptr, m_device_session->getDispatcher());
 		m_device_session->getHandle().destroySemaphore(m_acquire_semahores[i], nullptr, m_device_session->getDispatcher());
 		m_device_session->getHandle().destroySemaphore(m_present_semahores[i], nullptr, m_device_session->getDispatcher());
 	}
-	m_device_session->getHandle().destroyFence(m_acquire_fence, nullptr, m_device_session->getDispatcher());
 	m_device_session->getHandle().destroySwapchainKHR(m_handle, nullptr, m_device_session->getDispatcher());
 }
 
@@ -75,6 +76,10 @@ bool cgpu::Swapchain::presentImage()
 	{
 		return false;
 	}
+
+	throttle();
+
+	m_current_frame_index++;
 
 	if (!performAcquire())
 	{
@@ -119,7 +124,9 @@ void cgpu::Swapchain::createSwapchain()
 		chain;
 
 	auto& swapchain_info = chain.get<vk::SwapchainCreateInfoKHR>();
-	swapchain_info.flags = vk::SwapchainCreateFlagBitsKHR::eMutableFormat;
+	swapchain_info.flags = vk::SwapchainCreateFlagBitsKHR::eMutableFormat |
+	                       vk::SwapchainCreateFlagBitsKHR::ePresentId2 |
+	                       vk::SwapchainCreateFlagBitsKHR::ePresentWait2;
 	swapchain_info.surface = m_surface->getHandle();
 	swapchain_info.minImageCount = m_desc.image_count;
 	swapchain_info.imageFormat = m_desc.format.format;
@@ -198,9 +205,13 @@ void cgpu::Swapchain::createSyncObjects()
 
 	{
 		vk::FenceCreateInfo info;
-		info.flags = {};
+		info.flags = vk::FenceCreateFlagBits::eSignaled;
 
-		m_acquire_fence = m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher());
+		m_acquire_fences.reserve(m_images.size());
+		for (size_t i = 0; i < m_images.size(); i++)
+		{
+			m_acquire_fences.emplace_back(m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher()));
+		}
 	}
 }
 
@@ -208,7 +219,15 @@ bool cgpu::Swapchain::performAcquire()
 {
 	ZoneScoped;
 
-	vk::Semaphore semaphore = m_acquire_semahores[m_acquired_image_count++ % m_images.size()];
+	vk::Semaphore semaphore = m_acquire_semahores[m_current_frame_index % m_images.size()];
+	vk::Fence fence = m_acquire_fences[m_current_frame_index % m_images.size()];
+
+	{
+		ZoneScopedN("Fence wait");
+
+		std::ignore = m_device_session->getHandle().waitForFences(fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
+		m_device_session->getHandle().resetFences(fence, m_device_session->getDispatcher());
+	}
 
 	{
 		ZoneScopedN("Acquire");
@@ -217,7 +236,7 @@ bool cgpu::Swapchain::performAcquire()
 		info.swapchain = m_handle;
 		info.timeout = UINT64_MAX;
 		info.semaphore = semaphore;
-		info.fence = m_acquire_fence;
+		info.fence = fence;
 		info.deviceMask = 1;
 
 		try
@@ -241,14 +260,23 @@ bool cgpu::Swapchain::performAcquire()
 		m_images[m_acquired_image]->setSubmitSync(m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), semaphore));
 	}
 
-	{
-		ZoneScopedN("Throttling wait");
+	return true;
+}
 
-		std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
-		m_device_session->getHandle().resetFences(m_acquire_fence, m_device_session->getDispatcher());
+void cgpu::Swapchain::throttle()
+{
+	uint64_t max_latency = m_desc.image_count - 1;
+
+	if (m_current_frame_index < max_latency)
+	{
+		return;
 	}
 
-	return true;
+	vk::PresentWait2InfoKHR info;
+	info.presentId = m_current_frame_index - max_latency;
+	info.timeout = std::numeric_limits<uint64_t>::max();
+
+	std::ignore = m_device_session->getHandle().waitForPresent2KHR(m_handle, info, m_device_session->getDispatcher());
 }
 
 bool cgpu::Swapchain::performPresent()
@@ -271,7 +299,8 @@ bool cgpu::Swapchain::performPresent()
 		return m_device_session->getMainQueue()->swapchainPresent(
 			shared_from_this(),
 			m_acquired_image,
-			m_present_semahores[m_acquired_image]
+			m_present_semahores[m_acquired_image],
+			m_current_frame_index
 		);
 	}
 }

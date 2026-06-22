@@ -70,16 +70,17 @@ private:
 	vk::SwapchainKHR m_handle{};
 	std::vector<std::unique_ptr<Image>> m_images{};
 
-	uint32_t m_acquired_image_count{0};
+	uint64_t m_current_frame_index{0};
 	std::vector<vk::Semaphore> m_acquire_semahores{};
 	std::vector<vk::Semaphore> m_present_semahores{};
-	vk::Fence m_acquire_fence{};
+	std::vector<vk::Fence> m_acquire_fences{};
 	uint32_t m_acquired_image{};
 
 	void createSwapchain();
 	void createSyncObjects();
 
 	bool performAcquire();
+	void throttle();
 	bool performPresent();
 };
 }

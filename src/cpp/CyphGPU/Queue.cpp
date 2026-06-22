@@ -139,7 +139,7 @@ void cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphor
 	payload.fence = fence;
 }
 
-bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore)
+bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_index)
 {
 	std::unique_lock lock{m_mutex};
 
@@ -149,7 +149,8 @@ bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index
 
 	vk::StructureChain<
 		vk::PresentInfoKHR,
-		vk::SwapchainPresentFenceInfoKHR>
+		vk::SwapchainPresentFenceInfoKHR,
+		vk::PresentId2KHR>
 		chain;
 
 	auto& present_info = chain.get<vk::PresentInfoKHR>();
@@ -163,6 +164,10 @@ bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index
 	auto& present_fence_info = chain.get<vk::SwapchainPresentFenceInfoKHR>();
 	present_fence_info.swapchainCount = 1;
 	present_fence_info.pFences = &fence;
+
+	auto& present_id = chain.get<vk::PresentId2KHR>();
+	present_id.swapchainCount = 1;
+	present_id.pPresentIds = &present_index;
 
 	bool present_success{};
 	try
