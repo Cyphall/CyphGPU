@@ -119,6 +119,11 @@ else ()
 	message(FATAL_ERROR "Unknown compiler frontend variant: ${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}")
 endif ()
 
+# Vulkan-Hpp and VMA-Hpp heavily depend on aliasing
+if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+	target_compile_options(CyphGPU PUBLIC -fno-strict-aliasing)
+endif ()
+
 # ---- Install ----
 
 if (CYPHGPU_INSTALL)
