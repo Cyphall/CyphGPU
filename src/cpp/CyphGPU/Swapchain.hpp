@@ -80,7 +80,7 @@ private:
 	void createSyncObjects();
 
 	bool performAcquire();
-	void throttle();
+	bool throttle();
 	bool performPresent();
 };
 }

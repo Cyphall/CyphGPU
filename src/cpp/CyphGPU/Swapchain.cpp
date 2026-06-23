@@ -77,7 +77,10 @@ bool cgpu::Swapchain::presentImage()
 		return false;
 	}
 
-	throttle();
+	if (!throttle())
+	{
+		return false;
+	}
 
 	m_current_frame_index++;
 
@@ -263,7 +266,7 @@ bool cgpu::Swapchain::performAcquire()
 	return true;
 }
 
-void cgpu::Swapchain::throttle()
+bool cgpu::Swapchain::throttle()
 {
 	ZoneScoped;
 
@@ -271,14 +274,27 @@ void cgpu::Swapchain::throttle()
 
 	if (m_current_frame_index < max_latency)
 	{
-		return;
+		return true;
 	}
 
 	vk::PresentWait2InfoKHR info;
 	info.presentId = m_current_frame_index - max_latency + 1;
 	info.timeout = std::numeric_limits<uint64_t>::max();
 
-	std::ignore = m_device_session->getHandle().waitForPresent2KHR(m_handle, info, m_device_session->getDispatcher());
+	try
+	{
+		vk::Result result = m_device_session->getHandle().waitForPresent2KHR(m_handle, info, m_device_session->getDispatcher());
+		if (result == vk::Result::eSuboptimalKHR)
+		{
+			return false;
+		}
+	}
+	catch (const vk::OutOfDateKHRError&)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool cgpu::Swapchain::performPresent()
