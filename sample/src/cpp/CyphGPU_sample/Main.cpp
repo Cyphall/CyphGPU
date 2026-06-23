@@ -147,7 +147,25 @@ int main()
 
 		if (!swapchain->presentImage())
 		{
-			break;
+			while (true)
+			{
+				glfwGetFramebufferSize(window, &extent.x, &extent.y);
+				if (extent.x > 0 && extent.y > 0)
+					break;
+
+				glfwWaitEvents();
+			}
+
+			swapchain = cgpu::Swapchain::create(
+				device_session,
+				surface,
+				{
+					.format = (*selected_device)->getDefaultSurfaceFormat(surface),
+					.preferred_extent = extent,
+					.usages = vk::ImageUsageFlagBits::eTransferDst,
+					.old_swapchain = swapchain,
+				}
+			);
 		}
 
 		FrameMark;
