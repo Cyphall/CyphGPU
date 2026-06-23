@@ -13,12 +13,7 @@
 cgpu::SwapchainPtr cgpu::Swapchain::create(const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc)
 {
 	auto swapchain = std::make_shared<cgpu::Swapchain>(PrivateKey{}, device_session, surface, std::move(desc));
-
-	if (!swapchain->performAcquire())
-	{
-		throw std::runtime_error("Failed to acquire initial swapchain image.");
-	}
-
+	swapchain->performAcquire();
 	return swapchain;
 }
 
@@ -28,17 +23,23 @@ cgpu::Swapchain::Swapchain(PrivateKey, const DeviceSessionPtr& device_session, c
 	m_desc{std::move(desc)}
 {
 	createSwapchain();
-	createSyncObjects();
+	createAcquireSyncObjects();
 }
 
 cgpu::Swapchain::~Swapchain()
 {
-	for (size_t i = 0; i < m_images.size(); i++)
+	for (auto& acquire_sync_data : m_acquire_sync_data)
 	{
-		std::ignore = m_device_session->getHandle().waitForFences(m_acquire_fences[i], vk::False, UINT64_MAX, m_device_session->getDispatcher());
-		m_device_session->getHandle().destroyFence(m_acquire_fences[i], nullptr, m_device_session->getDispatcher());
-		m_device_session->getHandle().destroySemaphore(m_acquire_semahores[i], nullptr, m_device_session->getDispatcher());
-		m_device_session->getHandle().destroySemaphore(m_present_semahores[i], nullptr, m_device_session->getDispatcher());
+		if (acquire_sync_data.signal_pending)
+		{
+			std::ignore = m_device_session->getHandle().waitForFences(acquire_sync_data.fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
+		}
+		m_device_session->getHandle().destroyFence(acquire_sync_data.fence, nullptr, m_device_session->getDispatcher());
+		m_device_session->getHandle().destroySemaphore(acquire_sync_data.semaphore, nullptr, m_device_session->getDispatcher());
+	}
+	for (auto& image : m_image_data)
+	{
+		m_device_session->getHandle().destroySemaphore(image.semaphore, nullptr, m_device_session->getDispatcher());
 	}
 	m_device_session->getHandle().destroySwapchainKHR(m_handle, nullptr, m_device_session->getDispatcher());
 }
@@ -63,33 +64,52 @@ const vk::SwapchainKHR& cgpu::Swapchain::getHandle()
 	return m_handle;
 }
 
-cgpu::ImagePtr cgpu::Swapchain::getImage()
+std::optional<cgpu::ImagePtr> cgpu::Swapchain::tryGetImage()
 {
-	return {shared_from_this(), m_images[m_acquired_image].get()};
+	if (m_status != vk::Result::eSuccess)
+	{
+		return std::nullopt;
+	}
+
+	return {{shared_from_this(), m_image_data[m_acquired_image].image.get()}};
 }
 
-bool cgpu::Swapchain::presentImage()
+void cgpu::Swapchain::presentImage()
 {
 	ZoneScoped;
 
-	if (!performPresent())
-	{
-		return false;
-	}
+	performPresent();
 
 	m_current_frame_index++;
 
-	if (!throttle())
-	{
-		return false;
-	}
+	throttle();
 
-	if (!performAcquire())
-	{
-		return false;
-	}
+	performAcquire();
+}
 
-	return true;
+vk::Semaphore cgpu::Swapchain::createSemaphore()
+{
+	vk::StructureChain<
+		vk::SemaphoreCreateInfo,
+		vk::SemaphoreTypeCreateInfo>
+		chain;
+
+	auto& create_info = chain.get<vk::SemaphoreCreateInfo>();
+	create_info.flags = {};
+
+	auto& type_create_info = chain.get<vk::SemaphoreTypeCreateInfo>();
+	type_create_info.semaphoreType = vk::SemaphoreType::eBinary;
+	type_create_info.initialValue = 0;
+
+	return m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher());
+}
+
+vk::Fence cgpu::Swapchain::createFence()
+{
+	vk::FenceCreateInfo info;
+	info.flags = {};
+
+	return m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher());
 }
 
 void cgpu::Swapchain::createSwapchain()
@@ -156,13 +176,13 @@ void cgpu::Swapchain::createSwapchain()
 	m_handle = m_device_session->getHandle().createSwapchainKHR(swapchain_info, nullptr, m_device_session->getDispatcher());
 
 	std::vector<vk::Image> images = m_device_session->getHandle().getSwapchainImagesKHR(m_handle, m_device_session->getDispatcher());
-	m_images.reserve(images.size());
+	m_image_data.reserve(images.size());
 	for (uint32_t i = 0; i < images.size(); i++)
 	{
 		std::string name = std::format("Swapchain image {}", i);
 		m_device_session->getHandle().setDebugUtilsObjectNameEXT(images[i], name, m_device_session->getDispatcher());
 
-		m_images.emplace_back(
+		m_image_data.emplace_back(
 			std::make_unique<Image>(
 				Image::PrivateKey{},
 				m_device_session,
@@ -177,59 +197,44 @@ void cgpu::Swapchain::createSwapchain()
 						.image = images[i],
 					}},
 				}
-			)
+			),
+			createSemaphore()
 		);
 	}
 }
 
-void cgpu::Swapchain::createSyncObjects()
+void cgpu::Swapchain::createAcquireSyncObjects()
 {
+	m_acquire_sync_data.reserve(m_image_data.size());
+	for (size_t i = 0; i < m_image_data.size(); i++)
 	{
-		vk::StructureChain<
-			vk::SemaphoreCreateInfo,
-			vk::SemaphoreTypeCreateInfo>
-			chain;
-
-		auto& create_info = chain.get<vk::SemaphoreCreateInfo>();
-		create_info.flags = {};
-
-		auto& type_create_info = chain.get<vk::SemaphoreTypeCreateInfo>();
-		type_create_info.semaphoreType = vk::SemaphoreType::eBinary;
-		type_create_info.initialValue = 0;
-
-		m_acquire_semahores.reserve(m_images.size());
-		m_present_semahores.reserve(m_images.size());
-		for (size_t i = 0; i < m_images.size(); i++)
-		{
-			m_acquire_semahores.emplace_back(m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher()));
-			m_present_semahores.emplace_back(m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher()));
-		}
-	}
-
-	{
-		vk::FenceCreateInfo info;
-		info.flags = vk::FenceCreateFlagBits::eSignaled;
-
-		m_acquire_fences.reserve(m_images.size());
-		for (size_t i = 0; i < m_images.size(); i++)
-		{
-			m_acquire_fences.emplace_back(m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher()));
-		}
+		m_acquire_sync_data.emplace_back(
+			createSemaphore(),
+			createFence(),
+			false
+		);
 	}
 }
 
-bool cgpu::Swapchain::performAcquire()
+void cgpu::Swapchain::performAcquire()
 {
 	ZoneScoped;
 
-	vk::Semaphore semaphore = m_acquire_semahores[m_current_frame_index % m_images.size()];
-	vk::Fence fence = m_acquire_fences[m_current_frame_index % m_images.size()];
+	if (m_status == vk::Result::eErrorOutOfDateKHR)
+	{
+		return;
+	}
 
+	auto& acquire_sync_data = m_acquire_sync_data[m_current_frame_index % m_image_data.size()];
+
+	if (acquire_sync_data.signal_pending)
 	{
 		ZoneScopedN("Fence wait");
 
-		std::ignore = m_device_session->getHandle().waitForFences(fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
-		m_device_session->getHandle().resetFences(fence, m_device_session->getDispatcher());
+		std::ignore = m_device_session->getHandle().waitForFences(acquire_sync_data.fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
+		m_device_session->getHandle().resetFences(acquire_sync_data.fence, m_device_session->getDispatcher());
+
+		acquire_sync_data.signal_pending = false;
 	}
 
 	{
@@ -238,43 +243,46 @@ bool cgpu::Swapchain::performAcquire()
 		vk::AcquireNextImageInfoKHR info;
 		info.swapchain = m_handle;
 		info.timeout = UINT64_MAX;
-		info.semaphore = semaphore;
-		info.fence = fence;
+		info.semaphore = acquire_sync_data.semaphore;
+		info.fence = acquire_sync_data.fence;
 		info.deviceMask = 1;
 
 		try
 		{
-			vk::Result result{};
-			std::tie(result, m_acquired_image) = m_device_session->getHandle().acquireNextImage2KHR(info, m_device_session->getDispatcher());
-			if (result == vk::Result::eSuboptimalKHR)
-			{
-				return false;
-			}
+			std::tie(m_status, m_acquired_image) = m_device_session->getHandle().acquireNextImage2KHR(info, m_device_session->getDispatcher());
 		}
 		catch (const vk::OutOfDateKHRError&)
 		{
-			return false;
+			m_status = vk::Result::eErrorOutOfDateKHR;
+			return;
 		}
+
+		acquire_sync_data.signal_pending = true;
 	}
 
 	{
 		ZoneScopedN("Binary -> Timeline");
 
-		m_images[m_acquired_image]->setSubmitSync(m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), semaphore));
+		m_image_data[m_acquired_image].image->setSubmitSync(
+			m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), acquire_sync_data.semaphore)
+		);
 	}
-
-	return true;
 }
 
-bool cgpu::Swapchain::throttle()
+void cgpu::Swapchain::throttle()
 {
 	ZoneScoped;
 
-	uint64_t max_latency = m_images.size() - 1;
+	if (m_status == vk::Result::eErrorOutOfDateKHR)
+	{
+		return;
+	}
+
+	uint64_t max_latency = m_image_data.size() - 1;
 
 	if (m_current_frame_index <= max_latency)
 	{
-		return true;
+		return;
 	}
 
 	vk::PresentWait2InfoKHR info;
@@ -283,42 +291,52 @@ bool cgpu::Swapchain::throttle()
 
 	try
 	{
-		vk::Result result = m_device_session->getHandle().waitForPresent2KHR(m_handle, info, m_device_session->getDispatcher());
-		if (result == vk::Result::eSuboptimalKHR)
-		{
-			return false;
-		}
+		m_status = m_device_session->getHandle().waitForPresent2KHR(m_handle, info, m_device_session->getDispatcher());
 	}
 	catch (const vk::OutOfDateKHRError&)
 	{
-		return false;
+		m_status = vk::Result::eErrorOutOfDateKHR;
+		return;
 	}
-
-	return true;
 }
 
-bool cgpu::Swapchain::performPresent()
+void cgpu::Swapchain::performPresent()
 {
 	ZoneScoped;
+
+	if (m_status == vk::Result::eErrorOutOfDateKHR)
+	{
+		return;
+	}
+
+	auto& image_data = m_image_data[m_acquired_image];
 
 	{
 		ZoneScopedN("Timeline -> Binary");
 
 		m_device_session->getMainQueue()->submitSyncToBinary(
 			shared_from_this(),
-			m_present_semahores[m_acquired_image],
-			*m_images[m_acquired_image]->tryGetSubmitSync()
+			image_data.semaphore,
+			*image_data.image->tryGetSubmitSync()
 		);
 	}
 
 	{
 		ZoneScopedN("Present");
 
-		return m_device_session->getMainQueue()->swapchainPresent(
-			shared_from_this(),
-			m_acquired_image,
-			m_present_semahores[m_acquired_image],
-			m_current_frame_index + 1
-		);
+		try
+		{
+			m_status = m_device_session->getMainQueue()->swapchainPresent(
+				shared_from_this(),
+				m_acquired_image,
+				image_data.semaphore,
+				m_current_frame_index + 1
+			);
+		}
+		catch (const vk::OutOfDateKHRError&)
+		{
+			m_status = vk::Result::eErrorOutOfDateKHR;
+			return;
+		}
 	}
 }

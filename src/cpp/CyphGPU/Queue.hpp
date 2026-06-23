@@ -68,7 +68,7 @@ private:
 	SubmitSync binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore);
 	void submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, const SubmitSync& submit_sync);
 
-	bool swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id);
+	vk::Result swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id);
 
 	[[nodiscard]]
 	vk::Fence acquireFence();

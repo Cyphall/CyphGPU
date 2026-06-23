@@ -139,7 +139,7 @@ void cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphor
 	payload.fence = fence;
 }
 
-bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id)
+vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id)
 {
 	std::unique_lock lock{m_mutex};
 
@@ -169,21 +169,12 @@ bool cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index
 	present_id_info.swapchainCount = 1;
 	present_id_info.pPresentIds = &present_id;
 
-	bool present_success{};
-	try
-	{
-		present_success = m_handle.presentKHR(chain.get(), m_device_session->getDispatcher()) == vk::Result::eSuccess;
-	}
-	catch (const vk::OutOfDateKHRError&)
-	{
-		present_success = false;
-	}
-
+	// Objects are still considered in-use if presentKHR() throws OutOfDate, so register before calling
 	Payload& payload = m_present_payloads.emplace();
 	payload.objects.emplace_back(swapchain);
 	payload.fence = fence;
 
-	return present_success;
+	return m_handle.presentKHR(chain.get(), m_device_session->getDispatcher());
 }
 
 vk::Fence cgpu::Queue::acquireFence()

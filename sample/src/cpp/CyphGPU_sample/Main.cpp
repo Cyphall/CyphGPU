@@ -145,15 +145,13 @@ int main()
 	{
 		glfwPollEvents();
 
-		if (!swapchain->presentImage())
+		while (!swapchain->tryGetImage())
 		{
-			while (true)
+			glfwGetFramebufferSize(window, &extent.x, &extent.y);
+			if (extent.x == 0 || extent.y == 0)
 			{
-				glfwGetFramebufferSize(window, &extent.x, &extent.y);
-				if (extent.x > 0 && extent.y > 0)
-					break;
-
 				glfwWaitEvents();
+				continue;
 			}
 
 			swapchain = cgpu::Swapchain::create(
@@ -167,6 +165,8 @@ int main()
 				}
 			);
 		}
+
+		swapchain->presentImage();
 
 		FrameMark;
 	}

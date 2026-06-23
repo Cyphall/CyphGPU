@@ -54,33 +54,48 @@ public:
 	[[nodiscard]]
 	const vk::SwapchainKHR& getHandle();
 
+	// If std::nullopt is returned, the swapchain has become out-of-date or suboptimal and must be recreated
 	[[nodiscard]]
-	ImagePtr getImage();
+	std::optional<ImagePtr> tryGetImage();
 
-	/// If presentImage() returns false, the swapchain is considered out-of-date
-	/// and getImage() MUST NOT be called.
-	bool presentImage();
+	void presentImage();
 
 private:
+	struct AcquireSyncData
+	{
+		vk::Semaphore semaphore{};
+		vk::Fence fence{};
+		bool signal_pending{};
+	};
+
+	struct ImageData
+	{
+		std::unique_ptr<Image> image;
+		vk::Semaphore semaphore{};
+	};
+
 	DeviceSessionPtr m_device_session;
 	SurfacePtr m_surface;
 
 	Desc m_desc;
 
 	vk::SwapchainKHR m_handle{};
-	std::vector<std::unique_ptr<Image>> m_images{};
+	std::vector<ImageData> m_image_data{};
+
+	std::vector<AcquireSyncData> m_acquire_sync_data{};
 
 	uint64_t m_current_frame_index{0};
-	std::vector<vk::Semaphore> m_acquire_semahores{};
-	std::vector<vk::Semaphore> m_present_semahores{};
-	std::vector<vk::Fence> m_acquire_fences{};
 	uint32_t m_acquired_image{};
+	vk::Result m_status{true};
+
+	vk::Semaphore createSemaphore();
+	vk::Fence createFence();
 
 	void createSwapchain();
-	void createSyncObjects();
+	void createAcquireSyncObjects();
 
-	bool performAcquire();
-	bool throttle();
-	bool performPresent();
+	void performAcquire();
+	void throttle();
+	void performPresent();
 };
 }
