@@ -77,12 +77,12 @@ bool cgpu::Swapchain::presentImage()
 		return false;
 	}
 
+	m_current_frame_index++;
+
 	if (!throttle())
 	{
 		return false;
 	}
-
-	m_current_frame_index++;
 
 	if (!performAcquire())
 	{
@@ -272,7 +272,7 @@ bool cgpu::Swapchain::throttle()
 
 	uint64_t max_latency = m_images.size() - 1;
 
-	if (m_current_frame_index < max_latency)
+	if (m_current_frame_index <= max_latency)
 	{
 		return true;
 	}
