@@ -275,7 +275,7 @@ void cgpu::Swapchain::throttle()
 	}
 
 	vk::PresentWait2InfoKHR info;
-	info.presentId = m_current_frame_index - max_latency;
+	info.presentId = m_current_frame_index - max_latency + 1;
 	info.timeout = std::numeric_limits<uint64_t>::max();
 
 	std::ignore = m_device_session->getHandle().waitForPresent2KHR(m_handle, info, m_device_session->getDispatcher());
@@ -302,7 +302,7 @@ bool cgpu::Swapchain::performPresent()
 			shared_from_this(),
 			m_acquired_image,
 			m_present_semahores[m_acquired_image],
-			m_current_frame_index
+			m_current_frame_index + 1
 		);
 	}
 }
