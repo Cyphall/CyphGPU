@@ -16,6 +16,7 @@ class Sampler;
 class Swapchain;
 class VertexInputState;
 class PreRasterizationShaderState;
+class FragmentShaderState;
 class FragmentOutputState;
 
 using ContextPtr = std::shared_ptr<Context>;
@@ -30,5 +31,6 @@ using SamplerPtr = std::shared_ptr<Sampler>;
 using SwapchainPtr = std::shared_ptr<Swapchain>;
 using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
 using PreRasterizationShaderStatePtr = std::shared_ptr<PreRasterizationShaderState>;
+using FragmentShaderStatePtr = std::shared_ptr<FragmentShaderState>;
 using FragmentOutputStatePtr = std::shared_ptr<FragmentOutputState>;
 }

@@ -101,6 +101,13 @@ int main()
 		}
 	);
 
+	cgpu::FragmentShaderStatePtr fragment_shader_state = cgpu::FragmentShaderState::create(
+		device_session,
+		{
+			.fragment_shader = {{.blob = {shader, shader + shader_sizeInBytes / 4}}},
+		}
+	);
+
 	cgpu::FragmentOutputStatePtr fragment_output_state = cgpu::FragmentOutputState::create(
 		device_session,
 		{

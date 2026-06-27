@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/FragmentOutputState.hpp>
+#include <CyphGPU/FragmentShaderState.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/PreRasterizationShaderState.hpp>
@@ -71,6 +72,7 @@ private:
 	friend class Swapchain;
 	friend class VertexInputState;
 	friend class PreRasterizationShaderState;
+	friend class FragmentShaderState;
 	friend class FragmentOutputState;
 
 	struct MemoryPool
@@ -135,6 +137,7 @@ private:
 	MetaObjectCache<Sampler> m_sampler_cache{};
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
 	MetaObjectCache<PreRasterizationShaderState> m_pre_rasterization_shader_state_cache{};
+	MetaObjectCache<FragmentShaderState> m_fragment_shader_state_cache{};
 	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache;
 
 	void createDevice();
@@ -177,6 +180,9 @@ private:
 
 	[[nodiscard]]
 	PreRasterizationShaderState& getPreRasterizationShaderState(PreRasterizationShaderState::Desc&& desc);
+
+	[[nodiscard]]
+	FragmentShaderState& getFragmentShaderState(FragmentShaderState::Desc&& desc);
 
 	[[nodiscard]]
 	FragmentOutputState& getFragmentOutputState(FragmentOutputState::Desc&& desc);
