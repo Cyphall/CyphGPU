@@ -86,7 +86,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				features.imageCubeArray = vk::True;
 				features.independentBlend = vk::True;
 				features.geometryShader = vk::True;
-				features.tessellationShader = vk::True;
+				// features.tessellationShader = vk::True;
 				features.sampleRateShading = vk::True;
 				features.dualSrcBlend = vk::True;
 				features.logicOp = vk::True;
@@ -146,7 +146,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			    // features.storageInputOutput16 = vk::True;
 				features.multiview = vk::True;
 				features.multiviewGeometryShader = vk::True;
-				features.multiviewTessellationShader = vk::True;
+				// features.multiviewTessellationShader = vk::True;
 				features.variablePointersStorageBuffer = vk::True;
 				features.variablePointers = vk::True;
 				// features.protectedMemory = vk::True;
