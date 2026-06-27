@@ -53,30 +53,10 @@ public:
 			bool operator==(const ColorAttachment&) const = default;
 		};
 
-		struct DepthAttachment
-		{
-			// Required
-			vk::Format format;
-			vk::CompareOp test_pass_condition;
-			bool write_enabled;
-
-			bool operator==(const DepthAttachment&) const = default;
-		};
-
-		struct StencilAttachment
-		{
-			// Required
-			vk::Format format;
-			vk::StencilOpState front;
-			vk::StencilOpState back;
-
-			bool operator==(const StencilAttachment&) const = default;
-		};
-
 		// Optional
 		std::vector<ColorAttachment> color_attachments{};
-		std::optional<DepthAttachment> depth_attachment{};
-		std::optional<StencilAttachment> stencil_attachment{};
+		std::optional<vk::Format> depth_attachment{};
+		std::optional<vk::Format> stencil_attachment{};
 		vk::SampleCountFlagBits samples{vk::SampleCountFlagBits::e1};
 		glm::vec4 blend_constants{0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -140,16 +120,4 @@ template<>
 struct std::hash<cgpu::FragmentOutputState::Desc::ColorAttachment>
 {
 	std::size_t operator()(const cgpu::FragmentOutputState::Desc::ColorAttachment& key) const noexcept;
-};
-
-template<>
-struct std::hash<cgpu::FragmentOutputState::Desc::DepthAttachment>
-{
-	std::size_t operator()(const cgpu::FragmentOutputState::Desc::DepthAttachment& key) const noexcept;
-};
-
-template<>
-struct std::hash<cgpu::FragmentOutputState::Desc::StencilAttachment>
-{
-	std::size_t operator()(const cgpu::FragmentOutputState::Desc::StencilAttachment& key) const noexcept;
 };

@@ -49,36 +49,6 @@ void cgpu::FragmentOutputState::createPipelineState()
 	multisample_state.alphaToCoverageEnable = vk::False;
 	multisample_state.alphaToOneEnable = vk::False;
 
-	vk::PipelineDepthStencilStateCreateInfo depth_stencil_state;
-	depth_stencil_state.flags = {};
-	if (m_desc.depth_attachment)
-	{
-		depth_stencil_state.depthTestEnable = vk::True;
-		depth_stencil_state.depthWriteEnable = m_desc.depth_attachment->write_enabled ? vk::True : vk::False;
-		depth_stencil_state.depthCompareOp = m_desc.depth_attachment->test_pass_condition;
-	}
-	else
-	{
-		depth_stencil_state.depthTestEnable = vk::False;
-		// depth_stencil_state.depthWriteEnable;
-		// depth_stencil_state.depthCompareOp;
-	}
-	depth_stencil_state.depthBoundsTestEnable = vk::False;
-	if (m_desc.stencil_attachment)
-	{
-		depth_stencil_state.stencilTestEnable = vk::True;
-		depth_stencil_state.front = m_desc.stencil_attachment->front;
-		depth_stencil_state.back = m_desc.stencil_attachment->front;
-	}
-	else
-	{
-		depth_stencil_state.stencilTestEnable = vk::False;
-		// depth_stencil_state.front;
-		// depth_stencil_state.back;
-	}
-	// depth_stencil_state.minDepthBounds;
-	// depth_stencil_state.maxDepthBounds;
-
 	std::vector<vk::PipelineColorBlendAttachmentState> blend_states;
 	blend_states.reserve(m_desc.color_attachments.size());
 	for (const auto& attachment : m_desc.color_attachments)
@@ -143,7 +113,7 @@ void cgpu::FragmentOutputState::createPipelineState()
 	// create_info.pViewportState;
 	// create_info.pRasterizationState;
 	create_info.pMultisampleState = &multisample_state;
-	create_info.pDepthStencilState = &depth_stencil_state;
+	// create_info.pDepthStencilState;
 	create_info.pColorBlendState = &color_blend_state;
 	// create_info.pDynamicState;
 	// create_info.layout;
@@ -162,11 +132,11 @@ void cgpu::FragmentOutputState::createPipelineState()
 	library_create_info.flags = vk::GraphicsPipelineLibraryFlagBitsEXT::eFragmentOutputInterface;
 
 	auto& rendering_create_info = chain.get<vk::PipelineRenderingCreateInfo>();
-	rendering_create_info.viewMask = {};
+	// rendering_create_info.viewMask;
 	rendering_create_info.colorAttachmentCount = static_cast<uint32_t>(color_attachment_formats.size());
 	rendering_create_info.pColorAttachmentFormats = color_attachment_formats.data();
-	rendering_create_info.depthAttachmentFormat = m_desc.depth_attachment ? m_desc.depth_attachment->format : vk::Format::eUndefined;
-	rendering_create_info.stencilAttachmentFormat = m_desc.stencil_attachment ? m_desc.stencil_attachment->format : vk::Format::eUndefined;
+	rendering_create_info.depthAttachmentFormat = m_desc.depth_attachment.value_or(vk::Format::eUndefined);
+	rendering_create_info.stencilAttachmentFormat = m_desc.stencil_attachment.value_or(vk::Format::eUndefined);
 
 	m_handle = m_device_session->getHandle().createGraphicsPipeline(nullptr, chain.get(), nullptr, m_device_session->getDispatcher()).value;
 }
@@ -205,23 +175,5 @@ std::size_t std::hash<cgpu::FragmentOutputState::Desc::ColorAttachment>::operato
 	size_t seed = 0;
 	cgpu::hashCombine(seed, key.format);
 	cgpu::hashCombine(seed, key.blend);
-	return seed;
-}
-
-std::size_t std::hash<cgpu::FragmentOutputState::Desc::DepthAttachment>::operator()(const cgpu::FragmentOutputState::Desc::DepthAttachment& key) const noexcept
-{
-	size_t seed = 0;
-	cgpu::hashCombine(seed, key.format);
-	cgpu::hashCombine(seed, key.test_pass_condition);
-	cgpu::hashCombine(seed, key.write_enabled);
-	return seed;
-}
-
-std::size_t std::hash<cgpu::FragmentOutputState::Desc::StencilAttachment>::operator()(const cgpu::FragmentOutputState::Desc::StencilAttachment& key) const noexcept
-{
-	size_t seed = 0;
-	cgpu::hashCombine(seed, key.format);
-	cgpu::hashCombine(seed, key.front);
-	cgpu::hashCombine(seed, key.back);
 	return seed;
 }
