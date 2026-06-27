@@ -94,7 +94,7 @@ int main()
 		}
 	);
 
-	cgpu::PreRasterizationShaderStatePtr pre_rasterization_state = cgpu::PreRasterizationShaderState::create(
+	cgpu::PreRasterizationShaderStatePtr pre_rasterization_shader_state = cgpu::PreRasterizationShaderState::create(
 		device_session,
 		{
 			.vertex_shader = {.blob = {shader, shader + shader_sizeInBytes / 4}},
