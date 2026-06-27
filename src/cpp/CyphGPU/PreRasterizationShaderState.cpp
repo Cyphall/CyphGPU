@@ -145,7 +145,7 @@ void cgpu::PreRasterizationShaderState::createPipelineState()
 	// create_info.pColorBlendState;
 	create_info.pDynamicState = &dynamic_state;
 	// create_info.layout;
-	// create_info.renderPass;
+	create_info.renderPass = nullptr;
 	// create_info.subpass;
 	// create_info.basePipelineHandle;
 	// create_info.basePipelineIndex;
