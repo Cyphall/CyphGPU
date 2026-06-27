@@ -2,8 +2,8 @@
 
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
-#include <CyphGPU/Utils.hpp>
 #include <CyphGPU/Queue.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
 #include <glm/glm.hpp>

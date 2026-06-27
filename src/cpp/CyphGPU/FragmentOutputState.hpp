@@ -2,8 +2,8 @@
 
 #include <CyphGPU/fwd.hpp>
 
-#include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {

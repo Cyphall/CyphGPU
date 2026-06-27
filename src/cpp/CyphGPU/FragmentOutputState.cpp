@@ -3,8 +3,8 @@
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/HashExt.hpp>
 
-#include <vulkan/vulkan_hash.hpp>
 #include <glm/gtx/hash.hpp>
+#include <vulkan/vulkan_hash.hpp>
 
 cgpu::FragmentOutputStatePtr cgpu::FragmentOutputState::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {

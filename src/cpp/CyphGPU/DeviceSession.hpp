@@ -1,10 +1,10 @@
 #pragma once
 
+#include <CyphGPU/FragmentOutputState.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Sampler.hpp>
 #include <CyphGPU/VertexInputState.hpp>
-#include <CyphGPU/FragmentOutputState.hpp>
 
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>
