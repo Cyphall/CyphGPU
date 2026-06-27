@@ -1,3 +1,5 @@
+#include "shader.h"
+
 #include <boost/scope/scope_exit.hpp>
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/Context.hpp>
@@ -89,6 +91,13 @@ int main()
 		device_session,
 		{
 			.topology = vk::PrimitiveTopology::eTriangleList,
+		}
+	);
+
+	cgpu::PreRasterizationShaderStatePtr pre_rasterization_state = cgpu::PreRasterizationShaderState::create(
+		device_session,
+		{
+			.vertex_shader = {.blob = {shader, shader + shader_sizeInBytes / 4}},
 		}
 	);
 

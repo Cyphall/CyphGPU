@@ -1,0 +1,1 @@
+slangc -target spirv -profile sm_6_6+spirv_1_6+vk_mem_model+spvDescriptorHeapEXT -fvk-use-c-layout -fvk-use-entrypoint-name -matrix-layout-row-major -source-embed-style u32 -source-embed-name shader -o ../cpp/CyphGPU_sample/shader.h shader.slang

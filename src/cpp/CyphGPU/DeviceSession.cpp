@@ -88,6 +88,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 cgpu::DeviceSession::~DeviceSession()
 {
 	m_fragment_output_state_cache.clear();
+	m_pre_rasterization_shader_state_cache.clear();
 	m_vertex_input_state_cache.clear();
 	m_sampler_cache.clear();
 
@@ -579,6 +580,11 @@ std::span<const vk::DescriptorSetAndBindingMappingEXT> cgpu::DeviceSession::getM
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
 {
 	return m_vertex_input_state_cache.get(*this, std::move(desc));
+}
+
+cgpu::PreRasterizationShaderState& cgpu::DeviceSession::getPreRasterizationShaderState(PreRasterizationShaderState::Desc&& desc)
+{
+	return m_pre_rasterization_shader_state_cache.get(*this, std::move(desc));
 }
 
 cgpu::FragmentOutputState& cgpu::DeviceSession::getFragmentOutputState(FragmentOutputState::Desc&& desc)
