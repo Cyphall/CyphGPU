@@ -132,7 +132,7 @@ void cgpu::PreRasterizationShaderState::createPipelineState()
 		chain;
 
 	auto& create_info = chain.get<vk::GraphicsPipelineCreateInfo>();
-	create_info.flags = {};
+	// create_info.flags;
 	create_info.stageCount = static_cast<uint32_t>(packed_shader_infos.size());
 	create_info.pStages = packed_shader_infos.data();
 	// create_info.pVertexInputState;

@@ -104,7 +104,7 @@ void cgpu::FragmentOutputState::createPipelineState()
 		chain;
 
 	auto& create_info = chain.get<vk::GraphicsPipelineCreateInfo>();
-	create_info.flags = {};
+	// create_info.flags;
 	// create_info.stageCount;
 	// create_info.pStages;
 	// create_info.pVertexInputState;
