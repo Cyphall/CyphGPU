@@ -127,7 +127,8 @@ void cgpu::PreRasterizationShaderState::createPipelineState()
 	vk::StructureChain<
 		vk::GraphicsPipelineCreateInfo,
 		vk::PipelineCreateFlags2CreateInfo,
-		vk::GraphicsPipelineLibraryCreateInfoEXT>
+		vk::GraphicsPipelineLibraryCreateInfoEXT,
+		vk::PipelineRenderingCreateInfo>
 		chain;
 
 	auto& create_info = chain.get<vk::GraphicsPipelineCreateInfo>();
@@ -157,6 +158,13 @@ void cgpu::PreRasterizationShaderState::createPipelineState()
 
 	auto& library_create_info = chain.get<vk::GraphicsPipelineLibraryCreateInfoEXT>();
 	library_create_info.flags = vk::GraphicsPipelineLibraryFlagBitsEXT::ePreRasterizationShaders;
+
+	auto& rendering_create_info = chain.get<vk::PipelineRenderingCreateInfo>();
+	rendering_create_info.viewMask = m_desc.view_mask;
+	// rendering_create_info.colorAttachmentCount;
+	// rendering_create_info.pColorAttachmentFormats;
+	// rendering_create_info.depthAttachmentFormat;
+	// rendering_create_info.stencilAttachmentFormat;
 
 	m_handle = m_device_session->getHandle().createGraphicsPipeline(nullptr, chain.get(), nullptr, m_device_session->getDispatcher()).value;
 }
