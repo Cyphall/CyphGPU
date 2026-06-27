@@ -500,6 +500,17 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 	// The specs guarantee at least this many descriptors
 	create_heap(m_sampler_heap, 4000, props.samplerDescriptorSize, props.minSamplerHeapReservedRange);
 	create_heap(m_resource_heap, 1015808, props.imageDescriptorSize, props.minResourceHeapReservedRange);
+
+	for (uint32_t i = 0; i < 4; i++)
+	{
+		auto& mapping = m_mappings.emplace_back();
+		mapping.descriptorSet = 0;
+		mapping.firstBinding = i;
+		mapping.bindingCount = 1;
+		mapping.resourceMask = vk::SpirvResourceTypeFlagBitsEXT::eUniformBuffer;
+		mapping.source = vk::DescriptorMappingSourceEXT::ePushAddress;
+		mapping.sourceData.pushAddressOffset = i * sizeof(vk::DeviceAddress);
+	}
 }
 
 const vma::Allocator& cgpu::DeviceSession::getAllocator() const
@@ -558,6 +569,11 @@ const vk::BindHeapInfoEXT& cgpu::DeviceSession::getSamplerBindHeapInfo() const
 cgpu::Sampler& cgpu::DeviceSession::getSampler(Sampler::Desc&& desc)
 {
 	return m_sampler_cache.get(*this, std::move(desc));
+}
+
+std::span<const vk::DescriptorSetAndBindingMappingEXT> cgpu::DeviceSession::getMappings() const
+{
+	return m_mappings;
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
