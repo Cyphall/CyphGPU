@@ -2,10 +2,12 @@
 
 #include <CyphGPU/Context.hpp>
 #include <CyphGPU/Device.hpp>
+#include <CyphGPU/HashExt.hpp>
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <magic_enum/magic_enum.hpp>
+#include <ranges>
 #include <unordered_set>
 
 namespace
@@ -87,6 +89,11 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 
 cgpu::DeviceSession::~DeviceSession()
 {
+	for (const auto& graphics_pipeline : m_graphics_pipeline_cache | std::views::values)
+	{
+		m_handle.destroyPipeline(graphics_pipeline->fast_link_pipeline, nullptr, m_dispatcher);
+	}
+
 	m_fragment_output_state_cache.clear();
 	m_fragment_shader_state_cache.clear();
 	m_pre_rasterization_shader_state_cache.clear();
@@ -179,6 +186,16 @@ void cgpu::DeviceSession::Heap::releaseIndex(uint32_t index)
 {
 	std::unique_lock lock{mutex};
 	available_indices.emplace_back(index);
+}
+
+std::size_t cgpu::DeviceSession::GraphicsPipelineKeyHasher::operator()(const GraphicsPipelineKey& key) const noexcept
+{
+	size_t seed = 0;
+	cgpu::hashCombine(seed, key.vertex_input_state);
+	cgpu::hashCombine(seed, key.pre_rasterization_shader_state);
+	cgpu::hashCombine(seed, key.fragment_shader_state);
+	cgpu::hashCombine(seed, key.fragment_output_state);
+	return seed;
 }
 
 template<class T>
@@ -596,4 +613,69 @@ cgpu::FragmentShaderState& cgpu::DeviceSession::getFragmentShaderState(FragmentS
 cgpu::FragmentOutputState& cgpu::DeviceSession::getFragmentOutputState(FragmentOutputState::Desc&& desc)
 {
 	return m_fragment_output_state_cache.get(*this, std::move(desc));
+}
+
+vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(
+	const VertexInputStatePtr& vertex_input_state,
+	const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
+	const FragmentShaderStatePtr& fragment_shader_state,
+	const FragmentOutputStatePtr& fragment_output_state,
+	bool lto
+)
+{
+	std::array libraries = {
+		vertex_input_state->getHandle(),
+		pre_rasterization_shader_state->getHandle(),
+		fragment_shader_state->getHandle(),
+		fragment_output_state->getHandle(),
+	};
+
+	vk::StructureChain<
+		vk::GraphicsPipelineCreateInfo,
+		vk::PipelineCreateFlags2CreateInfo,
+		vk::PipelineLibraryCreateInfoKHR>
+		chain;
+
+	auto& flags_create_info = chain.get<vk::PipelineCreateFlags2CreateInfo>();
+	flags_create_info.flags = vk::PipelineCreateFlagBits2::eDescriptorHeapEXT;
+	if (lto)
+	{
+		flags_create_info.flags |= vk::PipelineCreateFlagBits2::eLinkTimeOptimizationEXT;
+	}
+
+	auto& library_info = chain.get<vk::PipelineLibraryCreateInfoKHR>();
+	library_info.libraryCount = static_cast<uint32_t>(libraries.size());
+	library_info.pLibraries = libraries.data();
+
+	return m_handle.createGraphicsPipeline(nullptr, chain.get(), nullptr, m_dispatcher).value;
+}
+
+vk::Pipeline cgpu::DeviceSession::getGraphicsPipeline(
+	const VertexInputStatePtr& vertex_input_state,
+	const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
+	const FragmentShaderStatePtr& fragment_shader_state,
+	const FragmentOutputStatePtr& fragment_output_state
+)
+{
+	std::unique_lock lock{m_graphics_pipeline_cache_mutex};
+
+	auto [it, inserted] = m_graphics_pipeline_cache.try_emplace({
+		vertex_input_state.get(),
+		pre_rasterization_shader_state.get(),
+		fragment_shader_state.get(),
+		fragment_output_state.get(),
+	});
+	if (inserted)
+	{
+		it->second = std::make_unique<GraphicsPipelineValue>();
+		it->second->fast_link_pipeline = linkGraphicsPipeline(
+			vertex_input_state,
+			pre_rasterization_shader_state,
+			fragment_shader_state,
+			fragment_output_state,
+			false
+		);
+	}
+
+	return it->second->fast_link_pipeline;
 }

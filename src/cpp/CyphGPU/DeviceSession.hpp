@@ -111,6 +111,26 @@ private:
 		std::mutex m_mutex{};
 	};
 
+	struct GraphicsPipelineKey
+	{
+		VertexInputState* vertex_input_state{};
+		PreRasterizationShaderState* pre_rasterization_shader_state{};
+		FragmentShaderState* fragment_shader_state{};
+		FragmentOutputState* fragment_output_state{};
+
+		bool operator==(const GraphicsPipelineKey&) const = default;
+	};
+
+	struct GraphicsPipelineKeyHasher
+	{
+		std::size_t operator()(const GraphicsPipelineKey& key) const noexcept;
+	};
+
+	struct GraphicsPipelineValue
+	{
+		vk::Pipeline fast_link_pipeline;
+	};
+
 	DevicePtr m_device;
 
 	Desc m_desc;
@@ -139,6 +159,13 @@ private:
 	MetaObjectCache<PreRasterizationShaderState> m_pre_rasterization_shader_state_cache{};
 	MetaObjectCache<FragmentShaderState> m_fragment_shader_state_cache{};
 	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache{};
+
+	std::unordered_map<
+		GraphicsPipelineKey,
+		std::unique_ptr<GraphicsPipelineValue>,
+		GraphicsPipelineKeyHasher>
+		m_graphics_pipeline_cache{};
+	std::mutex m_graphics_pipeline_cache_mutex{};
 
 	void createDevice();
 	void createAllocator();
@@ -186,5 +213,22 @@ private:
 
 	[[nodiscard]]
 	FragmentOutputState& getFragmentOutputState(FragmentOutputState::Desc&& desc);
+
+	[[nodiscard]]
+	vk::Pipeline linkGraphicsPipeline(
+		const VertexInputStatePtr& vertex_input_state,
+		const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
+		const FragmentShaderStatePtr& fragment_shader_state,
+		const FragmentOutputStatePtr& fragment_output_state,
+		bool lto
+	);
+
+	[[nodiscard]]
+	vk::Pipeline getGraphicsPipeline(
+		const VertexInputStatePtr& vertex_input_state,
+		const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
+		const FragmentShaderStatePtr& fragment_shader_state,
+		const FragmentOutputStatePtr& fragment_output_state
+	);
 };
 }
