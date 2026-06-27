@@ -130,15 +130,15 @@ private:
 
 	std::array<MemoryPool, magic_enum::enum_count<MemoryType>()> m_memory_pools{};
 
-	Heap m_sampler_heap;
-	Heap m_resource_heap;
-	std::vector<vk::DescriptorSetAndBindingMappingEXT> m_mappings;
+	Heap m_sampler_heap{};
+	Heap m_resource_heap{};
+	std::vector<vk::DescriptorSetAndBindingMappingEXT> m_mappings{};
 
 	MetaObjectCache<Sampler> m_sampler_cache{};
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
 	MetaObjectCache<PreRasterizationShaderState> m_pre_rasterization_shader_state_cache{};
 	MetaObjectCache<FragmentShaderState> m_fragment_shader_state_cache{};
-	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache;
+	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache{};
 
 	void createDevice();
 	void createAllocator();
