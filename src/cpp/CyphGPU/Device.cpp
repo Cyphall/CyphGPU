@@ -93,7 +93,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				features.multiDrawIndirect = vk::True;
 				features.drawIndirectFirstInstance = vk::True;
 				features.depthClamp = vk::True;
-				features.depthBiasClamp = vk::True;
+				// features.depthBiasClamp = vk::True;
 				features.fillModeNonSolid = vk::True;
 				// features.depthBounds = vk::True;
 				features.wideLines = vk::True;
