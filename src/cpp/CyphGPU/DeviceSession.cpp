@@ -558,7 +558,7 @@ uint32_t cgpu::DeviceSession::createResourceDescriptor(const vk::ResourceDescrip
 
 uint32_t cgpu::DeviceSession::createSamplerDescriptor(const vk::SamplerCreateInfo& info)
 {
-	auto [index, dst] = m_resource_heap.reserveIndex();
+	auto [index, dst] = m_sampler_heap.reserveIndex();
 
 	m_handle.writeSamplerDescriptorsEXT(info, dst, m_dispatcher);
 
