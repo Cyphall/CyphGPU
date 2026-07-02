@@ -186,20 +186,6 @@ void cgpu::Image::createImage()
 	}
 	else
 	{
-		vk::ImageType type{};
-		if (m_desc.extent.z > 1)
-		{
-			type = vk::ImageType::e3D;
-		}
-		else if (m_desc.extent.y > 1)
-		{
-			type = vk::ImageType::e2D;
-		}
-		else
-		{
-			type = vk::ImageType::e1D;
-		}
-
 		vk::ImageCreateFlags flags;
 		flags |= vk::ImageCreateFlagBits::eMutableFormat;
 		flags |= vk::ImageCreateFlagBits::eExtendedUsage;
@@ -236,7 +222,7 @@ void cgpu::Image::createImage()
 
 		auto& image_info = chain.get<vk::ImageCreateInfo>();
 		image_info.flags = flags;
-		image_info.imageType = type;
+		image_info.imageType = m_desc.type;
 		image_info.format = m_desc.format;
 		image_info.extent.width = m_desc.extent.x;
 		image_info.extent.height = m_desc.extent.y;
@@ -270,17 +256,11 @@ void cgpu::Image::createImage()
 		m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 	}
 
-	if (m_desc.extent.z > 1)
+	switch (m_desc.type)
 	{
-		m_default_view_type = vk::ImageViewType::e3D;
-	}
-	else if (m_desc.extent.y > 1)
-	{
-		m_default_view_type = vk::ImageViewType::e2D;
-	}
-	else
-	{
-		m_default_view_type = vk::ImageViewType::e1D;
+	case vk::ImageType::e1D: m_default_view_type = vk::ImageViewType::e1D; break;
+	case vk::ImageType::e2D: m_default_view_type = vk::ImageViewType::e2D; break;
+	case vk::ImageType::e3D: m_default_view_type = vk::ImageViewType::e3D; break;
 	}
 
 	vk::ImageAspectFlags aspects = getAspects(m_desc.format);

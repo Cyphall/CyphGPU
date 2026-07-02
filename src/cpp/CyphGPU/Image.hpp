@@ -33,6 +33,7 @@ public:
 		vk::ImageUsageFlags usages; //TODO: Use vk::ImageUsageFlags2 when VK_KHR_extended_flags becomes more widely supported.
 
 		// Optional
+		vk::ImageType type{vk::ImageType::e2D};
 		MemoryType memory_type{MemoryType::eGPUHighPrio};
 		uint32_t levels{1};
 		uint32_t layers{1};
