@@ -36,7 +36,7 @@ const vk::Queue& cgpu::Queue::getHandle()
 void cgpu::Queue::waitIdle()
 {
 	m_handle.waitIdle(m_device_session->getDispatcher());
-	clearCompletedPayloads();
+	waitAndClearPayloads();
 	assert(m_submit_payloads.empty());
 	assert(m_present_payloads.empty());
 }
@@ -225,6 +225,24 @@ void cgpu::Queue::clearCompletedPayloads()
 		while (!queue.empty() &&
 		       m_device_session->getHandle().getFenceStatus(queue.front().fence, m_device_session->getDispatcher()) == vk::Result::eSuccess)
 		{
+			m_device_session->getHandle().resetFences(queue.front().fence, m_device_session->getDispatcher());
+			releaseFence(queue.front().fence);
+			queue.pop();
+		}
+	};
+
+	clear(m_submit_payloads);
+	clear(m_present_payloads);
+}
+
+void cgpu::Queue::waitAndClearPayloads()
+{
+	std::unique_lock lock{m_mutex};
+
+	auto clear = [&](std::queue<Payload>& queue) {
+		while (!queue.empty())
+		{
+			std::ignore = m_device_session->getHandle().waitForFences(queue.front().fence, false, UINT64_MAX, m_device_session->getDispatcher());
 			m_device_session->getHandle().resetFences(queue.front().fence, m_device_session->getDispatcher());
 			releaseFence(queue.front().fence);
 			queue.pop();

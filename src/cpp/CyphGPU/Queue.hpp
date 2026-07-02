@@ -75,5 +75,6 @@ private:
 	void releaseFence(vk::Fence fence);
 
 	void clearCompletedPayloads();
+	void waitAndClearPayloads();
 };
 }
