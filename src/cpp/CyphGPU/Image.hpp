@@ -51,7 +51,7 @@ public:
 
 	struct SampledDescriptorOverrides
 	{
-		/// Default: 1D/2D/3D depending on image extent.
+		/// Default: Same as image type.
 		std::optional<vk::ImageViewType> type;
 		/// Default: Image format.
 		std::optional<vk::Format> format;
@@ -67,7 +67,7 @@ public:
 
 	struct StorageDescriptorOverrides
 	{
-		/// Default: 1D/2D/3D depending on image extent.
+		/// Default: Same as image type.
 		std::optional<vk::ImageViewType> type;
 		/// Default: Image format.
 		///
