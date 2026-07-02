@@ -25,12 +25,12 @@ public:
 			it->second.feature_count = (sizeof(T) - sizeof(vk::BaseOutStructure)) / sizeof(vk::Bool32);
 			it->second.data = std::make_shared<T>();
 			vk::BaseOutStructure& structure = *reinterpret_cast<vk::BaseOutStructure*>(it->second.data.get());
-			if (m_head)
+			if (m_tail)
 			{
-				structure.pNext = m_head.get_ptr();
+				m_tail->pNext = &structure;
 			}
 
-			m_head = structure;
+			m_tail = structure;
 		}
 
 		return *static_cast<T*>(it->second.data.get());
@@ -42,14 +42,8 @@ public:
 		return m_structures;
 	}
 
-	[[nodiscard]]
-	void* getHead()
-	{
-		return m_head.get_ptr();
-	}
-
 private:
 	std::unordered_map<vk::StructureType, Structure> m_structures{};
-	boost::optional<vk::BaseOutStructure&> m_head{};
+	boost::optional<vk::BaseOutStructure&> m_tail{};
 };
 }

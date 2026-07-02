@@ -315,7 +315,7 @@ void cgpu::DeviceSession::createDevice()
 	// Create device
 
 	vk::DeviceCreateInfo device_create_info;
-	device_create_info.pNext = feature_chain.getHead();
+	device_create_info.pNext = &feature_chain.get<vk::PhysicalDeviceFeatures2>();
 	device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
 	device_create_info.pQueueCreateInfos = queue_create_infos.data();
 	device_create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
