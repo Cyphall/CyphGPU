@@ -138,6 +138,7 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	info.level = level;
 	info.layers = layers;
 	info.aspects = aspects;
+	info.usage = usage;
 
 	auto [it, inserted] = m_attachment_cache.try_emplace(info);
 	if (inserted)

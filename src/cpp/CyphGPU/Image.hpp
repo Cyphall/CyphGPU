@@ -150,6 +150,7 @@ private:
 		uint32_t level{};
 		Range<uint32_t> layers{};
 		vk::ImageAspectFlags aspects{};
+		vk::ImageUsageFlagBits usage{};
 
 		auto operator<=>(const AttachmentViewInfo&) const = default;
 	};
