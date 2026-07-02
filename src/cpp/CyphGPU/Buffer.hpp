@@ -93,7 +93,7 @@ public:
 	[[nodiscard]]
 	const T* getHostPtr(vk::DeviceSize offset = 0) const
 	{
-		return reinterpret_cast<T*>(getHostPtr() + offset);
+		return reinterpret_cast<const T*>(getHostPtr() + offset);
 	}
 
 	[[nodiscard]]
