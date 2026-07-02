@@ -476,9 +476,9 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 		buffer_info.flags = {};
 		buffer_info.size = count * descriptor_size + reserved_range;
 		buffer_info.usage = vk::BufferUsageFlagBits::eDescriptorHeapEXT | vk::BufferUsageFlagBits::eShaderDeviceAddress;
-		buffer_info.sharingMode = vk::SharingMode::eExclusive;
-		buffer_info.queueFamilyIndexCount = 0;
-		buffer_info.pQueueFamilyIndices = nullptr;
+		buffer_info.sharingMode = m_active_queue_families.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
+		buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(m_active_queue_families.size());
+		buffer_info.pQueueFamilyIndices = m_active_queue_families.data();
 
 		vma::AllocationCreateInfo alloc_create_info;
 		alloc_create_info.flags = vma::AllocationCreateFlagBits::eMapped;

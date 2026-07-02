@@ -145,7 +145,7 @@ void cgpu::Buffer::createBuffer()
 		buffer_info.flags = {};
 		buffer_info.size = m_desc.size;
 		buffer_info.usage = {};
-		buffer_info.sharingMode = vk::SharingMode::eConcurrent;
+		buffer_info.sharingMode = queue_families.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
 		buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
 		buffer_info.pQueueFamilyIndices = queue_families.data();
 

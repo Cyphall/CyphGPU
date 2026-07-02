@@ -246,7 +246,7 @@ void cgpu::Image::createImage()
 		image_info.samples = m_desc.samples;
 		image_info.tiling = vk::ImageTiling::eOptimal;
 		image_info.usage = m_desc.usages;
-		image_info.sharingMode = vk::SharingMode::eConcurrent;
+		image_info.sharingMode = queue_families.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
 		image_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
 		image_info.pQueueFamilyIndices = queue_families.data();
 		image_info.initialLayout = vk::ImageLayout::eUndefined;
