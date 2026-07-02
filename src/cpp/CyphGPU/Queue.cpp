@@ -60,8 +60,6 @@ void cgpu::Queue::createSemaphore()
 
 cgpu::Queue::SubmitSync cgpu::Queue::binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore)
 {
-	std::unique_lock lock{m_mutex};
-
 	clearCompletedPayloads();
 
 	vk::SemaphoreSubmitInfo wait{
@@ -91,9 +89,13 @@ cgpu::Queue::SubmitSync cgpu::Queue::binaryToSubmitSync(const SwapchainPtr& swap
 
 	m_handle.submit2(info, fence, m_device_session->getDispatcher());
 
-	Payload& payload = m_submit_payloads.emplace();
-	payload.objects.emplace_back(swapchain);
-	payload.fence = fence;
+	{
+		std::unique_lock lock{m_mutex};
+
+		Payload& payload = m_submit_payloads.emplace();
+		payload.objects.emplace_back(swapchain);
+		payload.fence = fence;
+	}
 
 	return {
 		.semaphore = signal.semaphore,
@@ -103,8 +105,6 @@ cgpu::Queue::SubmitSync cgpu::Queue::binaryToSubmitSync(const SwapchainPtr& swap
 
 void cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, const SubmitSync& submit_sync)
 {
-	std::unique_lock lock{m_mutex};
-
 	clearCompletedPayloads();
 
 	vk::SemaphoreSubmitInfo wait{
@@ -134,15 +134,17 @@ void cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphor
 
 	m_handle.submit2(info, fence, m_device_session->getDispatcher());
 
-	Payload& payload = m_submit_payloads.emplace();
-	payload.objects.emplace_back(swapchain);
-	payload.fence = fence;
+	{
+		std::unique_lock lock{m_mutex};
+
+		Payload& payload = m_submit_payloads.emplace();
+		payload.objects.emplace_back(swapchain);
+		payload.fence = fence;
+	}
 }
 
 vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id)
 {
-	std::unique_lock lock{m_mutex};
-
 	clearCompletedPayloads();
 
 	vk::Fence fence = acquireFence();
@@ -169,12 +171,26 @@ vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t
 	present_id_info.swapchainCount = 1;
 	present_id_info.pPresentIds = &present_id;
 
-	// Objects are still considered in-use if presentKHR() throws OutOfDate, so register before calling
-	Payload& payload = m_present_payloads.emplace();
-	payload.objects.emplace_back(swapchain);
-	payload.fence = fence;
+	vk::Result result{};
+	try
+	{
+		result = m_handle.presentKHR(chain.get(), m_device_session->getDispatcher());
+	}
+	catch (const vk::OutOfDateKHRError&)
+	{
+		result = vk::Result::eErrorOutOfDateKHR;
+	}
 
-	return m_handle.presentKHR(chain.get(), m_device_session->getDispatcher());
+	{
+		std::unique_lock lock{m_mutex};
+
+		// Objects are still considered in-use if presentKHR() throws OutOfDate
+		Payload& payload = m_present_payloads.emplace();
+		payload.objects.emplace_back(swapchain);
+		payload.fence = fence;
+	}
+
+	return result;
 }
 
 vk::Fence cgpu::Queue::acquireFence()
@@ -203,6 +219,8 @@ void cgpu::Queue::releaseFence(vk::Fence fence)
 
 void cgpu::Queue::clearCompletedPayloads()
 {
+	std::unique_lock lock{m_mutex};
+
 	auto clear = [&](std::queue<Payload>& queue) {
 		while (!queue.empty() &&
 		       m_device_session->getHandle().getFenceStatus(queue.front().fence, m_device_session->getDispatcher()) == vk::Result::eSuccess)

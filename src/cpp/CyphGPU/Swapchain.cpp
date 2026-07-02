@@ -333,19 +333,11 @@ void cgpu::Swapchain::performPresent()
 	{
 		ZoneScopedN("Present");
 
-		try
-		{
-			m_status = m_device_session->getMainQueue()->swapchainPresent(
-				shared_from_this(),
-				m_acquired_image,
-				image_data.semaphore,
-				m_current_frame_index + 1
-			);
-		}
-		catch (const vk::OutOfDateKHRError&)
-		{
-			m_status = vk::Result::eErrorOutOfDateKHR;
-			return;
-		}
+		m_status = m_device_session->getMainQueue()->swapchainPresent(
+			shared_from_this(),
+			m_acquired_image,
+			image_data.semaphore,
+			m_current_frame_index + 1
+		);
 	}
 }
