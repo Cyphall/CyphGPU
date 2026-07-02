@@ -107,7 +107,7 @@ void cgpu::FragmentShaderState::createPipelineState()
 	{
 		depth_stencil_state.stencilTestEnable = vk::True;
 		depth_stencil_state.front = m_desc.stencil_state->front;
-		depth_stencil_state.back = m_desc.stencil_state->front;
+		depth_stencil_state.back = m_desc.stencil_state->back;
 	}
 	else
 	{
