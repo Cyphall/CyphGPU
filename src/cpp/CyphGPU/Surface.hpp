@@ -2,6 +2,8 @@
 
 #include <CyphGPU/fwd.hpp>
 
+#include <vulkan/vulkan.hpp>
+
 namespace cgpu
 {
 class Surface final
