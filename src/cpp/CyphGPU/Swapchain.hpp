@@ -86,7 +86,7 @@ private:
 
 	uint64_t m_current_frame_index{0};
 	uint32_t m_acquired_image{};
-	vk::Result m_status{true};
+	vk::Result m_status{vk::Result::eSuccess};
 
 	vk::Semaphore createSemaphore();
 	vk::Fence createFence();
