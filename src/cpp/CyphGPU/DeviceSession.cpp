@@ -30,7 +30,7 @@ std::vector<QueueFamilyInfo> queryAvailableQueues(const cgpu::DevicePtr& device)
 		QueueFamilyInfo& info = infos.emplace_back();
 		info.available_queue_count = properties.queueCount;
 		info.caps = properties.queueFlags;
-		info.num_caps = static_cast<vk::QueueFlags::MaskType>(properties.queueFlags);
+		info.num_caps = std::popcount(static_cast<vk::QueueFlags::MaskType>(properties.queueFlags));
 	}
 
 	return infos;
