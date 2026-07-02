@@ -25,7 +25,7 @@ std::vector<QueueFamilyInfo> queryAvailableQueues(const cgpu::DevicePtr& device)
 
 	std::vector<QueueFamilyInfo> infos;
 	infos.reserve(queue_family_properties.size());
-	for (const vk::QueueFamilyProperties& properties : device->getHandle().getQueueFamilyProperties(device->getContextSession()->getDispatcher()))
+	for (const vk::QueueFamilyProperties& properties : queue_family_properties)
 	{
 		QueueFamilyInfo& info = infos.emplace_back();
 		info.available_queue_count = properties.queueCount;
