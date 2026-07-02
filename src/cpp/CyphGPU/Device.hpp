@@ -6,6 +6,7 @@
 
 #include <boost/optional.hpp>
 #include <vulkan/vulkan.hpp>
+#include <mutex>
 
 namespace cgpu
 {
@@ -46,6 +47,8 @@ public:
 	[[nodiscard]]
 	const T& getProperties() const
 	{
+		std::unique_lock lock{m_properties_mutex};
+
 		auto [it, inserted] = m_properties_structs.try_emplace(T::structureType);
 		if (inserted)
 		{
@@ -94,6 +97,7 @@ private:
 	Capabilities m_capabilities{};
 
 	mutable std::unordered_map<vk::StructureType, std::shared_ptr<void>> m_properties_structs{};
+	mutable std::mutex m_properties_mutex{};
 
 	[[nodiscard]]
 	static boost::optional<const CapabilityData&> getCapabilityData(Capability capability);
