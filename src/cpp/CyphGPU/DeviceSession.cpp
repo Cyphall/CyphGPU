@@ -81,6 +81,11 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 	m_desc{std::move(desc)},
 	m_dispatcher{device->getContextSession()->getDispatcher()}
 {
+	if (!(m_device->getCapabilities() & Device::Capability::eCore))
+	{
+		throw std::logic_error("Cannot create a session for a device that does not support the Core capability.");
+	}
+
 	createDevice();
 	createAllocator();
 	createMemoryPools();
