@@ -142,9 +142,12 @@ void cgpu::Swapchain::createSwapchain()
 	);
 
 	std::optional<cgpu::SwapchainPtr> old_swapchain;
-	if (auto locked_old_swapchain = m_desc.old_swapchain->lock())
+	if (m_desc.old_swapchain)
 	{
-		old_swapchain = locked_old_swapchain;
+		if (auto locked_old_swapchain = m_desc.old_swapchain->lock())
+		{
+			old_swapchain = locked_old_swapchain;
+		}
 	}
 
 	vk::StructureChain<
