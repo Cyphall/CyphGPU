@@ -141,6 +141,12 @@ void cgpu::Swapchain::createSwapchain()
 		std::bit_cast<glm::uvec2>(surface_caps.surfaceCapabilities.maxImageExtent)
 	);
 
+	std::optional<cgpu::SwapchainPtr> old_swapchain;
+	if (auto locked_old_swapchain = m_desc.old_swapchain->lock())
+	{
+		old_swapchain = locked_old_swapchain;
+	}
+
 	vk::StructureChain<
 		vk::SwapchainCreateInfoKHR,
 		vk::ImageFormatListCreateInfo>
@@ -165,8 +171,8 @@ void cgpu::Swapchain::createSwapchain()
 	swapchain_info.presentMode = m_desc.present_mode;
 	swapchain_info.clipped = vk::True;
 	swapchain_info.oldSwapchain =
-		m_desc.old_swapchain ?
-			m_desc.old_swapchain->lock()->getHandle() :
+		old_swapchain ?
+			(*old_swapchain)->getHandle() :
 			nullptr;
 
 	auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();
