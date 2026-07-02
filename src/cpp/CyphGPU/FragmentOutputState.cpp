@@ -63,7 +63,6 @@ void cgpu::FragmentOutputState::createPipelineState()
 			blend_state.srcAlphaBlendFactor = attachment.blend->alpha.src_factor;
 			blend_state.dstAlphaBlendFactor = attachment.blend->alpha.dst_factor;
 			blend_state.alphaBlendOp = attachment.blend->alpha.op;
-			blend_state.colorWriteMask = attachment.blend->write_mask;
 		}
 		else
 		{
@@ -74,8 +73,9 @@ void cgpu::FragmentOutputState::createPipelineState()
 			// blend_state.srcAlphaBlendFactor;
 			// blend_state.dstAlphaBlendFactor;
 			// blend_state.alphaBlendOp;
-			// blend_state.colorWriteMask;
 		}
+
+		blend_state.colorWriteMask = attachment.write_mask;
 	}
 
 	vk::PipelineColorBlendStateCreateInfo color_blend_state;
@@ -166,7 +166,6 @@ std::size_t std::hash<cgpu::FragmentOutputState::Desc::BlendState>::operator()(c
 	size_t seed = 0;
 	cgpu::hashCombine(seed, key.color);
 	cgpu::hashCombine(seed, key.alpha);
-	cgpu::hashCombine(seed, key.write_mask);
 	return seed;
 }
 
@@ -175,5 +174,6 @@ std::size_t std::hash<cgpu::FragmentOutputState::Desc::ColorAttachment>::operato
 	size_t seed = 0;
 	cgpu::hashCombine(seed, key.format);
 	cgpu::hashCombine(seed, key.blend);
+	cgpu::hashCombine(seed, key.write_mask);
 	return seed;
 }

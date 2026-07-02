@@ -31,14 +31,6 @@ public:
 			BlendComponentState color;
 			BlendComponentState alpha;
 
-			// Optional
-			vk::ColorComponentFlags write_mask{
-				vk::ColorComponentFlagBits::eR |
-				vk::ColorComponentFlagBits::eG |
-				vk::ColorComponentFlagBits::eB |
-				vk::ColorComponentFlagBits::eA
-			};
-
 			bool operator==(const BlendState&) const = default;
 		};
 
@@ -49,6 +41,12 @@ public:
 
 			// Optional
 			std::optional<BlendState> blend{};
+			vk::ColorComponentFlags write_mask{
+				vk::ColorComponentFlagBits::eR |
+				vk::ColorComponentFlagBits::eG |
+				vk::ColorComponentFlagBits::eB |
+				vk::ColorComponentFlagBits::eA
+			};
 
 			bool operator==(const ColorAttachment&) const = default;
 		};
