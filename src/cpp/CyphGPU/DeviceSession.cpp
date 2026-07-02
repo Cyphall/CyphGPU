@@ -273,8 +273,6 @@ void cgpu::DeviceSession::createDevice()
 			vk::DeviceQueueCreateInfo& info = queue_create_infos.emplace_back();
 			info.flags = vk::DeviceQueueCreateFlagBits::eInternallySynchronizedKHR;
 			info.queueFamilyIndex = *family;
-			info.queueCount = *family;
-			info.pQueuePriorities = nullptr;
 
 			queue_priorities.emplace_back();
 
