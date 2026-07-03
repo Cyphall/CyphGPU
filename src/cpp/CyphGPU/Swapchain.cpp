@@ -202,10 +202,10 @@ void cgpu::Swapchain::createSwapchain()
 				m_device_session,
 				Image::Desc{
 					.name = std::move(name),
-					.format = m_desc.format.format,
-					.extent = {extent, 1},
+					.format = swapchain_info.imageFormat,
+					.extent = {std::bit_cast<glm::uvec2>(swapchain_info.imageExtent), 1},
 					.usages = m_desc.usages,
-					.layers = m_desc.layers,
+					.layers = swapchain_info.imageArrayLayers,
 					.additional_view_formats = m_desc.additional_view_formats,
 					.existing_handle = {{
 						.image = images[i],
