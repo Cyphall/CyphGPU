@@ -22,6 +22,11 @@ cgpu::Swapchain::Swapchain(PrivateKey, const DeviceSessionPtr& device_session, c
 	m_surface{surface},
 	m_desc{std::move(desc)}
 {
+	if (!(m_device_session->getDevice()->getCapabilities() & Device::Capability::eSwapchain))
+	{
+		throw std::logic_error("Cannot create swapchain when device capability Swapchain is not supported.");
+	}
+
 	createSwapchain();
 	createAcquireSyncObjects();
 }
