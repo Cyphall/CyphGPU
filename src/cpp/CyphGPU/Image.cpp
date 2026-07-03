@@ -61,7 +61,7 @@ uint32_t cgpu::Image::getSampledDescriptor(const SampledDescriptorOverrides& ove
 	info.format = overrides.format.value_or(m_desc.format);
 	info.levels = overrides.levels.value_or(Range<uint32_t>{0, vk::RemainingMipLevels});
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
-	info.aspect = *overrides.aspect.or_else([&] { return m_default_view_aspect; });
+	info.aspect = overrides.aspect.or_else([&] { return m_default_view_aspect; }).value();
 	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 
 	auto [it, inserted] = m_sampled_cache.try_emplace(info);
@@ -100,7 +100,7 @@ uint32_t cgpu::Image::getStorageDescriptor(const StorageDescriptorOverrides& ove
 	info.format = getLinearEquivalent(overrides.format.value_or(m_desc.format));
 	info.level = overrides.level.value_or(0u);
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
-	info.aspect = *overrides.aspect.or_else([&] { return m_default_view_aspect; });
+	info.aspect = overrides.aspect.or_else([&] { return m_default_view_aspect; }).value();
 
 	auto [it, inserted] = m_storage_cache.try_emplace(info);
 	if (inserted)
