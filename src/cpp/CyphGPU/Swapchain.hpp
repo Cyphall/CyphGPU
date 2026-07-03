@@ -22,10 +22,10 @@ public:
 		vk::ImageUsageFlags usages;
 
 		// Optional
-		uint32_t layers{1};
+		uint32_t preferred_layers{1};
 		std::vector<vk::Format> additional_view_formats{};
 		vk::PresentModeKHR present_mode{vk::PresentModeKHR::eFifo};
-		uint32_t image_count{3};
+		uint32_t preferred_image_count{3};
 		std::optional<std::weak_ptr<Swapchain>> old_swapchain{};
 	};
 
