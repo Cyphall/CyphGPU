@@ -177,7 +177,9 @@ std::pair<uint32_t, vk::HostAddressRangeEXT> cgpu::DeviceSession::Heap::reserveI
 	{
 		std::unique_lock lock{mutex};
 		if (available_indices.empty())
+		{
 			throw std::runtime_error("Out of descriptor slots!");
+		}
 		index = available_indices.back();
 		available_indices.pop_back();
 	}

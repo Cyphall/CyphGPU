@@ -150,7 +150,7 @@ void cgpu::Swapchain::createSwapchain()
 		m_desc.preferred_extent,
 		std::bit_cast<glm::uvec2>(surface_caps.surfaceCapabilities.minImageExtent),
 		std::bit_cast<glm::uvec2>(surface_caps.surfaceCapabilities.maxImageExtent)
-		);
+	);
 
 	uint32_t layers = glm::min(
 		m_desc.preferred_layers,

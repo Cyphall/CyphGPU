@@ -5,8 +5,8 @@
 #include <CyphGPU/fwd.hpp>
 
 #include <boost/optional.hpp>
-#include <vulkan/vulkan.hpp>
 #include <mutex>
+#include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {
