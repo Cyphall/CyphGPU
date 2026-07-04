@@ -251,6 +251,7 @@ void cgpu::Image::createImage()
 		alloc_create_info.pool = m_device_session->getMemoryPool(m_desc.memory_type).handle;
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
+		alloc_create_info.minAlignment = 0;
 
 		VmaAllocationInfo alloc_info{};
 		vk::detail::resultCheck(

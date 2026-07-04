@@ -161,21 +161,21 @@ void cgpu::Buffer::createBuffer()
 		alloc_create_info.pool = m_device_session->getMemoryPool(m_desc.memory_type).handle;
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
+		alloc_create_info.minAlignment = m_desc.min_alignment;
 
 		VmaAllocationInfo alloc_info{};
 		vk::detail::resultCheck(
 			static_cast<vk::Result>(
-				vmaCreateBufferWithAlignment(
+				vmaCreateBuffer(
 					m_device_session->getAllocator(),
 					buffer_info,
 					&alloc_create_info,
-					m_desc.min_alignment,
 					reinterpret_cast<VkBuffer*>(&m_handle),
 					&m_alloc.emplace(),
 					&alloc_info
 				)
 			),
-			"vmaCreateBufferWithAlignment"
+			"vmaCreateBuffer"
 		);
 
 		m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());

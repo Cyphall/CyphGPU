@@ -429,6 +429,7 @@ void cgpu::DeviceSession::createMemoryPools()
 		alloc_info.pool = nullptr;
 		alloc_info.pUserData = nullptr;
 		alloc_info.priority = 0.5f;
+		alloc_info.minAlignment = 0;
 
 		uint32_t memory_type_index{};
 		vk::detail::resultCheck(
