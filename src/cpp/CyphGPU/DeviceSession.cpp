@@ -105,15 +105,15 @@ cgpu::DeviceSession::~DeviceSession()
 	m_vertex_input_state_cache.clear();
 	m_sampler_cache.clear();
 
-	m_allocator.destroyBuffer(m_resource_heap.buffer, m_resource_heap.alloc);
-	m_allocator.destroyBuffer(m_sampler_heap.buffer, m_sampler_heap.alloc);
+	vmaDestroyBuffer(m_allocator, m_resource_heap.buffer, m_resource_heap.alloc);
+	vmaDestroyBuffer(m_allocator, m_sampler_heap.buffer, m_sampler_heap.alloc);
 
 	for (const auto& pool : m_memory_pools)
 	{
-		m_allocator.destroy(pool.handle);
+		vmaDestroyPool(m_allocator, pool.handle);
 	}
 
-	m_allocator.destroy();
+	vmaDestroyAllocator(m_allocator);
 
 	m_async_transfer_queue.reset();
 	m_async_compute_queue.reset();
@@ -378,24 +378,24 @@ void cgpu::DeviceSession::createDevice()
 
 void cgpu::DeviceSession::createAllocator()
 {
-	vma::AllocatorCreateFlags flags;
-	flags |= vma::AllocatorCreateFlagBits::eBufferDeviceAddress;
-	flags |= vma::AllocatorCreateFlagBits::eKhrMaintenance4;
-	flags |= vma::AllocatorCreateFlagBits::eKhrMaintenance5;
+	VmaAllocatorCreateFlags flags{};
+	flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+	flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
+	flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
 	if (m_device->getCapabilities() & Device::Capability::eMemoryBudget)
 	{
-		flags |= vma::AllocatorCreateFlagBits::eExtMemoryBudget;
+		flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 	}
 	if (m_device->getCapabilities() & Device::Capability::eMemoryPriority)
 	{
-		flags |= vma::AllocatorCreateFlagBits::eExtMemoryPriority;
+		flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
 	}
 
-	vma::VulkanFunctions functions;
+	VmaVulkanFunctions functions{};
 	functions.vkGetInstanceProcAddr = m_dispatcher.vkGetInstanceProcAddr;
 	functions.vkGetDeviceProcAddr = m_dispatcher.vkGetDeviceProcAddr;
 
-	vma::AllocatorCreateInfo info;
+	VmaAllocatorCreateInfo info{};
 	info.flags = flags;
 	info.physicalDevice = m_device->getHandle();
 	info.device = m_handle;
@@ -408,28 +408,40 @@ void cgpu::DeviceSession::createAllocator()
 	info.vulkanApiVersion = Context::VULKAN_API_VERSION;
 	info.pTypeExternalMemoryHandleTypes = nullptr;
 
-	m_allocator = vma::createAllocator(info);
+	vk::detail::resultCheck(
+		static_cast<vk::Result>(vmaCreateAllocator(
+			&info,
+			&m_allocator
+		)),
+		"vmaCreateAllocator"
+	);
 }
 
 void cgpu::DeviceSession::createMemoryPools()
 {
 	auto create_pool = [&](vk::MemoryPropertyFlags flags, float priority) -> MemoryPool {
-		vma::AllocationCreateInfo alloc_info;
+		VmaAllocationCreateInfo alloc_info{};
 		alloc_info.flags = {};
-		alloc_info.usage = vma::MemoryUsage::eUnknown;
-		alloc_info.requiredFlags = flags;
+		alloc_info.usage = VMA_MEMORY_USAGE_UNKNOWN;
+		alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(flags);
 		alloc_info.preferredFlags = {};
 		alloc_info.memoryTypeBits = std::numeric_limits<uint32_t>::max();
 		alloc_info.pool = nullptr;
 		alloc_info.pUserData = nullptr;
 		alloc_info.priority = 0.5f;
 
-		uint32_t memory_type_index = m_allocator.findMemoryTypeIndex(
-			std::numeric_limits<uint32_t>::max(),
-			alloc_info
+		uint32_t memory_type_index{};
+		vk::detail::resultCheck(
+			static_cast<vk::Result>(vmaFindMemoryTypeIndex(
+				m_allocator,
+				std::numeric_limits<uint32_t>::max(),
+				&alloc_info,
+				&memory_type_index
+			)),
+			"vmaFindMemoryTypeIndex"
 		);
 
-		vma::PoolCreateInfo pool_info;
+		VmaPoolCreateInfo pool_info{};
 		pool_info.memoryTypeIndex = memory_type_index;
 		pool_info.flags = {};
 		pool_info.blockSize = 0;
@@ -439,8 +451,20 @@ void cgpu::DeviceSession::createMemoryPools()
 		pool_info.minAllocationAlignment = 0;
 		pool_info.pMemoryAllocateNext = nullptr;
 
+		VmaPool pool{};
+		vk::detail::resultCheck(
+			static_cast<vk::Result>(
+				vmaCreatePool(
+					m_allocator,
+					&pool_info,
+					&pool
+				)
+			),
+			"vmaCreatePool"
+		);
+
 		return {
-			.handle = m_allocator.createPool(pool_info),
+			.handle = pool,
 			.is_host_visible = static_cast<bool>(flags & vk::MemoryPropertyFlagBits::eHostVisible),
 		};
 	};
@@ -487,9 +511,9 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 		buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(m_active_queue_families.size());
 		buffer_info.pQueueFamilyIndices = m_active_queue_families.data();
 
-		vma::AllocationCreateInfo alloc_create_info;
-		alloc_create_info.flags = vma::AllocationCreateFlagBits::eMapped;
-		alloc_create_info.usage = vma::MemoryUsage::eUnknown;
+		VmaAllocationCreateInfo alloc_create_info{};
+		alloc_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		alloc_create_info.usage = VMA_MEMORY_USAGE_UNKNOWN;
 		alloc_create_info.requiredFlags = {};
 		alloc_create_info.preferredFlags = {};
 		alloc_create_info.memoryTypeBits = {};
@@ -497,8 +521,22 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
 
-		vma::AllocationInfo alloc_info;
-		auto [alloc, buffer] = m_allocator.createBuffer(buffer_info, alloc_create_info, alloc_info);
+		vk::Buffer buffer{};
+		VmaAllocation alloc{};
+		VmaAllocationInfo alloc_info{};
+		vk::detail::resultCheck(
+			static_cast<vk::Result>(
+				vmaCreateBuffer(
+					m_allocator,
+					buffer_info,
+					&alloc_create_info,
+					reinterpret_cast<VkBuffer*>(&buffer),
+					&alloc,
+					&alloc_info
+				)
+			),
+			"vmaCreateBuffer"
+		);
 
 		vk::BufferDeviceAddressInfo bda_info;
 		bda_info.buffer = buffer;
@@ -539,7 +577,7 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 	}
 }
 
-const vma::Allocator& cgpu::DeviceSession::getAllocator() const
+const VmaAllocator& cgpu::DeviceSession::getAllocator() const
 {
 	return m_allocator;
 }

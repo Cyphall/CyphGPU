@@ -29,7 +29,7 @@ cgpu::Buffer::~Buffer()
 
 	if (m_alloc)
 	{
-		m_device_session->getAllocator().destroyBuffer(m_handle, *m_alloc);
+		vmaDestroyBuffer(m_device_session->getAllocator(), m_handle, *m_alloc);
 	}
 }
 
@@ -152,9 +152,9 @@ void cgpu::Buffer::createBuffer()
 		auto& buffer_usage_info = chain.get<vk::BufferUsageFlags2CreateInfo>();
 		buffer_usage_info.usage = m_desc.usages | vk::BufferUsageFlagBits2::eShaderDeviceAddress;
 
-		vma::AllocationCreateInfo alloc_create_info;
-		alloc_create_info.flags = vma::AllocationCreateFlagBits::eMapped;
-		alloc_create_info.usage = vma::MemoryUsage::eUnknown;
+		VmaAllocationCreateInfo alloc_create_info{};
+		alloc_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		alloc_create_info.usage = VMA_MEMORY_USAGE_UNKNOWN;
 		alloc_create_info.requiredFlags = {};
 		alloc_create_info.preferredFlags = {};
 		alloc_create_info.memoryTypeBits = {};
@@ -162,8 +162,20 @@ void cgpu::Buffer::createBuffer()
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
 
-		vma::AllocationInfo alloc_info;
-		std::tie(m_alloc, m_handle) = m_device_session->getAllocator().createBuffer(buffer_info, alloc_create_info, alloc_info);
+		VmaAllocationInfo alloc_info{};
+		vk::detail::resultCheck(
+			static_cast<vk::Result>(
+				vmaCreateBuffer(
+					m_device_session->getAllocator(),
+					buffer_info,
+					&alloc_create_info,
+					reinterpret_cast<VkBuffer*>(&m_handle),
+					&m_alloc.emplace(),
+					&alloc_info
+				)
+			),
+			"vmaCreateBuffer"
+		);
 
 		m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 

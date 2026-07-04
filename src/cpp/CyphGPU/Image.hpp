@@ -8,7 +8,7 @@
 #include <flat_map>
 #include <glm/glm.hpp>
 #include <optional>
-#include <vk_mem_alloc.hpp>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -160,7 +160,7 @@ private:
 	Desc m_desc;
 
 	vk::Image m_handle{};
-	std::optional<vma::Allocation> m_alloc{};
+	std::optional<VmaAllocation> m_alloc{};
 
 	vk::ImageViewType m_default_view_type{};
 	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};

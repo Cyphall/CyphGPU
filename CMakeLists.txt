@@ -38,9 +38,9 @@ find_package(glm CONFIG REQUIRED)
 
 find_package(VulkanHeaders CONFIG REQUIRED)
 
-# ---- Dependency: YaaZ/VulkanMemoryAllocator-Hpp ----
+# ---- Dependency: GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ----
 
-find_package(VulkanMemoryAllocatorHpp CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 # ---- Dependency: Neargye/magic_enum ----
 
@@ -184,9 +184,9 @@ target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_XCB
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_XLIB}>:VK_USE_PLATFORM_XLIB_KHR>)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_WAYLAND}>:VK_USE_PLATFORM_WAYLAND_KHR>)
 
-# ---- Dependency: YaaZ/VulkanMemoryAllocator-Hpp ----
+# ---- Dependency: GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ----
 
-target_link_libraries(CyphGPU PUBLIC VulkanMemoryAllocatorHpp)
+target_link_libraries(CyphGPU PUBLIC VulkanMemoryAllocator)
 
 target_compile_definitions(CyphGPU PUBLIC VMA_STATIC_VULKAN_FUNCTIONS=0)
 target_compile_definitions(CyphGPU PUBLIC VMA_DYNAMIC_VULKAN_FUNCTIONS=1)

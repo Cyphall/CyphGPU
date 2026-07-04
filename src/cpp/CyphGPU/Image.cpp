@@ -35,7 +35,7 @@ cgpu::Image::~Image()
 
 	if (m_alloc)
 	{
-		m_device_session->getAllocator().destroyImage(m_handle, *m_alloc);
+		vmaDestroyImage(m_device_session->getAllocator(), m_handle, *m_alloc);
 	}
 }
 
@@ -242,9 +242,9 @@ void cgpu::Image::createImage()
 		image_format_list_info.viewFormatCount = static_cast<uint32_t>(view_formats.size());
 		image_format_list_info.pViewFormats = view_formats.data();
 
-		vma::AllocationCreateInfo alloc_create_info;
+		VmaAllocationCreateInfo alloc_create_info;
 		alloc_create_info.flags = {};
-		alloc_create_info.usage = vma::MemoryUsage::eUnknown;
+		alloc_create_info.usage = VMA_MEMORY_USAGE_UNKNOWN;
 		alloc_create_info.requiredFlags = {};
 		alloc_create_info.preferredFlags = {};
 		alloc_create_info.memoryTypeBits = {};
@@ -252,7 +252,20 @@ void cgpu::Image::createImage()
 		alloc_create_info.pUserData = nullptr;
 		alloc_create_info.priority = 0.0f;
 
-		std::tie(m_alloc, m_handle) = m_device_session->getAllocator().createImage(image_info, alloc_create_info);
+		VmaAllocationInfo alloc_info{};
+		vk::detail::resultCheck(
+			static_cast<vk::Result>(
+				vmaCreateImage(
+					m_device_session->getAllocator(),
+					image_info,
+					&alloc_create_info,
+					reinterpret_cast<VkImage*>(&m_handle),
+					&m_alloc.emplace(),
+					&alloc_info
+				)
+			),
+			"vmaCreateImage"
+		);
 
 		m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 	}

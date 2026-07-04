@@ -11,7 +11,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>
 #include <unordered_map>
-#include <vk_mem_alloc.hpp>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -77,14 +77,14 @@ private:
 
 	struct MemoryPool
 	{
-		vma::Pool handle;
-		bool is_host_visible;
+		VmaPool handle{};
+		bool is_host_visible{};
 	};
 
 	struct Heap
 	{
 		vk::Buffer buffer{};
-		vma::Allocation alloc{};
+		VmaAllocation alloc{};
 		std::byte* host_ptr{};
 		vk::DeviceSize descriptor_size{};
 		vk::BindHeapInfoEXT bind_heap_info{};
@@ -146,7 +146,7 @@ private:
 	std::shared_ptr<Queue> m_async_compute_queue{};
 	std::shared_ptr<Queue> m_async_transfer_queue{};
 
-	vma::Allocator m_allocator{};
+	VmaAllocator m_allocator{};
 
 	std::array<MemoryPool, magic_enum::enum_count<MemoryType>()> m_memory_pools{};
 
@@ -173,7 +173,7 @@ private:
 	void createDescriptorHeaps();
 
 	[[nodiscard]]
-	const vma::Allocator& getAllocator() const;
+	const VmaAllocator& getAllocator() const;
 
 	[[nodiscard]]
 	const MemoryPool& getMemoryPool(MemoryType type) const;

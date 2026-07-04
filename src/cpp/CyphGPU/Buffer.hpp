@@ -8,7 +8,7 @@
 #include <flat_map>
 #include <glm/glm.hpp>
 #include <optional>
-#include <vk_mem_alloc.hpp>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -129,7 +129,7 @@ private:
 	Desc m_desc;
 
 	vk::Buffer m_handle{};
-	std::optional<vma::Allocation> m_alloc{};
+	std::optional<VmaAllocation> m_alloc{};
 
 	vk::DeviceAddress m_device_ptr{};
 	std::optional<std::byte*> m_host_ptr{};
