@@ -35,6 +35,7 @@ public:
 
 		// Optional
 		MemoryType memory_type{MemoryType::eGPUHighPrio};
+		vk::DeviceSize min_alignment{1};
 		/// Other desc parameters must still match what the buffer was created with.
 		std::optional<ExistingHandle> existing_handle{};
 	};
