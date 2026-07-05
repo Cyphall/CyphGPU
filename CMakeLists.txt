@@ -79,6 +79,9 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/Image.cpp"
 	"src/cpp/CyphGPU/Sampler.cpp"
 	"src/cpp/CyphGPU/Swapchain.cpp"
+	"src/cpp/CyphGPU/CommandContext.cpp"
+	"src/cpp/CyphGPU/CommandContextSlot.cpp"
+	"src/cpp/CyphGPU/CommandRecorder.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -101,6 +104,9 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/Sampler.hpp"
 	"src/cpp/CyphGPU/Swapchain.hpp"
 	"src/cpp/CyphGPU/HashExt.hpp"
+	"src/cpp/CyphGPU/CommandContext.hpp"
+	"src/cpp/CyphGPU/CommandContextSlot.hpp"
+	"src/cpp/CyphGPU/CommandRecorder.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)

@@ -2,6 +2,7 @@
 
 #include <boost/scope/scope_exit.hpp>
 #include <CyphGPU/Buffer.hpp>
+#include <CyphGPU/CommandContext.hpp>
 #include <CyphGPU/Context.hpp>
 #include <CyphGPU/ContextSession.hpp>
 #include <CyphGPU/Device.hpp>
@@ -156,6 +157,8 @@ int main()
 		}
 	);
 
+	cgpu::CommandContext cmd_ctx{device_session};
+
 	// Run render loop
 	while (glfwWindowShouldClose(window) == GLFW_FALSE)
 	{
@@ -181,6 +184,19 @@ int main()
 				}
 			);
 		}
+
+		{
+			cgpu::CommandRecorder cmd_rec = cmd_ctx.createRecorder(device_session->getMainQueue());
+
+			cmd_rec.clearColorImage({
+				.image = *swapchain->tryGetImage(),
+				.clear_value = glm::vec4{1.0f, 0.0f, 0.0f, 1.0f},
+			});
+
+			cmd_rec.submit();
+		}
+
+		cmd_ctx.finish();
 
 		swapchain->presentImage();
 

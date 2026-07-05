@@ -287,3 +287,65 @@ void cgpu::Queue::waitAndClearPayloads()
 	clear(m_submit_payloads);
 	clear(m_present_payloads);
 }
+
+cgpu::Queue::SubmitSync cgpu::Queue::submit(
+	vk::CommandBuffer cmdbuf,
+	std::span<const vk::Semaphore> wait_semaphores,
+	std::span<const uint64_t> wait_values,
+	std::vector<std::shared_ptr<void>>&& referenced_objects
+)
+{
+	std::unique_lock lock{m_mutex};
+
+	clearCompletedPayloads();
+
+	std::vector<vk::SemaphoreSubmitInfo> wait_infos;
+	wait_infos.resize(wait_semaphores.size());
+	for (size_t i = 0; i < wait_infos.size(); i++)
+	{
+		wait_infos[i] = vk::SemaphoreSubmitInfo{
+			.semaphore = wait_semaphores[i],
+			.value = wait_values[i],
+			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			.deviceIndex = 0,
+		};
+	}
+
+	std::array cmdbuf_infos{
+		vk::CommandBufferSubmitInfo{
+			.commandBuffer = cmdbuf,
+			.deviceMask = 1,
+		},
+	};
+
+	std::array signal_infos{
+		vk::SemaphoreSubmitInfo{
+			.semaphore = m_semaphore,
+			.value = m_next_index++,
+			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			.deviceIndex = 0,
+		},
+	};
+
+	vk::SubmitInfo2 info;
+	info.flags = {};
+	info.waitSemaphoreInfoCount = static_cast<uint32_t>(wait_infos.size());
+	info.pWaitSemaphoreInfos = wait_infos.data();
+	info.commandBufferInfoCount = static_cast<uint32_t>(cmdbuf_infos.size());
+	info.pCommandBufferInfos = cmdbuf_infos.data();
+	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
+	info.pSignalSemaphoreInfos = signal_infos.data();
+
+	vk::Fence fence = acquireFence();
+
+	m_handle.submit2(info, fence, m_device_session->getDispatcher());
+
+	Payload& payload = m_submit_payloads.emplace();
+	payload.objects = std::move(referenced_objects);
+	payload.fence = fence;
+
+	return {
+		.semaphore = signal_infos[0].semaphore,
+		.value = signal_infos[0].value,
+	};
+}
