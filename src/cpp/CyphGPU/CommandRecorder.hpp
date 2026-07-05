@@ -61,13 +61,16 @@ public:
 
 	struct ImageLevelLayerRange
 	{
-		Opt<cgpu::Range<uint32_t>> levels;
-		Opt<cgpu::Range<uint32_t>> layers;
+		/// Default: All levels.
+		Opt<cgpu::Range<uint32_t>> levels{};
+		/// Default: All layers.
+		Opt<cgpu::Range<uint32_t>> layers{};
 	};
 
 	struct ClearColorImageParams
 	{
 		Req<ImagePtr> image;
+		/// Default: One default-initialized range.
 		Opt<std::vector<ImageLevelLayerRange>> ranges{};
 		Req<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> clear_value;
 	};

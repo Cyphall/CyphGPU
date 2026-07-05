@@ -6,6 +6,50 @@
 #include <CyphGPU/Image.hpp>
 #include <CyphGPU/Queue.hpp>
 
+namespace
+{
+constexpr std::array DEFAULT_IMAGE_LEVEL_LAYER_RANGE = {
+	cgpu::CommandRecorder::ImageLevelLayerRange{},
+};
+
+bool isRangeEmpty(const vk::ImageSubresourceRange& range)
+{
+	return range.levelCount == 0 || range.layerCount == 0 || range.aspectMask == vk::ImageAspectFlags{};
+}
+
+vk::ImageSubresourceRange resolveRange(
+	const cgpu::ImagePtr& image,
+	const cgpu::CommandRecorder::ImageLevelLayerRange& range,
+	vk::ImageAspectFlags aspects
+)
+{
+	vk::ImageSubresourceRange vk_range;
+	vk_range.aspectMask = aspects;
+	if (range.levels)
+	{
+		vk_range.baseMipLevel = range.levels->offset;
+		vk_range.levelCount = range.levels->size;
+	}
+	else
+	{
+		vk_range.baseMipLevel = 0;
+		vk_range.levelCount = image->getDesc().levels;
+	}
+	if (range.layers)
+	{
+		vk_range.baseArrayLayer = range.layers->offset;
+		vk_range.layerCount = range.layers->size;
+	}
+	else
+	{
+		vk_range.baseArrayLayer = 0;
+		vk_range.layerCount = image->getDesc().layers;
+	}
+
+	return vk_range;
+}
+}
+
 void cgpu::CommandRecorder::submit()
 {
 #if !defined(NDEBUG)
@@ -40,27 +84,17 @@ void cgpu::CommandRecorder::clearColorImage(const ClearColorImageParams& params)
 {
 	assert(!m_submitted);
 
+	std::span<const ImageLevelLayerRange> ranges = params.ranges ? std::span{*params.ranges} : DEFAULT_IMAGE_LEVEL_LAYER_RANGE;
 	std::vector<vk::ImageSubresourceRange> vk_ranges;
-	if (params.ranges)
+	for (const auto& range : ranges)
 	{
-		for (const auto& range : *params.ranges)
+		vk::ImageSubresourceRange vk_range = resolveRange(*params.image, range, vk::ImageAspectFlagBits::eColor);
+		if (isRangeEmpty(vk_range))
 		{
-			auto& vk_range = vk_ranges.emplace_back();
-			vk_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-			vk_range.baseMipLevel = range.levels->offset;
-			vk_range.levelCount = range.levels->size;
-			vk_range.baseArrayLayer = range.layers->offset;
-			vk_range.layerCount = range.layers->size;
+			continue;
 		}
-	}
-	else
-	{
-		auto& vk_range = vk_ranges.emplace_back();
-		vk_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-		vk_range.baseMipLevel = 0;
-		vk_range.levelCount = (*params.image)->getDesc().levels;
-		vk_range.baseArrayLayer = 0;
-		vk_range.layerCount = (*params.image)->getDesc().layers;
+
+		vk_ranges.emplace_back(vk_range);
 	}
 
 	if (vk_ranges.empty())
