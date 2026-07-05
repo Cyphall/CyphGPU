@@ -75,16 +75,16 @@ public:
 	const vk::Buffer& getHandle();
 
 	[[nodiscard]]
-	const vk::DeviceAddress& getDevicePtr();
+	vk::DeviceAddress getDevicePtr(vk::DeviceSize offset = 0);
 
 	[[nodiscard]]
-	std::byte* getHostPtr();
+	std::byte* getHostPtr(vk::DeviceSize offset = 0);
 
 	template<class T = std::byte>
 	[[nodiscard]]
 	T* getHostPtr(vk::DeviceSize offset = 0)
 	{
-		return reinterpret_cast<T*>(getHostPtr() + offset);
+		return reinterpret_cast<T*>(getHostPtr(offset));
 	}
 
 	[[nodiscard]]

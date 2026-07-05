@@ -48,14 +48,14 @@ const vk::Buffer& cgpu::Buffer::getHandle()
 	return m_handle;
 }
 
-const vk::DeviceAddress& cgpu::Buffer::getDevicePtr()
+vk::DeviceAddress cgpu::Buffer::getDevicePtr(vk::DeviceSize offset)
 {
-	return m_device_ptr;
+	return m_device_ptr + offset;
 }
 
-std::byte* cgpu::Buffer::getHostPtr()
+std::byte* cgpu::Buffer::getHostPtr(vk::DeviceSize offset)
 {
-	return m_host_ptr.value();
+	return m_host_ptr.value() + offset;
 }
 
 uint32_t cgpu::Buffer::getUniformTexelDescriptor(vk::Format format, const UniformTexelDescriptorOverrides& overrides)
