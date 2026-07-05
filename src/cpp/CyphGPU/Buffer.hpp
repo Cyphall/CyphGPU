@@ -80,21 +80,11 @@ public:
 	[[nodiscard]]
 	std::byte* getHostPtr();
 
-	[[nodiscard]]
-	const std::byte* getHostPtr() const;
-
 	template<class T = std::byte>
 	[[nodiscard]]
 	T* getHostPtr(vk::DeviceSize offset = 0)
 	{
 		return reinterpret_cast<T*>(getHostPtr() + offset);
-	}
-
-	template<class T = std::byte>
-	[[nodiscard]]
-	const T* getHostPtr(vk::DeviceSize offset = 0) const
-	{
-		return reinterpret_cast<const T*>(getHostPtr() + offset);
 	}
 
 	[[nodiscard]]

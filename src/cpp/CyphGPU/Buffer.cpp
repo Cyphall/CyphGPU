@@ -58,11 +58,6 @@ std::byte* cgpu::Buffer::getHostPtr()
 	return m_host_ptr.value();
 }
 
-const std::byte* cgpu::Buffer::getHostPtr() const
-{
-	return m_host_ptr.value();
-}
-
 uint32_t cgpu::Buffer::getUniformTexelDescriptor(vk::Format format, const UniformTexelDescriptorOverrides& overrides)
 {
 	UniformTexelDescriptorInfo info;
