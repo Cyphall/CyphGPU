@@ -21,7 +21,7 @@ public:
 		uint64_t value;
 	};
 
-	explicit Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue);
+	explicit Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family);
 
 	Queue(const Queue&) = delete;
 	Queue(Queue&&) = delete;
@@ -36,6 +36,9 @@ public:
 
 	[[nodiscard]]
 	const vk::Queue& getHandle();
+
+	[[nodiscard]]
+	const uint32_t& getFamily() const;
 
 	void waitIdle();
 
@@ -52,6 +55,8 @@ private:
 	DeviceSession* m_device_session;
 
 	vk::Queue m_handle;
+
+	uint32_t m_family;
 
 	vk::Semaphore m_semaphore{};
 	uint64_t m_next_index{1};

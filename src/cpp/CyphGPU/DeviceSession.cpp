@@ -352,7 +352,7 @@ void cgpu::DeviceSession::createDevice()
 
 		vk::Queue queue = m_handle.getQueue2(info, m_dispatcher);
 
-		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue);
+		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue, *family);
 	};
 
 	m_main_queue = try_create_queue(main_queue_family, main_queue_index);

@@ -3,9 +3,10 @@
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Swapchain.hpp>
 
-cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue):
+cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family):
 	m_device_session{&device_session},
-	m_handle{queue}
+	m_handle{queue},
+	m_family{family}
 {
 	createSemaphore();
 }
@@ -31,6 +32,11 @@ cgpu::DeviceSessionPtr cgpu::Queue::getDeviceSession() const
 const vk::Queue& cgpu::Queue::getHandle()
 {
 	return m_handle;
+}
+
+const uint32_t& cgpu::Queue::getFamily() const
+{
+	return m_family;
 }
 
 void cgpu::Queue::waitIdle()
