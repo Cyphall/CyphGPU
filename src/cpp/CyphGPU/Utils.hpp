@@ -37,4 +37,10 @@ vk::Format getSrgbEquivalent(vk::Format format);
 
 [[nodiscard]]
 vk::ImageAspectFlags getAspects(vk::Format format);
+
+template<class T>
+T alignUp(T size, T alignment)
+{
+	return ((size + alignment - 1) / alignment) * alignment;
+}
 }
