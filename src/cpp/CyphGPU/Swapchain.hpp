@@ -88,11 +88,16 @@ private:
 	uint32_t m_acquired_image{};
 	vk::Result m_status{vk::Result::eSuccess};
 
+	vk::CommandPool m_layout_change_cmdpool{};
+	std::vector<vk::CommandBuffer> m_acquire_layout_change_cmdbufs{};
+	std::vector<vk::CommandBuffer> m_present_layout_change_cmdbufs{};
+
 	vk::Semaphore createSemaphore();
 	vk::Fence createFence();
 
 	void createSwapchain();
 	void createAcquireSyncObjects();
+	void createLayoutChangeObjects();
 
 	void performAcquire();
 	void throttle();

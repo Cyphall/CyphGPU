@@ -70,8 +70,8 @@ private:
 
 	void createSemaphore();
 
-	SubmitSync binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore);
-	void submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, const SubmitSync& submit_sync);
+	SubmitSync binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf);
+	SubmitSync submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf, const SubmitSync& submit_sync);
 
 	vk::Result swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id);
 

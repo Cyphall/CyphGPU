@@ -29,10 +29,12 @@ cgpu::Swapchain::Swapchain(PrivateKey, const DeviceSessionPtr& device_session, c
 
 	createSwapchain();
 	createAcquireSyncObjects();
+	createLayoutChangeObjects();
 }
 
 cgpu::Swapchain::~Swapchain()
 {
+	m_device_session->getHandle().destroyCommandPool(m_layout_change_cmdpool, nullptr, m_device_session->getDispatcher());
 	for (auto& acquire_sync_data : m_acquire_sync_data)
 	{
 		if (acquire_sync_data.signal_pending)
@@ -241,6 +243,76 @@ void cgpu::Swapchain::createAcquireSyncObjects()
 	}
 }
 
+void cgpu::Swapchain::createLayoutChangeObjects()
+{
+	{
+		vk::CommandPoolCreateInfo info;
+		info.flags = {};
+		info.queueFamilyIndex = m_device_session->getMainQueue()->getFamily();
+
+		m_layout_change_cmdpool = m_device_session->getHandle().createCommandPool(info, nullptr, m_device_session->getDispatcher());
+	}
+
+	{
+		vk::CommandBufferAllocateInfo info;
+		info.commandPool = m_layout_change_cmdpool;
+		info.level = vk::CommandBufferLevel::ePrimary;
+		info.commandBufferCount = static_cast<uint32_t>(m_image_data.size());
+
+		m_acquire_layout_change_cmdbufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
+		m_present_layout_change_cmdbufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
+	}
+
+	auto record_cmdbufs = [&](const std::vector<vk::CommandBuffer>& cmdbufs, vk::ImageLayout src_layout, vk::ImageLayout dst_layout) {
+		for (size_t i = 0; i < m_image_data.size(); i++)
+		{
+			{
+				vk::CommandBufferBeginInfo info;
+				info.flags = {};
+				// info.pInheritanceInfo;
+
+				cmdbufs[i].begin(info, m_device_session->getDispatcher());
+			}
+
+			{
+				vk::ImageMemoryBarrier2 barrier;
+				barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
+				barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+				barrier.dstStageMask = vk::PipelineStageFlagBits2::eNone;
+				barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
+				barrier.oldLayout = src_layout;
+				barrier.newLayout = dst_layout;
+				barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+				barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+				barrier.image = m_image_data[i].image->getHandle();
+				barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+				barrier.subresourceRange.baseMipLevel = 0;
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseArrayLayer = 0;
+				barrier.subresourceRange.layerCount = m_image_data[i].image->getDesc().layers;
+
+				vk::DependencyInfo info;
+				info.dependencyFlags = {};
+				info.memoryBarrierCount = 0;
+				// info.pMemoryBarriers;
+				info.bufferMemoryBarrierCount = 0;
+				// info.pBufferMemoryBarriers;
+				info.imageMemoryBarrierCount = 1;
+				info.pImageMemoryBarriers = &barrier;
+
+				cmdbufs[i].pipelineBarrier2(info, m_device_session->getDispatcher());
+			}
+
+			{
+				cmdbufs[i].end(m_device_session->getDispatcher());
+			}
+		}
+	};
+
+	record_cmdbufs(m_acquire_layout_change_cmdbufs, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+	record_cmdbufs(m_present_layout_change_cmdbufs, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+}
+
 void cgpu::Swapchain::performAcquire()
 {
 	ZoneScoped;
@@ -286,10 +358,14 @@ void cgpu::Swapchain::performAcquire()
 	}
 
 	{
-		ZoneScopedN("Binary -> Timeline");
+		ZoneScopedN("Binary -> Timeline + layout change");
 
 		m_image_data[m_acquired_image].image->setSubmitSync(
-			m_device_session->getMainQueue()->binaryToSubmitSync(shared_from_this(), acquire_sync_data.semaphore)
+			m_device_session->getMainQueue()->binaryToSubmitSync(
+				shared_from_this(),
+				acquire_sync_data.semaphore,
+				m_acquire_layout_change_cmdbufs[m_acquired_image]
+			)
 		);
 	}
 }
@@ -337,12 +413,15 @@ void cgpu::Swapchain::performPresent()
 	auto& image_data = m_image_data[m_acquired_image];
 
 	{
-		ZoneScopedN("Timeline -> Binary");
+		ZoneScopedN("Timeline -> Binary + layout change");
 
-		m_device_session->getMainQueue()->submitSyncToBinary(
-			shared_from_this(),
-			image_data.semaphore,
-			*image_data.image->tryGetSubmitSync()
+		image_data.image->setSubmitSync(
+			m_device_session->getMainQueue()->submitSyncToBinary(
+				shared_from_this(),
+				image_data.semaphore,
+				m_present_layout_change_cmdbufs[m_acquired_image],
+				*image_data.image->tryGetSubmitSync()
+			)
 		);
 	}
 
