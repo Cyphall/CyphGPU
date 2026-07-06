@@ -66,6 +66,21 @@ const cgpu::Swapchain::Desc& cgpu::Swapchain::getDesc() const
 	return m_desc;
 }
 
+const glm::uvec2& cgpu::Swapchain::getExtent() const
+{
+	return m_extent;
+}
+
+const uint32_t& cgpu::Swapchain::getLayers() const
+{
+	return m_layers;
+}
+
+const uint32_t& cgpu::Swapchain::getImageCount() const
+{
+	return m_image_count;
+}
+
 const vk::SwapchainKHR& cgpu::Swapchain::getHandle()
 {
 	return m_handle;
@@ -142,19 +157,19 @@ void cgpu::Swapchain::createSwapchain()
 		m_device_session->getDevice()->getContextSession()->getDispatcher()
 	);
 
-	uint32_t image_count = glm::clamp(
+	m_image_count = glm::clamp(
 		m_desc.preferred_image_count,
 		surface_caps.surfaceCapabilities.minImageCount,
 		surface_caps.surfaceCapabilities.maxImageCount
 	);
 
-	glm::uvec2 extent = glm::clamp(
+	m_extent = glm::clamp(
 		m_desc.preferred_extent,
 		std::bit_cast<glm::uvec2>(surface_caps.surfaceCapabilities.minImageExtent),
 		std::bit_cast<glm::uvec2>(surface_caps.surfaceCapabilities.maxImageExtent)
 	);
 
-	uint32_t layers = glm::min(
+	m_layers = glm::min(
 		m_desc.preferred_layers,
 		surface_caps.surfaceCapabilities.maxImageArrayLayers
 	);
@@ -178,11 +193,11 @@ void cgpu::Swapchain::createSwapchain()
 	                       vk::SwapchainCreateFlagBitsKHR::ePresentId2 |
 	                       vk::SwapchainCreateFlagBitsKHR::ePresentWait2;
 	swapchain_info.surface = m_surface->getHandle();
-	swapchain_info.minImageCount = image_count;
+	swapchain_info.minImageCount = m_image_count;
 	swapchain_info.imageFormat = m_desc.format.format;
 	swapchain_info.imageColorSpace = m_desc.format.colorSpace;
-	swapchain_info.imageExtent = std::bit_cast<vk::Extent2D>(extent);
-	swapchain_info.imageArrayLayers = layers;
+	swapchain_info.imageExtent = std::bit_cast<vk::Extent2D>(m_extent);
+	swapchain_info.imageArrayLayers = m_layers;
 	swapchain_info.imageUsage = m_desc.usages;
 	swapchain_info.imageSharingMode = queue_families.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
 	swapchain_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
