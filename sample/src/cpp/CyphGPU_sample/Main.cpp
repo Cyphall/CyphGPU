@@ -151,7 +151,7 @@ int main()
 		device_session,
 		surface,
 		{
-			.format = (*selected_device)->getDefaultSurfaceFormat(surface),
+			.format = {vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear},
 			.preferred_extent = extent,
 			.usages = vk::ImageUsageFlagBits::eTransferDst,
 		}
@@ -177,7 +177,7 @@ int main()
 				device_session,
 				surface,
 				{
-					.format = (*selected_device)->getDefaultSurfaceFormat(surface),
+					.format = {vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear},
 					.preferred_extent = extent,
 					.usages = vk::ImageUsageFlagBits::eTransferDst,
 					.old_swapchain = swapchain,
