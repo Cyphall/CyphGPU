@@ -61,9 +61,25 @@ std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
 	return std::nullopt;
 }
 
-vk::SurfaceFormatKHR cgpu::Device::getDefaultSurfaceFormat(const cgpu::SurfacePtr& surface) const
+std::optional<vk::CompositeAlphaFlagBitsKHR> cgpu::Device::selectBestAlphaMode(const cgpu::SurfacePtr& surface, std::span<const vk::CompositeAlphaFlagBitsKHR> alpha_modes) const
 {
-	return m_handle.getSurfaceFormatsKHR(surface->getHandle(), m_context_session->getDispatcher())[0];
+	vk::PhysicalDeviceSurfaceInfo2KHR surface_info;
+	surface_info.surface = surface->getHandle();
+
+	vk::SurfaceCapabilities2KHR surface_caps = m_handle.getSurfaceCapabilities2KHR(
+		surface_info,
+		m_context_session->getDispatcher()
+	);
+
+	for (const vk::CompositeAlphaFlagBitsKHR& alpha_mode : alpha_modes)
+	{
+		if (surface_caps.surfaceCapabilities.supportedCompositeAlpha & alpha_mode)
+		{
+			return alpha_mode;
+		}
+	}
+
+	return std::nullopt;
 }
 
 boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapabilityData(Capability capability)

@@ -76,7 +76,10 @@ public:
 	) const;
 
 	[[nodiscard]]
-	vk::SurfaceFormatKHR getDefaultSurfaceFormat(const cgpu::SurfacePtr& surface) const;
+	std::optional<vk::CompositeAlphaFlagBitsKHR> selectBestAlphaMode(
+		const cgpu::SurfacePtr& surface,
+		std::span<const vk::CompositeAlphaFlagBitsKHR> alpha_modes
+	) const;
 
 private:
 	friend class ContextSession;

@@ -26,6 +26,7 @@ public:
 		std::vector<vk::Format> additional_view_formats{};
 		vk::PresentModeKHR present_mode{vk::PresentModeKHR::eFifo};
 		uint32_t preferred_image_count{3};
+		vk::CompositeAlphaFlagBitsKHR alpha_mode{vk::CompositeAlphaFlagBitsKHR::eOpaque};
 		std::optional<std::weak_ptr<Swapchain>> old_swapchain{};
 	};
 

@@ -203,7 +203,7 @@ void cgpu::Swapchain::createSwapchain()
 	swapchain_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
 	swapchain_info.pQueueFamilyIndices = queue_families.data();
 	swapchain_info.preTransform = surface_caps.surfaceCapabilities.currentTransform;
-	swapchain_info.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+	swapchain_info.compositeAlpha = m_desc.alpha_mode;
 	swapchain_info.presentMode = m_desc.present_mode;
 	swapchain_info.clipped = vk::True;
 	swapchain_info.oldSwapchain =
