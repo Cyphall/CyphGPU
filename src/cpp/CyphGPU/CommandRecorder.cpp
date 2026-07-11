@@ -14,7 +14,7 @@ constexpr std::array CLEAR_IMAGE_DEFAULT_RANGE = {
 };
 
 constexpr std::array COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::CopyImageToImageRange{},
+	cgpu::CommandRecorder::CopyImageToImageParams::Range{},
 };
 
 std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
@@ -218,7 +218,7 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 {
 	assert(!m_submitted);
 
-	std::span<const CopyImageToImageRange> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
+	std::span<const CopyImageToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
 	std::vector<vk::ImageCopy2> vk_regions;
 	for (const auto& range : ranges)
 	{

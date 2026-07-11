@@ -105,20 +105,20 @@ public:
 
 	void clearImage(const ClearImageParams& params);
 
-	struct CopyImageToImageRange
-	{
-		/// Default: Default-initialized range.
-		Opt<ImageLevelLayersAspectsPixelsRange> src{};
-		/// Default: Default-initialized range.
-		Opt<ImageLevelLayersAspectsPixelsRange> dst{};
-	};
-
 	struct CopyImageToImageParams
 	{
+		struct Range
+		{
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsPixelsRange> src{};
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+		};
+
 		Req<ImagePtr> srcImage;
 		Req<ImagePtr> dstImage;
 		/// Default: One default-initialized range.
-		Opt<std::vector<CopyImageToImageRange>> ranges{};
+		Opt<std::vector<Range>> ranges{};
 	};
 
 	void copyImageToImage(const CopyImageToImageParams& params);
