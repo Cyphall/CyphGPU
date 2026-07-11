@@ -36,12 +36,12 @@ public:
 			return value;
 		}
 
-		std::remove_cvref_t<T>* operator->()
+		T* operator->()
 		{
 			return std::addressof(value);
 		}
 
-		std::add_const_t<std::remove_cvref_t<T>>* operator->() const
+		std::add_const_t<T>* operator->() const
 		{
 			return std::addressof(value);
 		}
@@ -98,7 +98,7 @@ public:
 	struct ComputePassParams
 	{
 		using Callback = void(ComputePassContext& ctx);
-		Req<Callback&> callback;
+		Req<Callback*> callback;
 	};
 
 	void computePass(const ComputePassParams& params);
