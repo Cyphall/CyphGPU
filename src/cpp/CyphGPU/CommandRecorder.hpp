@@ -75,8 +75,11 @@ public:
 		Req<ImagePtr> image;
 		/// Default: One default-initialized range.
 		Opt<std::vector<ImageLevelLayerRange>> ranges{};
+		/// Default: Empty (no color clear).
 		Opt<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> color_value{};
+		/// Default: Empty (no depth clear).
 		Opt<float> depth_value{};
+		/// Default: Empty (no stencil clear).
 		Opt<uint32_t> stencil_value{};
 	};
 
