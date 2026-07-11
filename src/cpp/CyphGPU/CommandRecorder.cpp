@@ -156,6 +156,8 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 {
+	assert(!m_submitted);
+
 	vk::MemoryBarrier2 barrier;
 	barrier.srcStageMask = *params.src_stages;
 	barrier.srcAccessMask = *params.src_accesses;
@@ -179,6 +181,8 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 
 void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 {
+	assert(!m_submitted);
+
 	ComputePassContext ctx{*this};
 
 	(*params.callback)(ctx);
