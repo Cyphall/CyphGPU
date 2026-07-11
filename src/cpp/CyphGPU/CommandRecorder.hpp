@@ -70,15 +70,17 @@ public:
 
 	// ----- Commands -----
 
-	struct ClearColorImageParams
+	struct ClearImageParams
 	{
 		Req<ImagePtr> image;
 		/// Default: One default-initialized range.
 		Opt<std::vector<ImageLevelLayerRange>> ranges{};
-		Req<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> clear_value;
+		Opt<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> color_value{};
+		Opt<float> depth_value{};
+		Opt<uint32_t> stencil_value{};
 	};
 
-	void clearColorImage(const ClearColorImageParams& params);
+	void clearImage(const ClearImageParams& params);
 
 	struct BarrierParams
 	{

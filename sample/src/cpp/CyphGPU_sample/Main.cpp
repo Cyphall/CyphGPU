@@ -188,9 +188,9 @@ int main()
 		{
 			cgpu::CommandRecorder cmd_rec = cmd_ctx.createRecorder(device_session->getMainQueue());
 
-			cmd_rec.clearColorImage({
+			cmd_rec.clearImage({
 				.image = *swapchain->tryGetImage(),
-				.clear_value = glm::vec4{1.0f, 0.0f, 0.0f, 1.0f},
+				.color_value = glm::vec4{1.0f, 0.0f, 0.0f, 1.0f},
 			});
 
 			cmd_rec.submit();

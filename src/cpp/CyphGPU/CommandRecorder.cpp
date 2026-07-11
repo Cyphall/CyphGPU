@@ -81,15 +81,29 @@ void cgpu::CommandRecorder::submit()
 	m_slot->addFinishedSync(sync);
 }
 
-void cgpu::CommandRecorder::clearColorImage(const ClearColorImageParams& params)
+void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 {
 	assert(!m_submitted);
+
+	vk::ImageAspectFlags aspects;
+	if (params.color_value)
+	{
+		aspects |= vk::ImageAspectFlagBits::eColor;
+	}
+	if (params.depth_value)
+	{
+		aspects |= vk::ImageAspectFlagBits::eDepth;
+	}
+	if (params.stencil_value)
+	{
+		aspects |= vk::ImageAspectFlagBits::eStencil;
+	}
 
 	std::span<const ImageLevelLayerRange> ranges = params.ranges ? std::span{*params.ranges} : DEFAULT_IMAGE_LEVEL_LAYER_RANGE;
 	std::vector<vk::ImageSubresourceRange> vk_ranges;
 	for (const auto& range : ranges)
 	{
-		vk::ImageSubresourceRange vk_range = resolveRange(*params.image, range, vk::ImageAspectFlagBits::eColor);
+		vk::ImageSubresourceRange vk_range = resolveRange(*params.image, range, aspects);
 		if (isRangeEmpty(vk_range))
 		{
 			continue;
@@ -103,20 +117,39 @@ void cgpu::CommandRecorder::clearColorImage(const ClearColorImageParams& params)
 		return;
 	}
 
-	vk::ClearColorValue clear_value = std::visit(
-		[](auto&& value) {
-			return vk::ClearColorValue{value.r, value.g, value.b, value.a};
-		},
-		*params.clear_value
-	);
+	if (params.color_value)
+	{
+		vk::ClearColorValue clear_value = std::visit(
+			[](auto&& value) {
+				return vk::ClearColorValue{value.r, value.g, value.b, value.a};
+			},
+			*params.color_value
+		);
 
-	m_cmdbuf.clearColorImage(
-		(*params.image)->getHandle(),
-		vk::ImageLayout::eGeneral,
-		clear_value,
-		vk_ranges,
-		*m_dispatcher
-	);
+		m_cmdbuf.clearColorImage(
+			(*params.image)->getHandle(),
+			vk::ImageLayout::eGeneral,
+			clear_value,
+			vk_ranges,
+			*m_dispatcher
+		);
+	}
+
+	if (params.depth_value || params.stencil_value)
+	{
+		vk::ClearDepthStencilValue clear_value = {
+			params.depth_value.value_or(0.0f),
+			params.stencil_value.value_or(0),
+		};
+
+		m_cmdbuf.clearDepthStencilImage(
+			(*params.image)->getHandle(),
+			vk::ImageLayout::eGeneral,
+			clear_value,
+			vk_ranges,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(*params.image);
 }
