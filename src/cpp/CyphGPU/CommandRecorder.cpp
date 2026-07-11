@@ -120,6 +120,29 @@ void cgpu::CommandRecorder::clearColorImage(const ClearColorImageParams& params)
 	addReferencedObject(*params.image);
 }
 
+void cgpu::CommandRecorder::barrier(const BarrierParams& params)
+{
+	vk::MemoryBarrier2 barrier;
+	barrier.srcStageMask = *params.src_stages;
+	barrier.srcAccessMask = *params.src_accesses;
+	barrier.dstStageMask = *params.dst_stages;
+	barrier.dstAccessMask = *params.dst_accesses;
+
+	vk::DependencyInfo dep_info;
+	dep_info.dependencyFlags = {};
+	dep_info.memoryBarrierCount = 1;
+	dep_info.pMemoryBarriers = &barrier;
+	dep_info.bufferMemoryBarrierCount = 0;
+	// dep_info.pBufferMemoryBarriers;
+	dep_info.imageMemoryBarrierCount = 0;
+	// dep_info.pImageMemoryBarriers;
+
+	m_cmdbuf.pipelineBarrier2(
+		dep_info,
+		*m_dispatcher
+	);
+}
+
 cgpu::CommandRecorder::CommandRecorder(
 	std::shared_ptr<CommandContextSlot>&& slot,
 	const cgpu::QueuePtr& queue,

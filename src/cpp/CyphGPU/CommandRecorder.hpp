@@ -57,7 +57,7 @@ public:
 
 	void submit();
 
-	// ----- Commands -----
+	// ----- Common structs -----
 
 	struct ImageLevelLayerRange
 	{
@@ -66,6 +66,8 @@ public:
 		/// Default: All layers.
 		Opt<cgpu::Range<uint32_t>> layers{};
 	};
+
+	// ----- Commands -----
 
 	struct ClearColorImageParams
 	{
@@ -76,6 +78,16 @@ public:
 	};
 
 	void clearColorImage(const ClearColorImageParams& params);
+
+	struct BarrierParams
+	{
+		Req<vk::PipelineStageFlags2> src_stages;
+		Req<vk::AccessFlags2> src_accesses;
+		Req<vk::PipelineStageFlags2> dst_stages;
+		Req<vk::AccessFlags2> dst_accesses;
+	};
+
+	void barrier(const BarrierParams& params);
 
 private:
 	friend class CommandContextSlot;
