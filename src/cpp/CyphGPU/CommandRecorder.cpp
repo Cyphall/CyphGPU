@@ -76,24 +76,24 @@ void cgpu::CommandRecorder::submit()
 		*m_dispatcher
 	);
 
-	Queue::SubmitSync sync = m_queue->submit(
+	Queue::Signal signal = m_queue->submit(
 		m_cmdbuf,
-		m_wait_semaphores,
-		m_wait_values,
+		m_signals_to_wait.keys(),
+		m_signals_to_wait.values(),
 		std::move(m_referenced_objects)
 	);
 
 	for (ImagePtr& image : m_referenced_images)
 	{
-		image->setSubmitSync(sync);
+		image->setSignal(signal);
 	}
 
 	for (BufferPtr& buffer : m_referenced_buffers)
 	{
-		buffer->setSubmitSync(sync);
+		buffer->setSignal(signal);
 	}
 
-	m_slot->addFinishedSync(sync);
+	m_slot->addFinishedSignal(signal);
 }
 
 void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
@@ -365,19 +365,13 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object
 
 	if constexpr (std::is_same_v<T, Image> || std::is_same_v<T, Buffer>)
 	{
-		const auto& sync = object->tryGetSubmitSync();
-		if (sync)
+		const auto& signal = object->tryGetSignal();
+		if (signal)
 		{
-			auto it = std::ranges::find(m_wait_semaphores, sync->semaphore);
-			if (it == m_wait_semaphores.end())
+			auto [it, inserted] = m_signals_to_wait.try_emplace(signal->semaphore, signal->value);
+			if (!inserted)
 			{
-				m_wait_semaphores.emplace_back(sync->semaphore);
-				m_wait_values.emplace_back(sync->value);
-			}
-			else
-			{
-				size_t index = std::distance(m_wait_semaphores.begin(), it);
-				m_wait_values[index] = std::max(m_wait_values[index], sync->value);
+				it->second = std::max(it->second, signal->value);
 			}
 		}
 	}

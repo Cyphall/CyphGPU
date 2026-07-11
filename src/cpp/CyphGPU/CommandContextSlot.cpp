@@ -1,4 +1,5 @@
 #include "CommandContextSlot.hpp"
+
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Queue.hpp>
@@ -95,23 +96,17 @@ cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParamet
 	};
 }
 
-std::pair<std::span<const vk::Semaphore>, std::span<const uint64_t>> cgpu::CommandContextSlot::getFinishedSemaphores() const
+const std::flat_map<vk::Semaphore, uint64_t>& cgpu::CommandContextSlot::getFinishedSignals() const
 {
-	return {m_finished_semaphores, m_finished_values};
+	return m_finished_signals;
 }
 
-void cgpu::CommandContextSlot::addFinishedSync(const Queue::SubmitSync& sync)
+void cgpu::CommandContextSlot::addFinishedSignal(const Queue::Signal& signal)
 {
-	auto it = std::ranges::find(m_finished_semaphores, sync.semaphore);
-	if (it == m_finished_semaphores.end())
+	auto [it, inserted] = m_finished_signals.try_emplace(signal.semaphore, signal.value);
+	if (!inserted)
 	{
-		m_finished_semaphores.emplace_back(sync.semaphore);
-		m_finished_values.emplace_back(sync.value);
-	}
-	else
-	{
-		size_t index = std::distance(m_finished_semaphores.begin(), it);
-		m_finished_values[index] = std::max(m_finished_values[index], sync.value);
+		it->second = std::max(it->second, signal.value);
 	}
 }
 
@@ -124,6 +119,5 @@ void cgpu::CommandContextSlot::reset()
 
 	m_parameter_offset = 0;
 
-	m_finished_semaphores.clear();
-	m_finished_values.clear();
+	m_finished_signals.clear();
 }

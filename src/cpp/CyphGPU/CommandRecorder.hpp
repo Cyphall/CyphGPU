@@ -4,6 +4,7 @@
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <flat_map>
 #include <glm/glm.hpp>
 #include <variant>
 
@@ -147,8 +148,7 @@ private:
 	std::vector<ImagePtr> m_referenced_images;
 	std::vector<BufferPtr> m_referenced_buffers;
 
-	std::vector<vk::Semaphore> m_wait_semaphores;
-	std::vector<uint64_t> m_wait_values;
+	std::flat_map<vk::Semaphore, uint64_t> m_signals_to_wait;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};

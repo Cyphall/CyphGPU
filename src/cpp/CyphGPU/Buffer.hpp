@@ -94,9 +94,9 @@ public:
 	uint32_t getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	const std::optional<Queue::SubmitSync>& tryGetSubmitSync() const;
+	const std::optional<Queue::Signal>& tryGetSignal() const;
 
-	void setSubmitSync(const Queue::SubmitSync& submit_sync);
+	void setSignal(const Queue::Signal& signal);
 
 private:
 	struct UniformTexelDescriptorInfo
@@ -128,7 +128,7 @@ private:
 	std::flat_map<UniformTexelDescriptorInfo, uint32_t> m_uniform_texel_cache;
 	std::flat_map<StorageTexelDescriptorInfo, uint32_t> m_storage_texel_cache;
 
-	std::optional<Queue::SubmitSync> m_submit_sync;
+	std::optional<Queue::Signal> m_signal;
 
 	void createBuffer();
 };

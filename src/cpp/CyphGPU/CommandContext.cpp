@@ -46,13 +46,13 @@ void cgpu::CommandContext::recycleFinishedSlots()
 	std::erase_if(
 		m_pending_slots,
 		[&](const std::shared_ptr<CommandContextSlot>& slot) {
-			auto [semaphores, values] = slot->getFinishedSemaphores();
+			const auto& finished_signals = slot->getFinishedSignals();
 
 			vk::SemaphoreWaitInfo info;
 			info.flags = {};
-			info.semaphoreCount = static_cast<uint32_t>(semaphores.size());
-			info.pSemaphores = semaphores.data();
-			info.pValues = values.data();
+			info.semaphoreCount = static_cast<uint32_t>(finished_signals.size());
+			info.pSemaphores = finished_signals.keys().data();
+			info.pValues = finished_signals.values().data();
 
 			bool finished = m_device_session->getHandle().waitSemaphores(info, 0, m_device_session->getDispatcher()) == vk::Result::eSuccess;
 			if (finished)

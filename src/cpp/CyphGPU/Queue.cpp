@@ -66,7 +66,7 @@ void cgpu::Queue::createSemaphore()
 	m_semaphore = m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher());
 }
 
-cgpu::Queue::SubmitSync cgpu::Queue::binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf)
+cgpu::Queue::Signal cgpu::Queue::binaryToSignal(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf)
 {
 	std::unique_lock lock{m_mutex};
 
@@ -120,7 +120,7 @@ cgpu::Queue::SubmitSync cgpu::Queue::binaryToSubmitSync(const SwapchainPtr& swap
 	};
 }
 
-cgpu::Queue::SubmitSync cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf, const SubmitSync& submit_sync)
+cgpu::Queue::Signal cgpu::Queue::signalToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf, const Signal& signal)
 {
 	std::unique_lock lock{m_mutex};
 
@@ -128,8 +128,8 @@ cgpu::Queue::SubmitSync cgpu::Queue::submitSyncToBinary(const SwapchainPtr& swap
 
 	std::array wait_infos{
 		vk::SemaphoreSubmitInfo{
-			.semaphore = submit_sync.semaphore,
-			.value = submit_sync.value,
+			.semaphore = signal.semaphore,
+			.value = signal.value,
 			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 			.deviceIndex = 0,
 		},
@@ -288,7 +288,7 @@ void cgpu::Queue::waitAndClearPayloads()
 	clear(m_present_payloads);
 }
 
-cgpu::Queue::SubmitSync cgpu::Queue::submit(
+cgpu::Queue::Signal cgpu::Queue::submit(
 	vk::CommandBuffer cmdbuf,
 	std::span<const vk::Semaphore> wait_semaphores,
 	std::span<const uint64_t> wait_values,

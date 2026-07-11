@@ -3,6 +3,7 @@
 #include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/fwd.hpp>
 
+#include <flat_map>
 #include <unordered_map>
 
 namespace cgpu
@@ -34,9 +35,9 @@ public:
 	ParameterMemory allocParameterMemory(vk::DeviceSize size, vk::DeviceSize alignment);
 
 	[[nodiscard]]
-	std::pair<std::span<const vk::Semaphore>, std::span<const uint64_t>> getFinishedSemaphores() const;
+	const std::flat_map<vk::Semaphore, uint64_t>& getFinishedSignals() const;
 
-	void addFinishedSync(const Queue::SubmitSync& sync);
+	void addFinishedSignal(const Queue::Signal& signal);
 
 	void reset();
 
@@ -51,7 +52,6 @@ private:
 	std::vector<cgpu::BufferPtr> m_parameter_buffers{};
 	uint64_t m_parameter_offset{};
 
-	std::vector<vk::Semaphore> m_finished_semaphores;
-	std::vector<uint64_t> m_finished_values;
+	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals;
 };
 }

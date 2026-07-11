@@ -17,7 +17,7 @@ class Queue final
 	{};
 
 public:
-	struct SubmitSync
+	struct Signal
 	{
 		vk::Semaphore semaphore;
 		uint64_t value;
@@ -73,8 +73,8 @@ private:
 
 	void createSemaphore();
 
-	SubmitSync binaryToSubmitSync(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf);
-	SubmitSync submitSyncToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf, const SubmitSync& submit_sync);
+	Signal binaryToSignal(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf);
+	Signal signalToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf, const Signal& signal);
 
 	vk::Result swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id);
 
@@ -85,7 +85,7 @@ private:
 	void clearCompletedPayloads();
 	void waitAndClearPayloads();
 
-	SubmitSync submit(
+	Signal submit(
 		vk::CommandBuffer cmdbuf,
 		std::span<const vk::Semaphore> wait_semaphores,
 		std::span<const uint64_t> wait_values,

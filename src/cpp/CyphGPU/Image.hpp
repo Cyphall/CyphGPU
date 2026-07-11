@@ -114,9 +114,9 @@ public:
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
 
 	[[nodiscard]]
-	const std::optional<Queue::SubmitSync>& tryGetSubmitSync() const;
+	const std::optional<Queue::Signal>& tryGetSignal() const;
 
-	void setSubmitSync(const Queue::SubmitSync& submit_sync);
+	void setSignal(const Queue::Signal& signal);
 
 private:
 	friend class Swapchain;
@@ -171,7 +171,7 @@ private:
 	//TODO: remove once we have an extension to remove image views from attachments
 	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;
 
-	std::optional<Queue::SubmitSync> m_submit_sync;
+	std::optional<Queue::Signal> m_signal;
 
 	void createImage();
 

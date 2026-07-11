@@ -169,14 +169,14 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	return it->second;
 }
 
-const std::optional<cgpu::Queue::SubmitSync>& cgpu::Image::tryGetSubmitSync() const
+const std::optional<cgpu::Queue::Signal>& cgpu::Image::tryGetSignal() const
 {
-	return m_submit_sync;
+	return m_signal;
 }
 
-void cgpu::Image::setSubmitSync(const Queue::SubmitSync& submit_sync)
+void cgpu::Image::setSignal(const Queue::Signal& signal)
 {
-	m_submit_sync = submit_sync;
+	m_signal = signal;
 }
 
 void cgpu::Image::createImage()

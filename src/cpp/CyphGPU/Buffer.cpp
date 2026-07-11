@@ -106,14 +106,14 @@ uint32_t cgpu::Buffer::getStorageTexelDescriptor(vk::Format format, const Storag
 	return it->second;
 }
 
-const std::optional<cgpu::Queue::SubmitSync>& cgpu::Buffer::tryGetSubmitSync() const
+const std::optional<cgpu::Queue::Signal>& cgpu::Buffer::tryGetSignal() const
 {
-	return m_submit_sync;
+	return m_signal;
 }
 
-void cgpu::Buffer::setSubmitSync(const Queue::SubmitSync& submit_sync)
+void cgpu::Buffer::setSignal(const Queue::Signal& signal)
 {
-	m_submit_sync = submit_sync;
+	m_signal = signal;
 }
 
 void cgpu::Buffer::createBuffer()
