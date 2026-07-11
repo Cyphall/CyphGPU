@@ -375,13 +375,17 @@ void cgpu::Swapchain::performAcquire()
 	{
 		ZoneScopedN("Binary -> Timeline + layout change");
 
-		m_image_data[m_acquired_image].image->setSignal(
+		m_image_data[m_acquired_image].image->lock();
+
+		m_image_data[m_acquired_image].image->setReadWriteSignal(
 			m_device_session->getMainQueue()->binaryToSignal(
 				shared_from_this(),
 				acquire_sync_data.semaphore,
 				m_acquire_layout_change_cmdbufs[m_acquired_image]
 			)
 		);
+
+		m_image_data[m_acquired_image].image->unlock();
 	}
 }
 
@@ -430,14 +434,19 @@ void cgpu::Swapchain::performPresent()
 	{
 		ZoneScopedN("Timeline -> Binary + layout change");
 
-		image_data.image->setSignal(
+		image_data.image->lock();
+
+		image_data.image->setReadWriteSignal(
 			m_device_session->getMainQueue()->signalToBinary(
 				shared_from_this(),
 				image_data.semaphore,
 				m_present_layout_change_cmdbufs[m_acquired_image],
-				*image_data.image->tryGetSignal()
+				image_data.image->getReadSignals().keys(),
+				image_data.image->getReadSignals().values()
 			)
 		);
+
+		image_data.image->unlock();
 	}
 
 	{

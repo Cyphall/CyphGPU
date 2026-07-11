@@ -2,6 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 
+#include <flat_map>
 #include <mutex>
 #include <queue>
 #include <stack>
@@ -73,9 +74,23 @@ private:
 
 	void createSemaphore();
 
-	Signal binaryToSignal(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf);
-	Signal signalToBinary(const SwapchainPtr& swapchain, vk::Semaphore semaphore, vk::CommandBuffer cmdbuf, const Signal& signal);
+	[[nodiscard]]
+	Signal binaryToSignal(
+		const SwapchainPtr& swapchain,
+		vk::Semaphore semaphore,
+		vk::CommandBuffer cmdbuf
+	);
 
+	[[nodiscard]]
+	Signal signalToBinary(
+		const SwapchainPtr& swapchain,
+		vk::Semaphore semaphore,
+		vk::CommandBuffer cmdbuf,
+		std::span<const vk::Semaphore> wait_semaphores,
+		std::span<const uint64_t> wait_values
+	);
+
+	[[nodiscard]]
 	vk::Result swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id);
 
 	[[nodiscard]]

@@ -79,19 +79,62 @@ void cgpu::CommandRecorder::submit()
 
 	for (const auto& buffer : m_slot->getParameterBuffers())
 	{
-		addReferencedObject(buffer);
+		addReferencedObject(buffer, ResourceAccess::eReadonly);
+	}
+
+	std::flat_map<vk::Semaphore, uint64_t> signals_to_wait;
+	auto addSignalToWait = [&](vk::Semaphore semaphore, uint64_t value) {
+		auto [it, inserted] = signals_to_wait.try_emplace(semaphore, value);
+		if (!inserted)
+		{
+			it->second = std::max(it->second, value);
+		}
+	};
+
+	for (auto& [resource, access] : m_referenced_resources)
+	{
+		resource->lock();
+
+		switch (access)
+		{
+		case ResourceAccess::eReadonly:
+		{
+			const auto& signal = resource->tryGetReadWriteSignal();
+			if (signal)
+			{
+				addSignalToWait(signal->semaphore, signal->value);
+			}
+			break;
+		}
+		case ResourceAccess::eReadWrite:
+		{
+			for (const auto& [semaphore, value] : resource->getReadSignals())
+			{
+				addSignalToWait(semaphore, value);
+			}
+			break;
+		}
+		default: std::unreachable();
+		}
 	}
 
 	Queue::Signal signal = m_queue->submit(
 		m_cmdbuf,
-		m_signals_to_wait.keys(),
-		m_signals_to_wait.values(),
+		signals_to_wait.keys(),
+		signals_to_wait.values(),
 		std::move(m_referenced_objects)
 	);
 
-	for (std::shared_ptr<Resource>& resource : m_referenced_resources)
+	for (auto& [resource, access] : m_referenced_resources)
 	{
-		resource->setSignal(signal);
+		switch (access)
+		{
+		case ResourceAccess::eReadonly: resource->addReadSignal(signal); break;
+		case ResourceAccess::eReadWrite: resource->setReadWriteSignal(signal); break;
+		default: std::unreachable();
+		}
+
+		resource->unlock();
 	}
 
 	m_slot->addFinishedSignal(signal);
@@ -168,7 +211,7 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		);
 	}
 
-	addReferencedObject(*params.image);
+	addReferencedObject(*params.image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& params)
@@ -234,8 +277,8 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 		*m_dispatcher
 	);
 
-	addReferencedObject(*params.srcImage);
-	addReferencedObject(*params.dstImage);
+	addReferencedObject(*params.srcImage, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dstImage, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)
@@ -304,6 +347,24 @@ cgpu::CommandRecorder::CommandRecorder(
 	);
 }
 
+template<class T>
+requires(!std::derived_from<T, cgpu::Resource>)
+void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object)
+{
+	m_referenced_objects.emplace_back(object);
+}
+
+void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access)
+{
+	m_referenced_objects.emplace_back(resource);
+
+	auto [it, inserted] = m_referenced_resources.try_emplace(resource, access);
+	if (!inserted && access == ResourceAccess::eReadWrite)
+	{
+		it->second = ResourceAccess::eReadWrite;
+	}
+}
+
 void cgpu::CommandRecorder::bindPipelineStates(
 	const cgpu::ComputeShaderStatePtr& compute_shader_state
 )
@@ -348,25 +409,4 @@ void cgpu::CommandRecorder::dispatch(
 		group_count.z,
 		*m_dispatcher
 	);
-}
-
-template<class T>
-void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object)
-{
-	m_referenced_objects.emplace_back(object);
-
-	if constexpr (std::is_base_of_v<Resource, T>)
-	{
-		m_referenced_resources.emplace_back(object);
-
-		const auto& signal = object->tryGetSignal();
-		if (signal)
-		{
-			auto [it, inserted] = m_signals_to_wait.try_emplace(signal->semaphore, signal->value);
-			if (!inserted)
-			{
-				it->second = std::max(it->second, signal->value);
-			}
-		}
-	}
 }

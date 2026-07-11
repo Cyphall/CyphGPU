@@ -5,7 +5,7 @@
 #include <CyphGPU/Resource.hpp>
 #include <CyphGPU/Utils.hpp>
 
-#include <flat_map>
+#include <map>
 #include <glm/glm.hpp>
 #include <variant>
 
@@ -51,6 +51,12 @@ public:
 
 	template<class T>
 	using Opt = std::optional<T>;
+
+	enum class ResourceAccess
+	{
+		eReadonly,
+		eReadWrite,
+	};
 
 	CommandRecorder(const CommandRecorder&) = delete;
 	CommandRecorder(CommandRecorder&&) = delete;
@@ -146,9 +152,7 @@ private:
 	vk::CommandBuffer m_cmdbuf;
 
 	std::vector<std::shared_ptr<void>> m_referenced_objects;
-	std::vector<std::shared_ptr<Resource>> m_referenced_resources;
-
-	std::flat_map<vk::Semaphore, uint64_t> m_signals_to_wait;
+	std::map<std::shared_ptr<Resource>, ResourceAccess> m_referenced_resources;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};
@@ -161,7 +165,10 @@ private:
 	);
 
 	template<class T>
+	requires(!std::derived_from<T, Resource>)
 	void addReferencedObject(const std::shared_ptr<T>& object);
+
+	void addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access);
 
 	// ----- Pass sub-commands -----
 
