@@ -9,16 +9,11 @@
 
 namespace
 {
-constexpr std::array DEFAULT_IMAGE_LEVELS_LAYERS_RANGE = {
+constexpr std::array CLEAR_IMAGE_DEFAULT_RANGE = {
 	cgpu::CommandRecorder::ImageLevelsLayersRange{},
 };
 
-bool isRangeEmpty(const vk::ImageSubresourceRange& range)
-{
-	return range.levelCount == 0 || range.layerCount == 0 || range.aspectMask == vk::ImageAspectFlags{};
-}
-
-vk::ImageSubresourceRange resolveRange(
+std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	const cgpu::ImagePtr& image,
 	const cgpu::CommandRecorder::ImageLevelsLayersRange& range,
 	vk::ImageAspectFlags aspects
@@ -31,7 +26,14 @@ vk::ImageSubresourceRange resolveRange(
 	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
 	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
 
-	return vk_range;
+	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
+		image->getDesc().format,
+		image->getDesc().extent,
+		{vk_range.baseMipLevel, vk_range.levelCount},
+		vk_range.layerCount
+	);
+
+	return {vk_range, byte_size};
 }
 }
 
@@ -83,12 +85,13 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		aspects |= vk::ImageAspectFlagBits::eStencil;
 	}
 
-	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{*params.ranges} : DEFAULT_IMAGE_LEVELS_LAYERS_RANGE;
+	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{*params.ranges} : CLEAR_IMAGE_DEFAULT_RANGE;
 	std::vector<vk::ImageSubresourceRange> vk_ranges;
 	for (const auto& range : ranges)
 	{
-		vk::ImageSubresourceRange vk_range = resolveRange(*params.image, range, aspects);
-		if (isRangeEmpty(vk_range))
+		auto [vk_range, byte_size] = resolveRange(*params.image, range, aspects);
+
+		if (byte_size == 0)
 		{
 			continue;
 		}
