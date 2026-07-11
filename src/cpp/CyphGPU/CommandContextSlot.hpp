@@ -22,14 +22,14 @@ public:
 		vk::DeviceAddress gpu_ptr;
 	};
 
-	explicit CommandContextSlot(PrivateKey, const cgpu::DeviceSessionPtr& device_session);
+	explicit CommandContextSlot(PrivateKey, const DeviceSessionPtr& device_session);
 
 	~CommandContextSlot();
 
-	CommandRecorder createRecorder(const cgpu::QueuePtr& queue);
+	CommandRecorder createRecorder(const QueuePtr& queue);
 
 	[[nodiscard]]
-	const cgpu::DeviceSessionPtr& getDeviceSession() const;
+	const DeviceSessionPtr& getDeviceSession() const;
 
 	[[nodiscard]]
 	ParameterMemory allocParameterMemory(vk::DeviceSize size, vk::DeviceSize alignment);
@@ -42,14 +42,14 @@ public:
 	void reset();
 
 private:
-	friend class cgpu::CommandContext;
+	friend class CommandContext;
 
-	cgpu::DeviceSessionPtr m_device_session;
+	DeviceSessionPtr m_device_session;
 
 	// Indexed withy queue family
 	std::unordered_map<uint32_t, vk::CommandPool> m_pools{};
 
-	std::vector<cgpu::BufferPtr> m_parameter_buffers{};
+	std::vector<BufferPtr> m_parameter_buffers{};
 	uint64_t m_parameter_offset{};
 
 	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals;
