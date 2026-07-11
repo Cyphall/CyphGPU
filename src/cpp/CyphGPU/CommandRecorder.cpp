@@ -13,6 +13,10 @@ constexpr std::array CLEAR_IMAGE_DEFAULT_RANGE = {
 	cgpu::CommandRecorder::ImageLevelsLayersRange{},
 };
 
+constexpr std::array COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE = {
+	cgpu::CommandRecorder::CopyImageToImageRange{},
+};
+
 std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	const cgpu::ImagePtr& image,
 	const cgpu::CommandRecorder::ImageLevelsLayersRange& range,
@@ -34,6 +38,31 @@ std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	);
 
 	return {vk_range, byte_size};
+}
+
+std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> resolveRange(
+	const cgpu::ImagePtr& image,
+	const cgpu::CommandRecorder::ImageLevelLayersAspectsPixelsRange& range
+)
+{
+	vk::ImageSubresourceLayers vk_range;
+	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
+	vk_range.mipLevel = range.level ? *range.level : 0;
+	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
+	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
+
+	cgpu::Range<glm::uvec3> pixel_range =
+		range.pixels ?
+			*range.pixels :
+			cgpu::Range<glm::uvec3>{glm::uvec3{0, 0, 0}, cgpu::calcImageLevelExtent(image->getDesc().extent, vk_range.mipLevel)};
+
+	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
+		image->getDesc().format,
+		pixel_range.size,
+		vk_range.layerCount
+	);
+
+	return {vk_range, pixel_range, byte_size};
 }
 }
 
@@ -139,6 +168,73 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 	}
 
 	addReferencedObject(*params.image);
+}
+
+void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& params)
+{
+	assert(!m_submitted);
+
+	std::span<const CopyImageToImageRange> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
+	std::vector<vk::ImageCopy2> vk_regions;
+	for (const auto& range : ranges)
+	{
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.srcImage, range.src.value_or({}));
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dstImage, range.dst.value_or({}));
+
+		if (src_vk_range.layerCount != dst_vk_range.layerCount)
+		{
+			throw std::logic_error("Image ranges must have the same number of layers.");
+		}
+
+		if (src_pixel_range.size != dst_pixel_range.size)
+		{
+			throw std::logic_error("Image ranges must have the same pixel region size.");
+		}
+
+		if (src_byte_size != dst_byte_size)
+		{
+			throw std::logic_error("Image ranges must have the same byte size.");
+		}
+
+		if (src_byte_size == 0)
+		{
+			continue;
+		}
+
+		vk::ImageCopy2& vk_region = vk_regions.emplace_back();
+		vk_region.srcSubresource = src_vk_range;
+		vk_region.srcOffset.x = src_pixel_range.offset.x;
+		vk_region.srcOffset.y = src_pixel_range.offset.y;
+		vk_region.srcOffset.z = src_pixel_range.offset.z;
+		vk_region.dstSubresource = dst_vk_range;
+		vk_region.dstOffset.x = dst_pixel_range.offset.x;
+		vk_region.dstOffset.y = dst_pixel_range.offset.y;
+		vk_region.dstOffset.z = dst_pixel_range.offset.z;
+		vk_region.extent.width = src_pixel_range.size.x;
+		vk_region.extent.height = src_pixel_range.size.y;
+		vk_region.extent.depth = src_pixel_range.size.z;
+	}
+
+	if (vk_regions.empty())
+	{
+		return;
+	}
+
+	vk::CopyImageInfo2 info;
+	info.srcImage = (*params.srcImage)->getHandle();
+	info.srcImageLayout = vk::ImageLayout::eGeneral;
+	info.dstImage = (*params.dstImage)->getHandle();
+	info.dstImageLayout = vk::ImageLayout::eGeneral;
+	info.regionCount = static_cast<uint32_t>(vk_regions.size());
+	info.pRegions = vk_regions.data();
+
+	m_cmdbuf.copyImage2(
+		info,
+		*m_dispatcher
+	);
+
+	addReferencedObject(*params.srcImage);
+	addReferencedObject(*params.dstImage);
 }
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)

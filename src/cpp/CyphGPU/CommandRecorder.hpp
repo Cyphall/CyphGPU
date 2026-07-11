@@ -68,6 +68,18 @@ public:
 		Opt<cgpu::Range<uint32_t>> layers{};
 	};
 
+	struct ImageLevelLayersAspectsPixelsRange
+	{
+		/// Default: Level 0.
+		Opt<uint32_t> level{};
+		/// Default: All layers.
+		Opt<cgpu::Range<uint32_t>> layers{};
+		/// Default: All aspects.
+		Opt<vk::ImageAspectFlags> aspects{};
+		/// Default: All pixels.
+		Opt<cgpu::Range<glm::uvec3>> pixels{};
+	};
+
 	// ----- Commands -----
 
 	struct ClearImageParams
@@ -84,6 +96,24 @@ public:
 	};
 
 	void clearImage(const ClearImageParams& params);
+
+	struct CopyImageToImageRange
+	{
+		/// Default: Default-initialized range.
+		Opt<ImageLevelLayersAspectsPixelsRange> src{};
+		/// Default: Default-initialized range.
+		Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+	};
+
+	struct CopyImageToImageParams
+	{
+		Req<ImagePtr> srcImage;
+		Req<ImagePtr> dstImage;
+		/// Default: One default-initialized range.
+		Opt<std::vector<CopyImageToImageRange>> ranges{};
+	};
+
+	void copyImageToImage(const CopyImageToImageParams& params);
 
 	struct BarrierParams
 	{
