@@ -682,6 +682,25 @@ vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(
 		vk::PipelineLibraryCreateInfoKHR>
 		chain;
 
+	auto& create_info = chain.get<vk::GraphicsPipelineCreateInfo>();
+	// create_info.flags;
+	// create_info.stageCount;
+	// create_info.pStages;
+	// create_info.pVertexInputState;
+	// create_info.pInputAssemblyState;
+	// create_info.pTessellationState;
+	// create_info.pViewportState;
+	// create_info.pRasterizationState;
+	// create_info.pMultisampleState;
+	// create_info.pDepthStencilState;
+	// create_info.pColorBlendState;
+	// create_info.pDynamicState;
+	create_info.layout = nullptr;
+	// create_info.renderPass;
+	// create_info.subpass;
+	// create_info.basePipelineHandle;
+	// create_info.basePipelineIndex;
+
 	auto& flags_create_info = chain.get<vk::PipelineCreateFlags2CreateInfo>();
 	flags_create_info.flags = vk::PipelineCreateFlagBits2::eDescriptorHeapEXT;
 	if (lto)

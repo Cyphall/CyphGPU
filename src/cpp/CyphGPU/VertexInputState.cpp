@@ -70,7 +70,7 @@ void cgpu::VertexInputState::createPipelineState()
 	// create_info.pDepthStencilState;
 	// create_info.pColorBlendState;
 	// create_info.pDynamicState;
-	// create_info.layout;
+	create_info.layout = nullptr;
 	// create_info.renderPass;
 	// create_info.subpass;
 	// create_info.basePipelineHandle;
