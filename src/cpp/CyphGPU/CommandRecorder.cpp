@@ -2,6 +2,7 @@
 
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContextSlot.hpp>
+#include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Image.hpp>
 #include <CyphGPU/Queue.hpp>
@@ -143,6 +144,13 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 	);
 }
 
+void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
+{
+	ComputePassContext ctx{*this};
+
+	(*params.callback)(ctx);
+}
+
 cgpu::CommandRecorder::CommandRecorder(
 	std::shared_ptr<CommandContextSlot>&& slot,
 	const cgpu::QueuePtr& queue,
@@ -171,6 +179,52 @@ cgpu::CommandRecorder::CommandRecorder(
 
 	m_cmdbuf.bindSamplerHeapEXT(
 		m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
+		*m_dispatcher
+	);
+}
+
+void cgpu::CommandRecorder::bindPipelineStates(
+	const cgpu::ComputeShaderStatePtr& compute_shader_state
+)
+{
+	m_cmdbuf.bindPipeline(
+		vk::PipelineBindPoint::eCompute,
+		compute_shader_state->getHandle(),
+		*m_dispatcher
+	);
+
+	addReferencedObject(compute_shader_state);
+}
+
+void cgpu::CommandRecorder::pushParameters(
+	uint32_t slot,
+	const void* data,
+	size_t size,
+	size_t alignment
+)
+{
+	auto param_mem = m_slot->allocParameterMemory(size, alignment);
+	std::memcpy(param_mem.cpu_ptr, &data, size);
+
+	vk::PushDataInfoEXT info;
+	info.offset = slot * sizeof(vk::DeviceAddress);
+	info.data.address = &param_mem.gpu_ptr;
+	info.data.size = sizeof(vk::DeviceAddress);
+
+	m_cmdbuf.pushDataEXT(
+		info,
+		*m_dispatcher
+	);
+}
+
+void cgpu::CommandRecorder::dispatch(
+	const glm::uvec3& group_count
+)
+{
+	m_cmdbuf.dispatch(
+		group_count.x,
+		group_count.y,
+		group_count.z,
 		*m_dispatcher
 	);
 }

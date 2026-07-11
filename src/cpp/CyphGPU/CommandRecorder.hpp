@@ -10,6 +10,7 @@
 namespace cgpu
 {
 class CommandContextSlot;
+class ComputePassContext;
 
 class CommandRecorder
 {
@@ -35,12 +36,12 @@ public:
 			return value;
 		}
 
-		T* operator->()
+		std::remove_cvref_t<T>* operator->()
 		{
 			return std::addressof(value);
 		}
 
-		const T* operator->() const
+		const std::remove_cvref_t<T>* operator->() const
 		{
 			return std::addressof(value);
 		}
@@ -89,8 +90,17 @@ public:
 
 	void barrier(const BarrierParams& params);
 
+	struct ComputePassParams
+	{
+		using Callback = void(ComputePassContext& ctx);
+		Req<Callback&> callback;
+	};
+
+	void computePass(const ComputePassParams& params);
+
 private:
 	friend class CommandContextSlot;
+	friend class ComputePassContext;
 
 	std::shared_ptr<CommandContextSlot> m_slot;
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
@@ -117,5 +127,22 @@ private:
 
 	template<class T>
 	void addReferencedObject(const std::shared_ptr<T>& object);
+
+	// ----- Pass sub-commands -----
+
+	void bindPipelineStates(
+		const cgpu::ComputeShaderStatePtr& compute_shader_state
+	);
+
+	void pushParameters(
+		uint32_t slot,
+		const void* data,
+		size_t size,
+		size_t alignment
+	);
+
+	void dispatch(
+		const glm::uvec3& group_count
+	);
 };
 }

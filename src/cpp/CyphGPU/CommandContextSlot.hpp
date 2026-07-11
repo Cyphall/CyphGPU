@@ -30,6 +30,7 @@ public:
 	[[nodiscard]]
 	const cgpu::DeviceSessionPtr& getDeviceSession() const;
 
+	[[nodiscard]]
 	ParameterMemory allocParameterMemory(vk::DeviceSize size, vk::DeviceSize alignment);
 
 	[[nodiscard]]

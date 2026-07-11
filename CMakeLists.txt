@@ -83,6 +83,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/CommandContextSlot.cpp"
 	"src/cpp/CyphGPU/CommandRecorder.cpp"
 	"src/cpp/CyphGPU/ComputeShaderState.cpp"
+	"src/cpp/CyphGPU/ComputePassContext.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -109,6 +110,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/CommandContextSlot.hpp"
 	"src/cpp/CyphGPU/CommandRecorder.hpp"
 	"src/cpp/CyphGPU/ComputeShaderState.hpp"
+	"src/cpp/CyphGPU/ComputePassContext.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
