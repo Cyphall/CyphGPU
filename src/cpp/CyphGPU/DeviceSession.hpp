@@ -2,6 +2,7 @@
 
 #include <CyphGPU/FragmentOutputState.hpp>
 #include <CyphGPU/FragmentShaderState.hpp>
+#include <CyphGPU/ComputeShaderState.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/PreRasterizationShaderState.hpp>
@@ -74,6 +75,7 @@ private:
 	friend class PreRasterizationShaderState;
 	friend class FragmentShaderState;
 	friend class FragmentOutputState;
+	friend class ComputeShaderState;
 
 	struct MemoryPool
 	{
@@ -159,6 +161,7 @@ private:
 	MetaObjectCache<PreRasterizationShaderState> m_pre_rasterization_shader_state_cache{};
 	MetaObjectCache<FragmentShaderState> m_fragment_shader_state_cache{};
 	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache{};
+	MetaObjectCache<ComputeShaderState> m_compute_shader_state_cache{};
 
 	std::unordered_map<
 		GraphicsPipelineKey,
@@ -213,6 +216,9 @@ private:
 
 	[[nodiscard]]
 	FragmentOutputState& getFragmentOutputState(FragmentOutputState::Desc&& desc);
+
+	[[nodiscard]]
+	ComputeShaderState& getComputeShaderState(ComputeShaderState::Desc&& desc);
 
 	[[nodiscard]]
 	vk::Pipeline linkGraphicsPipeline(

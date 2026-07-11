@@ -99,6 +99,7 @@ cgpu::DeviceSession::~DeviceSession()
 		m_handle.destroyPipeline(graphics_pipeline->fast_link_pipeline, nullptr, m_dispatcher);
 	}
 
+	m_compute_shader_state_cache.clear();
 	m_fragment_output_state_cache.clear();
 	m_fragment_shader_state_cache.clear();
 	m_pre_rasterization_shader_state_cache.clear();
@@ -659,6 +660,11 @@ cgpu::FragmentShaderState& cgpu::DeviceSession::getFragmentShaderState(FragmentS
 cgpu::FragmentOutputState& cgpu::DeviceSession::getFragmentOutputState(FragmentOutputState::Desc&& desc)
 {
 	return m_fragment_output_state_cache.get(*this, std::move(desc));
+}
+
+cgpu::ComputeShaderState& cgpu::DeviceSession::getComputeShaderState(ComputeShaderState::Desc&& desc)
+{
+	return m_compute_shader_state_cache.get(*this, std::move(desc));
 }
 
 vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(

@@ -18,6 +18,7 @@ class VertexInputState;
 class PreRasterizationShaderState;
 class FragmentShaderState;
 class FragmentOutputState;
+class ComputeShaderState;
 
 using ContextPtr = std::shared_ptr<Context>;
 using ContextSessionPtr = std::shared_ptr<ContextSession>;
@@ -33,4 +34,5 @@ using VertexInputStatePtr = std::shared_ptr<VertexInputState>;
 using PreRasterizationShaderStatePtr = std::shared_ptr<PreRasterizationShaderState>;
 using FragmentShaderStatePtr = std::shared_ptr<FragmentShaderState>;
 using FragmentOutputStatePtr = std::shared_ptr<FragmentOutputState>;
+using ComputeShaderStatePtr = std::shared_ptr<ComputeShaderState>;
 }
