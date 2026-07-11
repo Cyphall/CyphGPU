@@ -2,7 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
-#include <CyphGPU/Queue.hpp>
+#include <CyphGPU/Resource.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
@@ -13,7 +13,7 @@
 
 namespace cgpu
 {
-class Image final
+class Image final : public Resource
 {
 	class PrivateKey
 	{};
@@ -93,7 +93,7 @@ public:
 	Image& operator=(const Image&) = delete;
 	Image& operator=(Image&&) = delete;
 
-	~Image();
+	~Image() override;
 
 	[[nodiscard]]
 	const DeviceSessionPtr& getDeviceSession() const;
@@ -112,11 +112,6 @@ public:
 
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
-
-	[[nodiscard]]
-	const std::optional<Queue::Signal>& tryGetSignal() const;
-
-	void setSignal(const Queue::Signal& signal);
 
 private:
 	friend class Swapchain;
@@ -170,8 +165,6 @@ private:
 
 	//TODO: remove once we have an extension to remove image views from attachments
 	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;
-
-	std::optional<Queue::Signal> m_signal;
 
 	void createImage();
 

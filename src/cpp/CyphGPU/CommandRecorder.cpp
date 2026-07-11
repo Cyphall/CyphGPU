@@ -83,14 +83,9 @@ void cgpu::CommandRecorder::submit()
 		std::move(m_referenced_objects)
 	);
 
-	for (ImagePtr& image : m_referenced_images)
+	for (std::shared_ptr<Resource>& resource : m_referenced_resources)
 	{
-		image->setSignal(signal);
-	}
-
-	for (BufferPtr& buffer : m_referenced_buffers)
-	{
-		buffer->setSignal(signal);
+		resource->setSignal(signal);
 	}
 
 	m_slot->addFinishedSignal(signal);
@@ -354,17 +349,10 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object
 {
 	m_referenced_objects.emplace_back(object);
 
-	if constexpr (std::is_same_v<T, Image>)
+	if constexpr (std::is_base_of_v<Resource, T>)
 	{
-		m_referenced_images.emplace_back(object);
-	}
-	else if constexpr (std::is_same_v<T, Buffer>)
-	{
-		m_referenced_buffers.emplace_back(object);
-	}
+		m_referenced_resources.emplace_back(object);
 
-	if constexpr (std::is_same_v<T, Image> || std::is_same_v<T, Buffer>)
-	{
 		const auto& signal = object->tryGetSignal();
 		if (signal)
 		{

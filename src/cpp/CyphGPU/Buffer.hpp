@@ -2,7 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
-#include <CyphGPU/Queue.hpp>
+#include <CyphGPU/Resource.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
@@ -13,7 +13,7 @@
 
 namespace cgpu
 {
-class Buffer final
+class Buffer final : public Resource
 {
 	class PrivateKey
 	{};
@@ -63,7 +63,7 @@ public:
 	Buffer& operator=(const Buffer&) = delete;
 	Buffer& operator=(Buffer&&) = delete;
 
-	~Buffer();
+	~Buffer() override;
 
 	[[nodiscard]]
 	const DeviceSessionPtr& getDeviceSession() const;
@@ -92,11 +92,6 @@ public:
 
 	[[nodiscard]]
 	uint32_t getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
-
-	[[nodiscard]]
-	const std::optional<Queue::Signal>& tryGetSignal() const;
-
-	void setSignal(const Queue::Signal& signal);
 
 private:
 	struct UniformTexelDescriptorInfo
@@ -127,8 +122,6 @@ private:
 
 	std::flat_map<UniformTexelDescriptorInfo, uint32_t> m_uniform_texel_cache;
 	std::flat_map<StorageTexelDescriptorInfo, uint32_t> m_storage_texel_cache;
-
-	std::optional<Queue::Signal> m_signal;
 
 	void createBuffer();
 };

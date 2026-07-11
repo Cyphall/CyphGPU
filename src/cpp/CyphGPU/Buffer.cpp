@@ -106,16 +106,6 @@ uint32_t cgpu::Buffer::getStorageTexelDescriptor(vk::Format format, const Storag
 	return it->second;
 }
 
-const std::optional<cgpu::Queue::Signal>& cgpu::Buffer::tryGetSignal() const
-{
-	return m_signal;
-}
-
-void cgpu::Buffer::setSignal(const Queue::Signal& signal)
-{
-	m_signal = signal;
-}
-
 void cgpu::Buffer::createBuffer()
 {
 	if (m_desc.existing_handle)

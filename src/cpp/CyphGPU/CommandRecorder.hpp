@@ -2,6 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/Queue.hpp>
+#include <CyphGPU/Resource.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
@@ -145,8 +146,7 @@ private:
 	vk::CommandBuffer m_cmdbuf;
 
 	std::vector<std::shared_ptr<void>> m_referenced_objects;
-	std::vector<ImagePtr> m_referenced_images;
-	std::vector<BufferPtr> m_referenced_buffers;
+	std::vector<std::shared_ptr<Resource>> m_referenced_resources;
 
 	std::flat_map<vk::Semaphore, uint64_t> m_signals_to_wait;
 

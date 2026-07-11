@@ -169,16 +169,6 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	return it->second;
 }
 
-const std::optional<cgpu::Queue::Signal>& cgpu::Image::tryGetSignal() const
-{
-	return m_signal;
-}
-
-void cgpu::Image::setSignal(const Queue::Signal& signal)
-{
-	m_signal = signal;
-}
-
 void cgpu::Image::createImage()
 {
 	if (m_desc.existing_handle)
