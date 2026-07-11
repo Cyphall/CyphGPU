@@ -31,7 +31,7 @@ public:
 			return value;
 		}
 
-		const T& operator*() const
+		std::add_const_t<T>& operator*() const
 		{
 			return value;
 		}
@@ -41,7 +41,7 @@ public:
 			return std::addressof(value);
 		}
 
-		const std::remove_cvref_t<T>* operator->() const
+		std::add_const_t<std::remove_cvref_t<T>>* operator->() const
 		{
 			return std::addressof(value);
 		}
