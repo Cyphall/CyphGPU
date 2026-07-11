@@ -178,8 +178,8 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	std::vector<vk::ImageCopy2> vk_regions;
 	for (const auto& range : ranges)
 	{
-		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.srcImage, range.src.value_or({}));
-		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dstImage, range.dst.value_or({}));
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.srcImage, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dstImage, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
 
 		if (src_vk_range.layerCount != dst_vk_range.layerCount)
 		{
