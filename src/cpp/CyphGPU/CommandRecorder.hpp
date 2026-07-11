@@ -88,6 +88,12 @@ public:
 		Opt<cgpu::Range<glm::uvec3>> pixels{};
 	};
 
+	struct BufferRange
+	{
+		/// Default: All bytes.
+		Opt<cgpu::Range<vk::DeviceSize>> byte_range{};
+	};
+
 	// ----- Commands -----
 
 	struct ClearImageParams
@@ -122,6 +128,60 @@ public:
 	};
 
 	void copyImageToImage(const CopyImageToImageParams& params);
+
+	struct CopyBufferToImageParams
+	{
+		struct Range
+		{
+			/// Default: Default-initialized range.
+			Opt<BufferRange> src{};
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+		};
+
+		Req<BufferPtr> srcBuffer;
+		Req<ImagePtr> dstImage;
+		/// Default: One default-initialized range.
+		Opt<std::vector<Range>> ranges{};
+	};
+
+	void copyBufferToImage(const CopyBufferToImageParams& params);
+
+	struct CopyImageToBufferParams
+	{
+		struct Range
+		{
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsPixelsRange> src{};
+			/// Default: Default-initialized range.
+			Opt<BufferRange> dst{};
+		};
+
+		Req<ImagePtr> srcImage;
+		Req<BufferPtr> dstBuffer;
+		/// Default: One default-initialized range.
+		Opt<std::vector<Range>> ranges{};
+	};
+
+	void copyImageToBuffer(const CopyImageToBufferParams& params);
+
+	struct CopyBufferToBufferParams
+	{
+		struct Range
+		{
+			/// Default: Default-initialized range.
+			Opt<BufferRange> src{};
+			/// Default: Default-initialized range.
+			Opt<BufferRange> dst{};
+		};
+
+		Req<BufferPtr> srcBuffer;
+		Req<BufferPtr> dstBuffer;
+		/// Default: One default-initialized range.
+		Opt<std::vector<Range>> ranges{};
+	};
+
+	void copyBufferToBuffer(const CopyBufferToBufferParams& params);
 
 	struct BarrierParams
 	{

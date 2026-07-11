@@ -17,6 +17,18 @@ constexpr std::array COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE = {
 	cgpu::CommandRecorder::CopyImageToImageParams::Range{},
 };
 
+constexpr std::array COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE = {
+	cgpu::CommandRecorder::CopyBufferToImageParams::Range{},
+};
+
+constexpr std::array COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE = {
+	cgpu::CommandRecorder::CopyImageToBufferParams::Range{},
+};
+
+constexpr std::array COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE = {
+	cgpu::CommandRecorder::CopyBufferToBufferParams::Range{},
+};
+
 std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	const cgpu::ImagePtr& image,
 	const cgpu::CommandRecorder::ImageLevelsLayersRange& range,
@@ -63,6 +75,21 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 	);
 
 	return {vk_range, pixel_range, byte_size};
+}
+
+std::tuple<cgpu::Range<vk::DeviceSize>, vk::DeviceSize> resolveRange(
+	const cgpu::BufferPtr& buffer,
+	const cgpu::CommandRecorder::BufferRange& range
+)
+{
+	cgpu::Range<vk::DeviceSize> vk_range =
+		range.byte_range ?
+			*range.byte_range :
+			cgpu::Range<vk::DeviceSize>{0, buffer->getDesc().size};
+
+	vk::DeviceSize byte_size = vk_range.size;
+
+	return {vk_range, byte_size};
 }
 }
 
@@ -279,6 +306,163 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 
 	addReferencedObject(*params.srcImage, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dstImage, ResourceAccess::eReadWrite);
+}
+
+void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& params)
+{
+	assert(!m_submitted);
+
+	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
+	std::vector<vk::BufferImageCopy2> vk_regions;
+	for (const auto& range : ranges)
+	{
+		auto [src_vk_range, src_byte_size] = resolveRange(*params.srcBuffer, range.src.value_or(BufferRange{}));
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dstImage, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+
+		if (src_byte_size != dst_byte_size)
+		{
+			throw std::logic_error("Image range and buffer range must have the same byte size.");
+		}
+
+		if (src_byte_size == 0)
+		{
+			continue;
+		}
+
+		vk::BufferImageCopy2& vk_region = vk_regions.emplace_back();
+		vk_region.bufferOffset = src_vk_range.offset;
+		vk_region.bufferRowLength = 0;
+		vk_region.bufferImageHeight = 0;
+		vk_region.imageSubresource = dst_vk_range;
+		vk_region.imageOffset.x = dst_pixel_range.offset.x;
+		vk_region.imageOffset.y = dst_pixel_range.offset.y;
+		vk_region.imageOffset.z = dst_pixel_range.offset.z;
+		vk_region.imageExtent.width = dst_pixel_range.size.x;
+		vk_region.imageExtent.height = dst_pixel_range.size.y;
+		vk_region.imageExtent.depth = dst_pixel_range.size.z;
+	}
+
+	if (vk_regions.empty())
+	{
+		return;
+	}
+
+	vk::CopyBufferToImageInfo2 info;
+	info.srcBuffer = (*params.srcBuffer)->getHandle();
+	info.dstImage = (*params.dstImage)->getHandle();
+	info.dstImageLayout = vk::ImageLayout::eGeneral;
+	info.regionCount = static_cast<uint32_t>(vk_regions.size());
+	info.pRegions = vk_regions.data();
+
+	m_cmdbuf.copyBufferToImage2(
+		info,
+		*m_dispatcher
+	);
+
+	addReferencedObject(*params.srcBuffer, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dstImage, ResourceAccess::eReadWrite);
+}
+
+void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& params)
+{
+	assert(!m_submitted);
+
+	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
+	std::vector<vk::BufferImageCopy2> vk_regions;
+	for (const auto& range : ranges)
+	{
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.srcImage, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dstBuffer, range.dst.value_or(BufferRange{}));
+
+		if (src_byte_size != dst_byte_size)
+		{
+			throw std::logic_error("Image range and buffer range must have the same byte size.");
+		}
+
+		if (src_byte_size == 0)
+		{
+			continue;
+		}
+
+		vk::BufferImageCopy2& vk_region = vk_regions.emplace_back();
+		vk_region.bufferOffset = dst_vk_range.offset;
+		vk_region.bufferRowLength = 0;
+		vk_region.bufferImageHeight = 0;
+		vk_region.imageSubresource = src_vk_range;
+		vk_region.imageOffset.x = src_pixel_range.offset.x;
+		vk_region.imageOffset.y = src_pixel_range.offset.y;
+		vk_region.imageOffset.z = src_pixel_range.offset.z;
+		vk_region.imageExtent.width = src_pixel_range.size.x;
+		vk_region.imageExtent.height = src_pixel_range.size.y;
+		vk_region.imageExtent.depth = src_pixel_range.size.z;
+	}
+
+	if (vk_regions.empty())
+	{
+		return;
+	}
+
+	vk::CopyImageToBufferInfo2 info;
+	info.srcImage = (*params.srcImage)->getHandle();
+	info.srcImageLayout = vk::ImageLayout::eGeneral;
+	info.dstBuffer = (*params.dstBuffer)->getHandle();
+	info.regionCount = static_cast<uint32_t>(vk_regions.size());
+	info.pRegions = vk_regions.data();
+
+	m_cmdbuf.copyImageToBuffer2(
+		info,
+		*m_dispatcher
+	);
+
+	addReferencedObject(*params.srcImage, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dstBuffer, ResourceAccess::eReadWrite);
+}
+
+void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& params)
+{
+	assert(!m_submitted);
+
+	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
+	std::vector<vk::BufferCopy2> vk_regions;
+	for (const auto& range : ranges)
+	{
+		auto [src_vk_range, src_byte_size] = resolveRange(*params.srcBuffer, range.src.value_or(BufferRange{}));
+		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dstBuffer, range.dst.value_or(BufferRange{}));
+
+		if (src_byte_size != dst_byte_size)
+		{
+			throw std::logic_error("Buffer ranges must have the same byte size.");
+		}
+
+		if (src_byte_size == 0)
+		{
+			continue;
+		}
+
+		vk::BufferCopy2& vk_region = vk_regions.emplace_back();
+		vk_region.srcOffset = src_vk_range.offset;
+		vk_region.dstOffset = dst_vk_range.offset;
+		vk_region.size = src_vk_range.size;
+	}
+
+	if (vk_regions.empty())
+	{
+		return;
+	}
+
+	vk::CopyBufferInfo2 info;
+	info.srcBuffer = (*params.srcBuffer)->getHandle();
+	info.dstBuffer = (*params.dstBuffer)->getHandle();
+	info.regionCount = static_cast<uint32_t>(vk_regions.size());
+	info.pRegions = vk_regions.data();
+
+	m_cmdbuf.copyBuffer2(
+		info,
+		*m_dispatcher
+	);
+
+	addReferencedObject(*params.srcBuffer, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dstBuffer, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)
