@@ -1,5 +1,7 @@
 #include "Utils.hpp"
 
+#include <vulkan/vulkan_format_traits.hpp>
+
 vk::Format cgpu::getLinearEquivalent(vk::Format format)
 {
 	switch (format)
@@ -119,4 +121,34 @@ vk::ImageAspectFlags cgpu::getAspects(vk::Format format)
 	default:
 		return vk::ImageAspectFlagBits::eColor;
 	}
+}
+
+glm::uvec3 cgpu::calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t level)
+{
+	return glm::max(base_extent >> level, glm::uvec3{1, 1, 1});
+}
+
+vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers)
+{
+	glm::uvec3 blockCount{
+		(extent.x + vk::blockExtent(format)[0] - 1) / vk::blockExtent(format)[0],
+		(extent.y + vk::blockExtent(format)[1] - 1) / vk::blockExtent(format)[1],
+		(extent.z + vk::blockExtent(format)[2] - 1) / vk::blockExtent(format)[2],
+	};
+
+	return blockCount.x *
+	       blockCount.y *
+	       blockCount.z *
+	       vk::blockSize(format) *
+	       layers;
+}
+
+vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& base_extent, Range<uint32_t> levels, uint32_t layers)
+{
+	vk::DeviceSize size = 0;
+	for (uint32_t i = 0; i < levels.size; i++)
+	{
+		size += calcImageByteSize(format, calcImageLevelExtent(base_extent, levels.offset + i), layers);
+	}
+	return size;
 }
