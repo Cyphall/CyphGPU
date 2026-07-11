@@ -43,6 +43,7 @@ public:
 
 private:
 	friend class CommandContext;
+	friend class CommandRecorder;
 
 	DeviceSessionPtr m_device_session;
 
@@ -53,5 +54,7 @@ private:
 	uint64_t m_parameter_offset{};
 
 	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals;
+
+	std::span<const BufferPtr> getParameterBuffers();
 };
 }

@@ -121,3 +121,8 @@ void cgpu::CommandContextSlot::reset()
 
 	m_finished_signals.clear();
 }
+
+std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()
+{
+	return m_parameter_buffers;
+}

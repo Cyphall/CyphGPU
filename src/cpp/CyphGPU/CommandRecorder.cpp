@@ -77,6 +77,11 @@ void cgpu::CommandRecorder::submit()
 		*m_dispatcher
 	);
 
+	for (const auto& buffer : m_slot->getParameterBuffers())
+	{
+		addReferencedObject(buffer);
+	}
+
 	Queue::Signal signal = m_queue->submit(
 		m_cmdbuf,
 		m_signals_to_wait.keys(),
