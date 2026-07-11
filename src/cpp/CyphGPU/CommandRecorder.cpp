@@ -140,6 +140,16 @@ cgpu::CommandRecorder::CommandRecorder(
 		info,
 		*m_dispatcher
 	);
+
+	m_cmdbuf.bindResourceHeapEXT(
+		m_slot->getDeviceSession()->getResourceBindHeapInfo(),
+		*m_dispatcher
+	);
+
+	m_cmdbuf.bindSamplerHeapEXT(
+		m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
+		*m_dispatcher
+	);
 }
 
 template<class T>

@@ -17,6 +17,8 @@
 
 namespace cgpu
 {
+class CommandRecorder;
+
 class DeviceSession final : public std::enable_shared_from_this<DeviceSession>
 {
 	class PrivateKey
@@ -76,6 +78,7 @@ private:
 	friend class FragmentShaderState;
 	friend class FragmentOutputState;
 	friend class ComputeShaderState;
+	friend class CommandRecorder;
 
 	struct MemoryPool
 	{
