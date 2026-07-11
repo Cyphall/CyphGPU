@@ -69,6 +69,7 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 void cgpu::CommandRecorder::submit()
 {
 #if !defined(NDEBUG)
+	assert(!m_submitted);
 	m_submitted = true;
 #endif
 
