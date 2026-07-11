@@ -26,26 +26,10 @@ vk::ImageSubresourceRange resolveRange(
 {
 	vk::ImageSubresourceRange vk_range;
 	vk_range.aspectMask = aspects;
-	if (range.levels)
-	{
-		vk_range.baseMipLevel = range.levels->offset;
-		vk_range.levelCount = range.levels->size;
-	}
-	else
-	{
-		vk_range.baseMipLevel = 0;
-		vk_range.levelCount = image->getDesc().levels;
-	}
-	if (range.layers)
-	{
-		vk_range.baseArrayLayer = range.layers->offset;
-		vk_range.layerCount = range.layers->size;
-	}
-	else
-	{
-		vk_range.baseArrayLayer = 0;
-		vk_range.layerCount = image->getDesc().layers;
-	}
+	vk_range.baseMipLevel = range.levels ? range.levels->offset : 0;
+	vk_range.levelCount = range.levels ? range.levels->size : image->getDesc().levels;
+	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
+	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
 
 	return vk_range;
 }
