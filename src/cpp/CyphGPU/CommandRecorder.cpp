@@ -9,8 +9,8 @@
 
 namespace
 {
-constexpr std::array DEFAULT_IMAGE_LEVEL_LAYER_RANGE = {
-	cgpu::CommandRecorder::ImageLevelLayerRange{},
+constexpr std::array DEFAULT_IMAGE_LEVELS_LAYERS_RANGE = {
+	cgpu::CommandRecorder::ImageLevelsLayersRange{},
 };
 
 bool isRangeEmpty(const vk::ImageSubresourceRange& range)
@@ -20,7 +20,7 @@ bool isRangeEmpty(const vk::ImageSubresourceRange& range)
 
 vk::ImageSubresourceRange resolveRange(
 	const cgpu::ImagePtr& image,
-	const cgpu::CommandRecorder::ImageLevelLayerRange& range,
+	const cgpu::CommandRecorder::ImageLevelsLayersRange& range,
 	vk::ImageAspectFlags aspects
 )
 {
@@ -99,7 +99,7 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		aspects |= vk::ImageAspectFlagBits::eStencil;
 	}
 
-	std::span<const ImageLevelLayerRange> ranges = params.ranges ? std::span{*params.ranges} : DEFAULT_IMAGE_LEVEL_LAYER_RANGE;
+	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{*params.ranges} : DEFAULT_IMAGE_LEVELS_LAYERS_RANGE;
 	std::vector<vk::ImageSubresourceRange> vk_ranges;
 	for (const auto& range : ranges)
 	{
