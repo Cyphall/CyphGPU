@@ -1,8 +1,8 @@
 #pragma once
 
+#include <CyphGPU/ComputeShaderState.hpp>
 #include <CyphGPU/FragmentOutputState.hpp>
 #include <CyphGPU/FragmentShaderState.hpp>
-#include <CyphGPU/ComputeShaderState.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/PreRasterizationShaderState.hpp>

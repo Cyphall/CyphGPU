@@ -13,7 +13,6 @@ class CommandRecorder;
 class ComputePassContext
 {
 public:
-
 	// ----- Commands -----
 
 	void bindPipelineStates(

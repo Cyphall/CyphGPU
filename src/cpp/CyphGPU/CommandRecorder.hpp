@@ -5,8 +5,8 @@
 #include <CyphGPU/Resource.hpp>
 #include <CyphGPU/Utils.hpp>
 
-#include <map>
 #include <glm/glm.hpp>
+#include <map>
 #include <variant>
 
 namespace cgpu

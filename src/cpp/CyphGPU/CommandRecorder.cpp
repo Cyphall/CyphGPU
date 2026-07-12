@@ -110,7 +110,7 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 
 	glm::uvec3 top_left = range.top_left ? *range.top_left : glm::uvec3{0, 0, 0};
 	glm::uvec3 bottom_right = range.bottom_right ? *range.bottom_right : cgpu::calcImageLevelExtent(image->getDesc().extent, vk_range.mipLevel);
-	glm::uvec3 rect_extent =  glm::uvec3{glm::abs(glm::ivec3{bottom_right} - glm::ivec3{top_left})};
+	glm::uvec3 rect_extent = glm::uvec3{glm::abs(glm::ivec3{bottom_right} - glm::ivec3{top_left})};
 
 	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
 		image->getDesc().format,
@@ -496,7 +496,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 
 void cgpu::CommandRecorder::blit(const BlitParams& params)
 {
-		assert(!m_submitted);
+	assert(!m_submitted);
 
 	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{*params.ranges} : BLIT_DEFAULT_RANGE;
 	std::vector<vk::ImageBlit2> vk_regions;
