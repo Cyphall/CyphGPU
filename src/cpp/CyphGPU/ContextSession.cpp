@@ -39,7 +39,7 @@ VKAPI_ATTR vk::Bool32 VKAPI_CALL messageCallback(
 
 cgpu::ContextSessionPtr cgpu::ContextSession::create(const ContextPtr& context, Desc&& desc)
 {
-	return std::make_shared<cgpu::ContextSession>(PrivateKey{}, context, std::move(desc));
+	return std::make_shared<ContextSession>(PrivateKey{}, context, std::move(desc));
 }
 
 cgpu::ContextSession::ContextSession(PrivateKey, const ContextPtr& context, Desc&& desc):
@@ -85,7 +85,7 @@ const vk::Instance& cgpu::ContextSession::getHandle()
 
 std::vector<cgpu::DevicePtr> cgpu::ContextSession::getDevices() const
 {
-	std::vector<cgpu::DevicePtr> devices;
+	std::vector<DevicePtr> devices;
 	devices.reserve(m_devices.size());
 	for (const auto& device : m_devices)
 	{
@@ -104,7 +104,7 @@ void cgpu::ContextSession::createInstance()
 	app_info.engineVersion = 0;
 	app_info.apiVersion = Context::VULKAN_API_VERSION;
 
-	std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> unique_extensions;
+	std::unordered_set<const char*, StringHash, StringEqualTo> unique_extensions;
 	for (Context::Capability capability : magic_enum::enum_values<Context::Capability>())
 	{
 		if (!(m_context->getCapabilities() & capability))
@@ -112,7 +112,7 @@ void cgpu::ContextSession::createInstance()
 			continue;
 		}
 
-		auto capability_data = cgpu::Context::getCapabilityData(capability);
+		auto capability_data = Context::getCapabilityData(capability);
 		unique_extensions.insert(capability_data->extensions.begin(), capability_data->extensions.end());
 	}
 

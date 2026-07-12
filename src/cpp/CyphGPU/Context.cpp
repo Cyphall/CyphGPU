@@ -8,7 +8,7 @@
 
 cgpu::ContextPtr cgpu::Context::create()
 {
-	return std::make_shared<cgpu::Context>(PrivateKey{});
+	return std::make_shared<Context>(PrivateKey{});
 }
 
 cgpu::Context::Context(PrivateKey)
@@ -152,7 +152,7 @@ void cgpu::Context::checkCapabilitySupport()
 		return;
 	}
 
-	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supported_extensions;
+	std::unordered_set<std::string, StringHash, StringEqualTo> supported_extensions;
 	for (const vk::ExtensionProperties& extension_properties : vk::enumerateInstanceExtensionProperties(nullptr, m_dispatcher))
 	{
 		supported_extensions.emplace(extension_properties.extensionName.data());

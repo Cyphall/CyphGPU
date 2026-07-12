@@ -6,7 +6,7 @@
 
 cgpu::BufferPtr cgpu::Buffer::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {
-	return std::make_shared<cgpu::Buffer>(PrivateKey{}, device_session, std::move(desc));
+	return std::make_shared<Buffer>(PrivateKey{}, device_session, std::move(desc));
 }
 
 cgpu::Buffer::Buffer(PrivateKey, const DeviceSessionPtr& device_session, Desc&& desc):

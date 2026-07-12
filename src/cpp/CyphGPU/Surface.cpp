@@ -4,7 +4,7 @@
 
 cgpu::SurfacePtr cgpu::Surface::create(const ContextSessionPtr& context_session, Desc&& desc)
 {
-	return std::make_shared<cgpu::Surface>(PrivateKey{}, context_session, std::move(desc));
+	return std::make_shared<Surface>(PrivateKey{}, context_session, std::move(desc));
 }
 
 cgpu::Surface::Surface(PrivateKey, const ContextSessionPtr& context_session, Desc&& desc):

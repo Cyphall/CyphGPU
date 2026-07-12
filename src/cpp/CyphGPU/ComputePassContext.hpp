@@ -17,7 +17,7 @@ public:
 	// ----- Commands -----
 
 	void bindPipelineStates(
-		const cgpu::ComputeShaderStatePtr& compute_shader_state
+		const ComputeShaderStatePtr& compute_shader_state
 	);
 
 	void pushParameters(
@@ -45,7 +45,7 @@ private:
 
 	CommandRecorder* m_rec;
 
-	std::optional<cgpu::ComputeShaderStatePtr> m_current_compute_shader_state;
+	std::optional<ComputeShaderStatePtr> m_current_compute_shader_state;
 
 	explicit ComputePassContext(CommandRecorder& rec);
 };

@@ -71,13 +71,13 @@ public:
 
 	[[nodiscard]]
 	std::optional<vk::SurfaceFormatKHR> selectBestSurfaceFormat(
-		const cgpu::SurfacePtr& surface,
+		const SurfacePtr& surface,
 		std::span<const vk::SurfaceFormatKHR> formats
 	) const;
 
 	[[nodiscard]]
 	std::optional<vk::CompositeAlphaFlagBitsKHR> selectBestAlphaMode(
-		const cgpu::SurfacePtr& surface,
+		const SurfacePtr& surface,
 		std::span<const vk::CompositeAlphaFlagBitsKHR> alpha_modes
 	) const;
 

@@ -2,7 +2,7 @@
 
 #include <CyphGPU/CommandRecorder.hpp>
 
-void cgpu::ComputePassContext::bindPipelineStates(const cgpu::ComputeShaderStatePtr& compute_shader_state)
+void cgpu::ComputePassContext::bindPipelineStates(const ComputeShaderStatePtr& compute_shader_state)
 {
 	if (compute_shader_state == m_current_compute_shader_state)
 	{

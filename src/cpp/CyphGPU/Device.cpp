@@ -42,7 +42,7 @@ cgpu::Device::Capabilities cgpu::Device::getCapabilities() const
 }
 
 std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
-	const cgpu::SurfacePtr& surface,
+	const SurfacePtr& surface,
 	std::span<const vk::SurfaceFormatKHR> formats
 ) const
 {
@@ -61,7 +61,10 @@ std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(
 	return std::nullopt;
 }
 
-std::optional<vk::CompositeAlphaFlagBitsKHR> cgpu::Device::selectBestAlphaMode(const cgpu::SurfacePtr& surface, std::span<const vk::CompositeAlphaFlagBitsKHR> alpha_modes) const
+std::optional<vk::CompositeAlphaFlagBitsKHR> cgpu::Device::selectBestAlphaMode(
+	const SurfacePtr& surface,
+	std::span<const vk::CompositeAlphaFlagBitsKHR> alpha_modes
+) const
 {
 	vk::PhysicalDeviceSurfaceInfo2KHR surface_info;
 	surface_info.surface = surface->getHandle();
@@ -368,7 +371,7 @@ void cgpu::Device::checkCapabilitySupport()
 		return;
 	}
 
-	std::unordered_set<std::string, cgpu::StringHash, cgpu::StringEqualTo> supported_extensions;
+	std::unordered_set<std::string, StringHash, StringEqualTo> supported_extensions;
 	for (const vk::ExtensionProperties& extension_properties : m_handle.enumerateDeviceExtensionProperties(nullptr, m_context_session->getDispatcher()))
 	{
 		supported_extensions.emplace(extension_properties.extensionName.data());

@@ -12,7 +12,7 @@ namespace
 constexpr vk::DeviceSize PARAMETER_BUFFER_SIZE = 4096;
 }
 
-cgpu::CommandContextSlot::CommandContextSlot(PrivateKey, const cgpu::DeviceSessionPtr& device_session):
+cgpu::CommandContextSlot::CommandContextSlot(PrivateKey, const DeviceSessionPtr& device_session):
 	m_device_session{device_session}
 {
 }
@@ -25,7 +25,7 @@ cgpu::CommandContextSlot::~CommandContextSlot()
 	}
 }
 
-cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const cgpu::QueuePtr& queue)
+cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& queue)
 {
 	auto [it, inserted] = m_pools.try_emplace(queue->getFamily());
 	if (inserted)

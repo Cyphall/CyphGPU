@@ -8,7 +8,7 @@
 
 cgpu::ImagePtr cgpu::Image::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {
-	return std::make_shared<cgpu::Image>(PrivateKey{}, device_session, std::move(desc));
+	return std::make_shared<Image>(PrivateKey{}, device_session, std::move(desc));
 }
 
 cgpu::Image::Image(PrivateKey, const DeviceSessionPtr& device_session, Desc&& desc):

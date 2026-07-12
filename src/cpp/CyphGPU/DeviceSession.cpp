@@ -73,7 +73,7 @@ std::optional<uint32_t> tryReserveBestQueue(std::span<QueueFamilyInfo> available
 
 cgpu::DeviceSessionPtr cgpu::DeviceSession::create(const DevicePtr& device, Desc&& desc)
 {
-	return std::make_shared<cgpu::DeviceSession>(PrivateKey{}, device, std::move(desc));
+	return std::make_shared<DeviceSession>(PrivateKey{}, device, std::move(desc));
 }
 
 cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& desc):
@@ -304,7 +304,7 @@ void cgpu::DeviceSession::createDevice()
 
 	// Prepare features & extensions
 
-	std::unordered_set<const char*, cgpu::StringHash, cgpu::StringEqualTo> unique_extensions;
+	std::unordered_set<const char*, StringHash, StringEqualTo> unique_extensions;
 	DynamicFeatureChain feature_chain;
 	for (Device::Capability capability : magic_enum::enum_values<Device::Capability>())
 	{
@@ -313,7 +313,7 @@ void cgpu::DeviceSession::createDevice()
 			continue;
 		}
 
-		auto capability_data = cgpu::Device::getCapabilityData(capability);
+		auto capability_data = Device::getCapabilityData(capability);
 		unique_extensions.insert(capability_data->extensions.begin(), capability_data->extensions.end());
 		capability_data->feature_callback(feature_chain);
 	}

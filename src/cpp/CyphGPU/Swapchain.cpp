@@ -12,7 +12,7 @@
 
 cgpu::SwapchainPtr cgpu::Swapchain::create(const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc)
 {
-	auto swapchain = std::make_shared<cgpu::Swapchain>(PrivateKey{}, device_session, surface, std::move(desc));
+	auto swapchain = std::make_shared<Swapchain>(PrivateKey{}, device_session, surface, std::move(desc));
 	swapchain->performAcquire();
 	return swapchain;
 }
@@ -174,7 +174,7 @@ void cgpu::Swapchain::createSwapchain()
 		surface_caps.surfaceCapabilities.maxImageArrayLayers
 	);
 
-	std::optional<cgpu::SwapchainPtr> old_swapchain;
+	std::optional<SwapchainPtr> old_swapchain;
 	if (m_desc.old_swapchain)
 	{
 		if (auto locked_old_swapchain = m_desc.old_swapchain->lock())

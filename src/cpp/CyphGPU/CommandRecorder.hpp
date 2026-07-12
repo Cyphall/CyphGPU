@@ -71,9 +71,9 @@ public:
 	struct ImageLevelsLayersRange
 	{
 		/// Default: All levels.
-		Opt<cgpu::Range<uint32_t>> levels{};
+		Opt<Range<uint32_t>> levels{};
 		/// Default: All layers.
-		Opt<cgpu::Range<uint32_t>> layers{};
+		Opt<Range<uint32_t>> layers{};
 	};
 
 	struct ImageLevelLayersAspectsPixelsRange
@@ -81,11 +81,11 @@ public:
 		/// Default: Level 0.
 		Opt<uint32_t> level{};
 		/// Default: All layers.
-		Opt<cgpu::Range<uint32_t>> layers{};
+		Opt<Range<uint32_t>> layers{};
 		/// Default: All aspects.
 		Opt<vk::ImageAspectFlags> aspects{};
 		/// Default: All pixels.
-		Opt<cgpu::Range<glm::uvec3>> pixels{};
+		Opt<Range<glm::uvec3>> pixels{};
 	};
 
 	struct ImageLevelLayersAspectsRectRange
@@ -93,7 +93,7 @@ public:
 		/// Default: Level 0.
 		Opt<uint32_t> level{};
 		/// Default: All layers.
-		Opt<cgpu::Range<uint32_t>> layers{};
+		Opt<Range<uint32_t>> layers{};
 		/// Default: All aspects.
 		Opt<vk::ImageAspectFlags> aspects{};
 		/// Default: [0, 0, 0].
@@ -105,7 +105,7 @@ public:
 	struct BufferRange
 	{
 		/// Default: All bytes.
-		Opt<cgpu::Range<vk::DeviceSize>> byte_range{};
+		Opt<Range<vk::DeviceSize>> byte_range{};
 	};
 
 	// ----- Commands -----
@@ -242,7 +242,7 @@ private:
 	std::shared_ptr<CommandContextSlot> m_slot;
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
 
-	cgpu::QueuePtr m_queue;
+	QueuePtr m_queue;
 	vk::CommandBuffer m_cmdbuf;
 
 	std::vector<std::shared_ptr<void>> m_referenced_objects;
@@ -254,7 +254,7 @@ private:
 
 	explicit CommandRecorder(
 		std::shared_ptr<CommandContextSlot>&& slot,
-		const cgpu::QueuePtr& queue,
+		const QueuePtr& queue,
 		vk::CommandBuffer cmdbuf
 	);
 
@@ -267,7 +267,7 @@ private:
 	// ----- Pass sub-commands -----
 
 	void bindPipelineStates(
-		const cgpu::ComputeShaderStatePtr& compute_shader_state
+		const ComputeShaderStatePtr& compute_shader_state
 	);
 
 	void pushParameters(

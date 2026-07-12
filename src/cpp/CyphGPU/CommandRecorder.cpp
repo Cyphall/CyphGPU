@@ -591,7 +591,7 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 
 cgpu::CommandRecorder::CommandRecorder(
 	std::shared_ptr<CommandContextSlot>&& slot,
-	const cgpu::QueuePtr& queue,
+	const QueuePtr& queue,
 	vk::CommandBuffer cmdbuf
 ):
 	m_slot{std::move(slot)},
@@ -640,7 +640,7 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<Resource>&
 }
 
 void cgpu::CommandRecorder::bindPipelineStates(
-	const cgpu::ComputeShaderStatePtr& compute_shader_state
+	const ComputeShaderStatePtr& compute_shader_state
 )
 {
 	m_cmdbuf.bindPipeline(

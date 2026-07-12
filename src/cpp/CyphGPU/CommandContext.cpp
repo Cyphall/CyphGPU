@@ -2,13 +2,13 @@
 
 #include <CyphGPU/DeviceSession.hpp>
 
-cgpu::CommandContext::CommandContext(const cgpu::DeviceSessionPtr& device_session):
+cgpu::CommandContext::CommandContext(const DeviceSessionPtr& device_session):
 	m_device_session{device_session}
 {
 	beginSlot();
 }
 
-cgpu::CommandRecorder cgpu::CommandContext::createRecorder(const cgpu::QueuePtr& queue)
+cgpu::CommandRecorder cgpu::CommandContext::createRecorder(const QueuePtr& queue)
 {
 	return m_current_slot->createRecorder(queue);
 }

@@ -26,7 +26,7 @@ struct ContainerHash
 		size_t seed = 0;
 		for (const auto& element : key)
 		{
-			cgpu::hashCombine(seed, element);
+			hashCombine(seed, element);
 		}
 		return seed;
 	}
