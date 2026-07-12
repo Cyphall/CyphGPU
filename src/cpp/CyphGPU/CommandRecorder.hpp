@@ -225,7 +225,7 @@ private:
 	);
 
 	template<class T>
-	requires(!std::derived_from<T, Resource>)
+	requires(!std::derived_from<T, cgpu::Resource>)
 	void addReferencedObject(const std::shared_ptr<T>& object);
 
 	void addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access);
