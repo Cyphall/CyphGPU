@@ -2,19 +2,27 @@
 
 #include <CyphGPU/DeviceSession.hpp>
 
+#include <tracy/Tracy.hpp>
+
 cgpu::CommandContext::CommandContext(const DeviceSessionPtr& device_session):
 	m_device_session{device_session}
 {
+	ZoneScoped;
+
 	beginSlot();
 }
 
 cgpu::CommandRecorder cgpu::CommandContext::createRecorder(const QueuePtr& queue)
 {
+	ZoneScoped;
+
 	return m_current_slot->createRecorder(queue);
 }
 
 void cgpu::CommandContext::finish()
 {
+	ZoneScoped;
+
 	endSlot();
 	recycleFinishedSlots();
 	beginSlot();
@@ -22,6 +30,8 @@ void cgpu::CommandContext::finish()
 
 void cgpu::CommandContext::beginSlot()
 {
+	ZoneScoped;
+
 	if (m_available_slots.empty())
 	{
 		m_available_slots.push(
@@ -38,11 +48,15 @@ void cgpu::CommandContext::beginSlot()
 
 void cgpu::CommandContext::endSlot()
 {
+	ZoneScoped;
+
 	m_pending_slots.emplace_back(std::move(m_current_slot));
 }
 
 void cgpu::CommandContext::recycleFinishedSlots()
 {
+	ZoneScoped;
+
 	std::erase_if(
 		m_pending_slots,
 		[&](const std::shared_ptr<CommandContextSlot>& slot) {

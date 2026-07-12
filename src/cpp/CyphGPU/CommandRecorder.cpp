@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <exception>
+#include <tracy/Tracy.hpp>
 
 namespace
 {
@@ -49,6 +50,8 @@ std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	vk::ImageAspectFlags aspects
 )
 {
+	ZoneScoped;
+
 	vk::ImageSubresourceRange vk_range;
 	vk_range.aspectMask = aspects;
 	vk_range.baseMipLevel = range.levels ? range.levels->offset : 0;
@@ -71,6 +74,8 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 	const cgpu::CommandRecorder::ImageLevelLayersAspectsPixelsRange& range
 )
 {
+	ZoneScoped;
+
 	vk::ImageSubresourceLayers vk_range;
 	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
 	vk_range.mipLevel = range.level ? *range.level : 0;
@@ -96,6 +101,8 @@ std::tuple<cgpu::Range<vk::DeviceSize>, vk::DeviceSize> resolveRange(
 	const cgpu::CommandRecorder::BufferRange& range
 )
 {
+	ZoneScoped;
+
 	cgpu::Range<vk::DeviceSize> vk_range =
 		range.byte_range ?
 			*range.byte_range :
@@ -111,6 +118,8 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 	const cgpu::CommandRecorder::ImageLevelLayersAspectsRectRange& range
 )
 {
+	ZoneScoped;
+
 	vk::ImageSubresourceLayers vk_range;
 	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
 	vk_range.mipLevel = range.level ? *range.level : 0;
@@ -133,6 +142,8 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 
 void cgpu::CommandRecorder::submit()
 {
+	ZoneScoped;
+
 #if !defined(NDEBUG)
 	assert(!m_submitted);
 	m_submitted = true;
@@ -207,6 +218,8 @@ void cgpu::CommandRecorder::submit()
 
 void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	vk::ImageAspectFlags aspects;
@@ -281,6 +294,8 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 
 void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	std::span<const CopyImageToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
@@ -348,6 +363,8 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 
 void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
@@ -403,6 +420,8 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 
 void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
@@ -458,6 +477,8 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 
 void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
@@ -505,6 +526,8 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 
 void cgpu::CommandRecorder::blit(const BlitParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{*params.ranges} : BLIT_DEFAULT_RANGE;
@@ -566,6 +589,8 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	vk::MemoryBarrier2 barrier;
@@ -591,6 +616,8 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 
 void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	uint32_t layer_count = 1;
@@ -907,6 +934,8 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 
 void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 {
+	ZoneScoped;
+
 	assert(!m_submitted);
 
 	{
@@ -925,6 +954,8 @@ cgpu::CommandRecorder::CommandRecorder(
 	m_queue{queue},
 	m_cmdbuf{cmdbuf}
 {
+	ZoneScoped;
+
 	addReferencedObject(m_slot);
 
 	vk::CommandBufferBeginInfo info;
@@ -951,11 +982,15 @@ template<class T>
 requires(!std::derived_from<T, cgpu::Resource>)
 void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object)
 {
+	ZoneScoped;
+
 	m_referenced_objects.emplace_back(object);
 }
 
 void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access)
 {
+	ZoneScoped;
+
 	m_referenced_objects.emplace_back(resource);
 
 	auto [it, inserted] = m_referenced_resources.try_emplace(resource, access);
@@ -972,6 +1007,8 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	const FragmentOutputStatePtr& fragment_output_state
 )
 {
+	ZoneScoped;
+
 	vk::Pipeline pipeline = m_slot->getDeviceSession()->getGraphicsPipeline(
 		vertex_input_state,
 		pre_rasterization_shader_state,
@@ -995,6 +1032,8 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	const ComputeShaderStatePtr& compute_shader_state
 )
 {
+	ZoneScoped;
+
 	m_cmdbuf.bindPipeline(
 		vk::PipelineBindPoint::eCompute,
 		compute_shader_state->getHandle(),
@@ -1011,6 +1050,8 @@ void cgpu::CommandRecorder::pushParameters(
 	size_t alignment
 )
 {
+	ZoneScoped;
+
 	auto param_mem = m_slot->allocParameterMemory(size, alignment);
 	std::memcpy(param_mem.cpu_ptr, data, size);
 
@@ -1032,6 +1073,8 @@ void cgpu::CommandRecorder::draw(
 	uint32_t first_instance
 )
 {
+	ZoneScoped;
+
 	m_cmdbuf.draw(
 		vertex_count,
 		instance_count,
@@ -1049,6 +1092,8 @@ void cgpu::CommandRecorder::drawIndexed(
 	uint32_t first_instance
 )
 {
+	ZoneScoped;
+
 	m_cmdbuf.drawIndexed(
 		index_count,
 		instance_count,
@@ -1063,6 +1108,8 @@ void cgpu::CommandRecorder::setViewport(
 	const vk::Viewport& viewport
 )
 {
+	ZoneScoped;
+
 	m_cmdbuf.setViewport(
 		0,
 		viewport,
@@ -1074,6 +1121,8 @@ void cgpu::CommandRecorder::setScissor(
 	const vk::Rect2D& scissor
 )
 {
+	ZoneScoped;
+
 	m_cmdbuf.setScissor(
 		0,
 		scissor,
@@ -1085,6 +1134,8 @@ void cgpu::CommandRecorder::dispatch(
 	const glm::uvec3& group_count
 )
 {
+	ZoneScoped;
+
 	m_cmdbuf.dispatch(
 		group_count.x,
 		group_count.y,

@@ -6,6 +6,7 @@
 #include <CyphGPU/Utils.hpp>
 
 #include <ranges>
+#include <tracy/Tracy.hpp>
 
 namespace
 {
@@ -15,10 +16,13 @@ constexpr vk::DeviceSize PARAMETER_BUFFER_SIZE = 4096;
 cgpu::CommandContextSlot::CommandContextSlot(PrivateKey, const DeviceSessionPtr& device_session):
 	m_device_session{device_session}
 {
+	ZoneScoped;
 }
 
 cgpu::CommandContextSlot::~CommandContextSlot()
 {
+	ZoneScoped;
+
 	for (vk::CommandPool pool : m_pools | std::views::values)
 	{
 		m_device_session->getHandle().destroyCommandPool(pool, nullptr, m_device_session->getDispatcher());
@@ -27,6 +31,8 @@ cgpu::CommandContextSlot::~CommandContextSlot()
 
 cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& queue)
 {
+	ZoneScoped;
+
 	auto [it, inserted] = m_pools.try_emplace(queue->getFamily());
 	if (inserted)
 	{
@@ -49,11 +55,15 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 
 const cgpu::DeviceSessionPtr& cgpu::CommandContextSlot::getDeviceSession() const
 {
+	ZoneScoped;
+
 	return m_device_session;
 }
 
 cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParameterMemory(vk::DeviceSize size, vk::DeviceSize alignment)
 {
+	ZoneScoped;
+
 	if (size > PARAMETER_BUFFER_SIZE)
 	{
 		throw std::logic_error(std::format("Cannot request parameter size greater than {}", PARAMETER_BUFFER_SIZE));
@@ -98,11 +108,15 @@ cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParamet
 
 const std::flat_map<vk::Semaphore, uint64_t>& cgpu::CommandContextSlot::getFinishedSignals() const
 {
+	ZoneScoped;
+
 	return m_finished_signals;
 }
 
 void cgpu::CommandContextSlot::addFinishedSignal(const Queue::Signal& signal)
 {
+	ZoneScoped;
+
 	auto [it, inserted] = m_finished_signals.try_emplace(signal.semaphore, signal.value);
 	if (!inserted)
 	{
@@ -112,6 +126,8 @@ void cgpu::CommandContextSlot::addFinishedSignal(const Queue::Signal& signal)
 
 void cgpu::CommandContextSlot::reset()
 {
+	ZoneScoped;
+
 	for (vk::CommandPool pool : m_pools | std::views::values)
 	{
 		m_device_session->getHandle().resetCommandPool(pool, {}, m_device_session->getDispatcher());
@@ -124,5 +140,7 @@ void cgpu::CommandContextSlot::reset()
 
 std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()
 {
+	ZoneScoped;
+
 	return m_parameter_buffers;
 }

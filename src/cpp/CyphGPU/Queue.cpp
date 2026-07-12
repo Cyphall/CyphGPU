@@ -3,6 +3,8 @@
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Swapchain.hpp>
 
+#include <tracy/Tracy.hpp>
+
 cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family):
 	m_device_session{&device_session},
 	m_handle{queue},
@@ -308,6 +310,8 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 	std::vector<std::shared_ptr<void>>&& referenced_objects
 )
 {
+	ZoneScoped;
+
 	std::unique_lock lock{m_mutex};
 
 	clearCompletedPayloads();
