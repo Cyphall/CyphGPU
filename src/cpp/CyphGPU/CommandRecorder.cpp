@@ -8,6 +8,9 @@
 #include <CyphGPU/Image.hpp>
 #include <CyphGPU/Queue.hpp>
 
+#include <bit>
+#include <exception>
+
 namespace
 {
 template<class... Ts>
