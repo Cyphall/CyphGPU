@@ -2,6 +2,7 @@
 
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/HashExt.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <glm/gtx/hash.hpp>
 #include <vulkan/vulkan_hash.hpp>
@@ -96,6 +97,18 @@ void cgpu::FragmentOutputState::createPipelineState()
 		color_attachment_formats.emplace_back(attachment.format);
 	}
 
+	bool enable_depth = false;
+	bool enable_stencil = false;
+	if (m_desc.depth_stencil_attachment)
+	{
+		auto aspects = getAspects(m_desc.depth_stencil_attachment->format);
+		bool aspects_have_depth = static_cast<bool>(aspects & vk::ImageAspectFlagBits::eDepth);
+		bool aspects_have_stencil = static_cast<bool>(aspects & vk::ImageAspectFlagBits::eStencil);
+
+		enable_depth = m_desc.depth_stencil_attachment->enable_depth ? *m_desc.depth_stencil_attachment->enable_depth : aspects_have_depth;
+		enable_stencil = m_desc.depth_stencil_attachment->enable_stencil ? *m_desc.depth_stencil_attachment->enable_stencil : aspects_have_stencil;
+	}
+
 	vk::StructureChain<
 		vk::GraphicsPipelineCreateInfo,
 		vk::PipelineCreateFlags2CreateInfo,
@@ -135,8 +148,8 @@ void cgpu::FragmentOutputState::createPipelineState()
 	// rendering_create_info.viewMask;
 	rendering_create_info.colorAttachmentCount = static_cast<uint32_t>(color_attachment_formats.size());
 	rendering_create_info.pColorAttachmentFormats = color_attachment_formats.data();
-	rendering_create_info.depthAttachmentFormat = m_desc.depth_attachment.value_or(vk::Format::eUndefined);
-	rendering_create_info.stencilAttachmentFormat = m_desc.stencil_attachment.value_or(vk::Format::eUndefined);
+	rendering_create_info.depthAttachmentFormat = enable_depth ? m_desc.depth_stencil_attachment->format : vk::Format::eUndefined;
+	rendering_create_info.stencilAttachmentFormat = enable_stencil ? m_desc.depth_stencil_attachment->format : vk::Format::eUndefined;
 
 	m_handle = m_device_session->getHandle().createGraphicsPipeline(nullptr, chain.get(), nullptr, m_device_session->getDispatcher()).value;
 }
@@ -145,8 +158,7 @@ std::size_t std::hash<cgpu::FragmentOutputState::Desc>::operator()(const cgpu::F
 {
 	size_t seed = 0;
 	cgpu::hashCombine(seed, key.color_attachments);
-	cgpu::hashCombine(seed, key.depth_attachment);
-	cgpu::hashCombine(seed, key.stencil_attachment);
+	cgpu::hashCombine(seed, key.depth_stencil_attachment);
 	cgpu::hashCombine(seed, key.samples);
 	cgpu::hashCombine(seed, key.blend_constants);
 	return seed;
@@ -175,5 +187,14 @@ std::size_t std::hash<cgpu::FragmentOutputState::Desc::ColorAttachment>::operato
 	cgpu::hashCombine(seed, key.format);
 	cgpu::hashCombine(seed, key.blend);
 	cgpu::hashCombine(seed, key.write_mask);
+	return seed;
+}
+
+std::size_t std::hash<cgpu::FragmentOutputState::Desc::DepthStencilAttachment>::operator()(const cgpu::FragmentOutputState::Desc::DepthStencilAttachment& key) const noexcept
+{
+	size_t seed = 0;
+	cgpu::hashCombine(seed, key.format);
+	cgpu::hashCombine(seed, key.enable_depth);
+	cgpu::hashCombine(seed, key.enable_stencil);
 	return seed;
 }
