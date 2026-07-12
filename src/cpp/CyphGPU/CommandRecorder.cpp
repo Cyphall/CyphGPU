@@ -570,7 +570,7 @@ void cgpu::CommandRecorder::pushParameters(
 )
 {
 	auto param_mem = m_slot->allocParameterMemory(size, alignment);
-	std::memcpy(param_mem.cpu_ptr, &data, size);
+	std::memcpy(param_mem.cpu_ptr, data, size);
 
 	vk::PushDataInfoEXT info;
 	info.offset = slot * sizeof(vk::DeviceAddress);
