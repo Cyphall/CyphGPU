@@ -12,6 +12,7 @@
 namespace cgpu
 {
 class CommandContextSlot;
+class GraphicsPassContext;
 class ComputePassContext;
 
 class CommandRecorder
@@ -227,9 +228,99 @@ public:
 
 	void barrier(const BarrierParams& params);
 
+	struct GraphicsPassParams
+	{
+		struct ColorAttachment
+		{
+			struct Resolve
+			{
+				Req<ImagePtr> image;
+				/// Default: Average.
+				Opt<vk::ResolveModeFlagBits> mode{};
+				/// Default: Level 0.
+				Opt<uint32_t> level{};
+				/// Default: Layer 0.
+				Opt<uint32_t> first_layer{};
+			};
+
+			Req<ImagePtr> image;
+			/// Default: Image format.
+			Opt<vk::Format> format{};
+			/// Default: Level 0.
+			Opt<uint32_t> level{};
+			/// Default: Layer 0.
+			Opt<uint32_t> first_layer{};
+			Req<vk::AttachmentLoadOp> load_op;
+			Req<vk::AttachmentStoreOp> store_op;
+			/// Default: Empty. Must be set if load_op == eClear.
+			Opt<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> clear_color_value{};
+			/// Default: No resolve.
+			Opt<Resolve> resolve{};
+		};
+
+		struct DepthStencilAttachment
+		{
+			struct Resolve
+			{
+				Req<ImagePtr> image;
+				/// Default: SampleZero.
+				Opt<vk::ResolveModeFlagBits> mode{};
+				/// Default: Level 0.
+				Opt<uint32_t> level{};
+				/// Default: Layer 0.
+				Opt<uint32_t> first_layer{};
+			};
+
+			Req<ImagePtr> image;
+			/// Default: Level 0.
+			Opt<uint32_t> level{};
+			/// Defaul: Layer 0.
+			Opt<uint32_t> first_layer{};
+			/// Default: True if the format has a depth aspect.
+			Opt<bool> enable_depth{};
+			/// Default: True if the format has a stencil aspect.
+			Opt<bool> enable_stencil{};
+			Req<vk::AttachmentLoadOp> load_op;
+			Req<vk::AttachmentStoreOp> store_op;
+			/// Default: Empty. Must be set if load_op == eClear and depth is enabled.
+			Opt<float> clear_depth_value{};
+			/// Default: Empty. Must be set if load_op == eClear and stencil is enabled.
+			Opt<uint32_t> clear_stencil_value{};
+			/// Default: No resolve.
+			Opt<Resolve> resolve{};
+		};
+
+		struct LayerCount
+		{
+			Req<uint32_t> value;
+		};
+
+		struct MultiviewMask
+		{
+			Req<uint32_t> value;
+		};
+
+		using Callback = void(GraphicsPassContext& ctx);
+
+		/// Default: Attachment images extent.
+		///
+		/// Must be set if there is no attachment or if attachments have different extents.
+		Opt<Range<glm::uvec2>> render_area{};
+		/// Default: Single layer.
+		Opt<std::variant<LayerCount, MultiviewMask>> layer_mode{};
+		/// Default: No color attachment.
+		Opt<std::vector<ColorAttachment>> color_attachments{};
+		/// Default: No depth-stencil attachment.
+		Opt<DepthStencilAttachment> depth_stencil_attachment{};
+		Req<Callback*> callback;
+	};
+
+	void graphicsPass(const GraphicsPassParams& params);
+
 	struct ComputePassParams
 	{
 		using Callback = void(ComputePassContext& ctx);
+
 		Req<Callback*> callback;
 	};
 
@@ -237,6 +328,7 @@ public:
 
 private:
 	friend class CommandContextSlot;
+	friend class GraphicsPassContext;
 	friend class ComputePassContext;
 
 	std::shared_ptr<CommandContextSlot> m_slot;
@@ -267,6 +359,13 @@ private:
 	// ----- Pass sub-commands -----
 
 	void bindPipelineStates(
+		const VertexInputStatePtr& vertex_input_state,
+		const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
+		const FragmentShaderStatePtr& fragment_shader_state,
+		const FragmentOutputStatePtr& fragment_output_state
+	);
+
+	void bindPipelineStates(
 		const ComputeShaderStatePtr& compute_shader_state
 	);
 
@@ -275,6 +374,29 @@ private:
 		const void* data,
 		size_t size,
 		size_t alignment
+	);
+
+	void draw(
+		uint32_t vertex_count,
+		uint32_t instance_count,
+		uint32_t first_vertex,
+		uint32_t first_instance
+	);
+
+	void drawIndexed(
+		uint32_t index_count,
+		uint32_t instance_count,
+		uint32_t first_index,
+		int32_t vertex_offset,
+		uint32_t first_instance
+	);
+
+	void setViewport(
+		const vk::Viewport& viewport
+	);
+
+	void setScissor(
+		const vk::Rect2D& scissor
 	);
 
 	void dispatch(

@@ -151,7 +151,7 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 		auto& view_info = chain.get<vk::ImageViewCreateInfo>();
 		view_info.flags = {};
 		view_info.image = m_handle;
-		view_info.viewType = vk::ImageViewType::e2D;
+		view_info.viewType = info.layers.size > 1 ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
 		view_info.format = info.format;
 		view_info.components = vk::ComponentMapping{};
 		view_info.subresourceRange.aspectMask = info.aspects;
