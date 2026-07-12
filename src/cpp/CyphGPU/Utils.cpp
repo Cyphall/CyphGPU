@@ -130,15 +130,15 @@ glm::uvec3 cgpu::calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t le
 
 vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers)
 {
-	glm::uvec3 blockCount{
+	glm::u64vec3 block_count{
 		(extent.x + vk::blockExtent(format)[0] - 1) / vk::blockExtent(format)[0],
 		(extent.y + vk::blockExtent(format)[1] - 1) / vk::blockExtent(format)[1],
 		(extent.z + vk::blockExtent(format)[2] - 1) / vk::blockExtent(format)[2],
 	};
 
-	return blockCount.x *
-	       blockCount.y *
-	       blockCount.z *
+	return block_count.x *
+	       block_count.y *
+	       block_count.z *
 	       vk::blockSize(format) *
 	       layers;
 }

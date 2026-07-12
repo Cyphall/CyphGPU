@@ -249,8 +249,8 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	std::vector<vk::ImageCopy2> vk_regions;
 	for (const auto& range : ranges)
 	{
-		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.srcImage, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
-		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dstImage, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
 
 		if (src_vk_range.layerCount != dst_vk_range.layerCount)
 		{
@@ -292,9 +292,9 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	}
 
 	vk::CopyImageInfo2 info;
-	info.srcImage = (*params.srcImage)->getHandle();
+	info.srcImage = (*params.src_image)->getHandle();
 	info.srcImageLayout = vk::ImageLayout::eGeneral;
-	info.dstImage = (*params.dstImage)->getHandle();
+	info.dstImage = (*params.dst_image)->getHandle();
 	info.dstImageLayout = vk::ImageLayout::eGeneral;
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
@@ -304,8 +304,8 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 		*m_dispatcher
 	);
 
-	addReferencedObject(*params.srcImage, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dstImage, ResourceAccess::eReadWrite);
+	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& params)
@@ -316,8 +316,8 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	std::vector<vk::BufferImageCopy2> vk_regions;
 	for (const auto& range : ranges)
 	{
-		auto [src_vk_range, src_byte_size] = resolveRange(*params.srcBuffer, range.src.value_or(BufferRange{}));
-		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dstImage, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
 
 		if (src_byte_size != dst_byte_size)
 		{
@@ -348,8 +348,8 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	}
 
 	vk::CopyBufferToImageInfo2 info;
-	info.srcBuffer = (*params.srcBuffer)->getHandle();
-	info.dstImage = (*params.dstImage)->getHandle();
+	info.srcBuffer = (*params.src_buffer)->getHandle();
+	info.dstImage = (*params.dst_image)->getHandle();
 	info.dstImageLayout = vk::ImageLayout::eGeneral;
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
@@ -359,8 +359,8 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 		*m_dispatcher
 	);
 
-	addReferencedObject(*params.srcBuffer, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dstImage, ResourceAccess::eReadWrite);
+	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& params)
@@ -371,8 +371,8 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	std::vector<vk::BufferImageCopy2> vk_regions;
 	for (const auto& range : ranges)
 	{
-		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.srcImage, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
-		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dstBuffer, range.dst.value_or(BufferRange{}));
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dst_buffer, range.dst.value_or(BufferRange{}));
 
 		if (src_byte_size != dst_byte_size)
 		{
@@ -403,9 +403,9 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	}
 
 	vk::CopyImageToBufferInfo2 info;
-	info.srcImage = (*params.srcImage)->getHandle();
+	info.srcImage = (*params.src_image)->getHandle();
 	info.srcImageLayout = vk::ImageLayout::eGeneral;
-	info.dstBuffer = (*params.dstBuffer)->getHandle();
+	info.dstBuffer = (*params.dst_buffer)->getHandle();
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
@@ -414,8 +414,8 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 		*m_dispatcher
 	);
 
-	addReferencedObject(*params.srcImage, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dstBuffer, ResourceAccess::eReadWrite);
+	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& params)
@@ -426,8 +426,8 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	std::vector<vk::BufferCopy2> vk_regions;
 	for (const auto& range : ranges)
 	{
-		auto [src_vk_range, src_byte_size] = resolveRange(*params.srcBuffer, range.src.value_or(BufferRange{}));
-		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dstBuffer, range.dst.value_or(BufferRange{}));
+		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
+		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dst_buffer, range.dst.value_or(BufferRange{}));
 
 		if (src_byte_size != dst_byte_size)
 		{
@@ -451,8 +451,8 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	}
 
 	vk::CopyBufferInfo2 info;
-	info.srcBuffer = (*params.srcBuffer)->getHandle();
-	info.dstBuffer = (*params.dstBuffer)->getHandle();
+	info.srcBuffer = (*params.src_buffer)->getHandle();
+	info.dstBuffer = (*params.dst_buffer)->getHandle();
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
@@ -461,8 +461,8 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 		*m_dispatcher
 	);
 
-	addReferencedObject(*params.srcBuffer, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dstBuffer, ResourceAccess::eReadWrite);
+	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)

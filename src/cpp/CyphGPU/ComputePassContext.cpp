@@ -5,7 +5,9 @@
 void cgpu::ComputePassContext::bindPipelineStates(const cgpu::ComputeShaderStatePtr& compute_shader_state)
 {
 	if (compute_shader_state == m_current_compute_shader_state)
+	{
 		return;
+	}
 
 	m_rec->bindPipelineStates(compute_shader_state);
 

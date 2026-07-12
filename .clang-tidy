@@ -32,6 +32,8 @@ Checks:
   - -*-make-member-function-const
   - -*-std-namespace-modification
   - -*-simplify-boolean-expr
+  - -*-easily-swappable-parameters
+  - -*-invalid-enum-default-initialization
 CheckOptions:
   - { key: readability-identifier-naming.ClassCase,                          value: CamelCase }
 

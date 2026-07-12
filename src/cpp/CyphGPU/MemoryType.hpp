@@ -2,7 +2,7 @@
 
 namespace cgpu
 {
-enum class MemoryType
+enum class MemoryType : uint8_t
 {
 	eGPUHighPrio,
 	eGPULowPrio,

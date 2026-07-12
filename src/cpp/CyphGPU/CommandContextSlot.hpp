@@ -53,7 +53,7 @@ private:
 	std::vector<BufferPtr> m_parameter_buffers{};
 	uint64_t m_parameter_offset{};
 
-	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals;
+	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals{};
 
 	std::span<const BufferPtr> getParameterBuffers();
 };

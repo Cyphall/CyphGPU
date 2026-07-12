@@ -52,7 +52,7 @@ public:
 	template<class T>
 	using Opt = std::optional<T>;
 
-	enum class ResourceAccess
+	enum class ResourceAccess : uint8_t
 	{
 		eReadonly,
 		eReadWrite,
@@ -121,8 +121,8 @@ public:
 			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
 		};
 
-		Req<ImagePtr> srcImage;
-		Req<ImagePtr> dstImage;
+		Req<ImagePtr> src_image;
+		Req<ImagePtr> dst_image;
 		/// Default: One default-initialized range.
 		Opt<std::vector<Range>> ranges{};
 	};
@@ -139,8 +139,8 @@ public:
 			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
 		};
 
-		Req<BufferPtr> srcBuffer;
-		Req<ImagePtr> dstImage;
+		Req<BufferPtr> src_buffer;
+		Req<ImagePtr> dst_image;
 		/// Default: One default-initialized range.
 		Opt<std::vector<Range>> ranges{};
 	};
@@ -157,8 +157,8 @@ public:
 			Opt<BufferRange> dst{};
 		};
 
-		Req<ImagePtr> srcImage;
-		Req<BufferPtr> dstBuffer;
+		Req<ImagePtr> src_image;
+		Req<BufferPtr> dst_buffer;
 		/// Default: One default-initialized range.
 		Opt<std::vector<Range>> ranges{};
 	};
@@ -175,8 +175,8 @@ public:
 			Opt<BufferRange> dst{};
 		};
 
-		Req<BufferPtr> srcBuffer;
-		Req<BufferPtr> dstBuffer;
+		Req<BufferPtr> src_buffer;
+		Req<BufferPtr> dst_buffer;
 		/// Default: One default-initialized range.
 		Opt<std::vector<Range>> ranges{};
 	};
