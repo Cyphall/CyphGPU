@@ -2,6 +2,7 @@
 
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContextSlot.hpp>
+#include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Image.hpp>
@@ -27,6 +28,10 @@ constexpr std::array COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE = {
 
 constexpr std::array COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE = {
 	cgpu::CommandRecorder::CopyBufferToBufferParams::Range{},
+};
+
+constexpr std::array BLIT_DEFAULT_RANGE = {
+	cgpu::CommandRecorder::BlitParams::Range{},
 };
 
 std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
@@ -90,6 +95,30 @@ std::tuple<cgpu::Range<vk::DeviceSize>, vk::DeviceSize> resolveRange(
 	vk::DeviceSize byte_size = vk_range.size;
 
 	return {vk_range, byte_size};
+}
+
+std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> resolveRange(
+	const cgpu::ImagePtr& image,
+	const cgpu::CommandRecorder::ImageLevelLayersAspectsRectRange& range
+)
+{
+	vk::ImageSubresourceLayers vk_range;
+	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
+	vk_range.mipLevel = range.level ? *range.level : 0;
+	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
+	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
+
+	glm::uvec3 top_left = range.top_left ? *range.top_left : glm::uvec3{0, 0, 0};
+	glm::uvec3 bottom_right = range.bottom_right ? *range.bottom_right : cgpu::calcImageLevelExtent(image->getDesc().extent, vk_range.mipLevel);
+	glm::uvec3 rect_extent =  glm::uvec3{glm::abs(glm::ivec3{bottom_right} - glm::ivec3{top_left})};
+
+	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
+		image->getDesc().format,
+		rect_extent,
+		vk_range.layerCount
+	);
+
+	return {vk_range, top_left, bottom_right, byte_size};
 }
 }
 
@@ -267,7 +296,7 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 			throw std::logic_error("Image ranges must have the same byte size.");
 		}
 
-		if (src_byte_size == 0)
+		if (dst_byte_size == 0)
 		{
 			continue;
 		}
@@ -324,7 +353,7 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 			throw std::logic_error("Image range and buffer range must have the same byte size.");
 		}
 
-		if (src_byte_size == 0)
+		if (dst_byte_size == 0)
 		{
 			continue;
 		}
@@ -379,7 +408,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 			throw std::logic_error("Image range and buffer range must have the same byte size.");
 		}
 
-		if (src_byte_size == 0)
+		if (dst_byte_size == 0)
 		{
 			continue;
 		}
@@ -434,7 +463,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 			throw std::logic_error("Buffer ranges must have the same byte size.");
 		}
 
-		if (src_byte_size == 0)
+		if (dst_byte_size == 0)
 		{
 			continue;
 		}
@@ -463,6 +492,67 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 
 	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
+}
+
+void cgpu::CommandRecorder::blit(const BlitParams& params)
+{
+		assert(!m_submitted);
+
+	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{*params.ranges} : BLIT_DEFAULT_RANGE;
+	std::vector<vk::ImageBlit2> vk_regions;
+	for (const auto& range : ranges)
+	{
+		auto [src_vk_range, src_top_left, src_bottom_right, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsRectRange{}));
+		auto [dst_vk_range, dst_top_left, dst_bottom_right, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsRectRange{}));
+
+		if (src_vk_range.layerCount != dst_vk_range.layerCount)
+		{
+			throw std::logic_error("Image ranges must have the same number of layers.");
+		}
+
+		if (dst_byte_size == 0)
+		{
+			continue;
+		}
+
+		vk::ImageBlit2& vk_region = vk_regions.emplace_back();
+		vk_region.srcSubresource = src_vk_range;
+		vk_region.srcOffsets[0].x = static_cast<int>(src_top_left.x);
+		vk_region.srcOffsets[0].y = static_cast<int>(src_top_left.y);
+		vk_region.srcOffsets[0].z = static_cast<int>(src_top_left.z);
+		vk_region.srcOffsets[1].x = static_cast<int>(src_bottom_right.x);
+		vk_region.srcOffsets[1].y = static_cast<int>(src_bottom_right.y);
+		vk_region.srcOffsets[1].z = static_cast<int>(src_bottom_right.z);
+		vk_region.dstSubresource = dst_vk_range;
+		vk_region.dstOffsets[0].x = static_cast<int>(dst_top_left.x);
+		vk_region.dstOffsets[0].y = static_cast<int>(dst_top_left.y);
+		vk_region.dstOffsets[0].z = static_cast<int>(dst_top_left.z);
+		vk_region.dstOffsets[1].x = static_cast<int>(dst_bottom_right.x);
+		vk_region.dstOffsets[1].y = static_cast<int>(dst_bottom_right.y);
+		vk_region.dstOffsets[1].z = static_cast<int>(dst_bottom_right.z);
+	}
+
+	if (vk_regions.empty())
+	{
+		return;
+	}
+
+	vk::BlitImageInfo2 info;
+	info.srcImage = (*params.src_image)->getHandle();
+	info.srcImageLayout = vk::ImageLayout::eGeneral;
+	info.dstImage = (*params.dst_image)->getHandle();
+	info.dstImageLayout = vk::ImageLayout::eGeneral;
+	info.regionCount = static_cast<uint32_t>(vk_regions.size());
+	info.pRegions = vk_regions.data();
+	info.filter = params.filter.value_or(vk::Filter::eNearest);
+
+	m_cmdbuf.blitImage2(
+		info,
+		*m_dispatcher
+	);
+
+	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
+	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)

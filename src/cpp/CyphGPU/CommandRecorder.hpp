@@ -88,6 +88,20 @@ public:
 		Opt<cgpu::Range<glm::uvec3>> pixels{};
 	};
 
+	struct ImageLevelLayersAspectsRectRange
+	{
+		/// Default: Level 0.
+		Opt<uint32_t> level{};
+		/// Default: All layers.
+		Opt<cgpu::Range<uint32_t>> layers{};
+		/// Default: All aspects.
+		Opt<vk::ImageAspectFlags> aspects{};
+		/// Default: [0, 0, 0].
+		Opt<glm::uvec3> top_left{};
+		/// Default: Image extent.
+		Opt<glm::uvec3> bottom_right{};
+	};
+
 	struct BufferRange
 	{
 		/// Default: All bytes.
@@ -182,6 +196,26 @@ public:
 	};
 
 	void copyBufferToBuffer(const CopyBufferToBufferParams& params);
+
+	struct BlitParams
+	{
+		struct Range
+		{
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsRectRange> src{};
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsRectRange> dst{};
+		};
+
+		Req<ImagePtr> src_image;
+		Req<ImagePtr> dst_image;
+		/// Default: Nearest.
+		Opt<vk::Filter> filter{};
+		/// Default: One default-initialized range.
+		Opt<std::vector<Range>> ranges{};
+	};
+
+	void blit(const BlitParams& params);
 
 	struct BarrierParams
 	{
