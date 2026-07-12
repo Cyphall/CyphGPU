@@ -110,7 +110,7 @@ void cgpu::CommandRecorder::submit()
 	}
 
 	std::flat_map<vk::Semaphore, uint64_t> signals_to_wait;
-	auto addSignalToWait = [&](vk::Semaphore semaphore, uint64_t value) {
+	auto add_signal_to_wait = [&](vk::Semaphore semaphore, uint64_t value) {
 		auto [it, inserted] = signals_to_wait.try_emplace(semaphore, value);
 		if (!inserted)
 		{
@@ -129,7 +129,7 @@ void cgpu::CommandRecorder::submit()
 			const auto& signal = resource->tryGetReadWriteSignal();
 			if (signal)
 			{
-				addSignalToWait(signal->semaphore, signal->value);
+				add_signal_to_wait(signal->semaphore, signal->value);
 			}
 			break;
 		}
@@ -137,7 +137,7 @@ void cgpu::CommandRecorder::submit()
 		{
 			for (const auto& [semaphore, value] : resource->getReadSignals())
 			{
-				addSignalToWait(semaphore, value);
+				add_signal_to_wait(semaphore, value);
 			}
 			break;
 		}
@@ -274,13 +274,13 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 
 		vk::ImageCopy2& vk_region = vk_regions.emplace_back();
 		vk_region.srcSubresource = src_vk_range;
-		vk_region.srcOffset.x = src_pixel_range.offset.x;
-		vk_region.srcOffset.y = src_pixel_range.offset.y;
-		vk_region.srcOffset.z = src_pixel_range.offset.z;
+		vk_region.srcOffset.x = static_cast<int>(src_pixel_range.offset.x);
+		vk_region.srcOffset.y = static_cast<int>(src_pixel_range.offset.y);
+		vk_region.srcOffset.z = static_cast<int>(src_pixel_range.offset.z);
 		vk_region.dstSubresource = dst_vk_range;
-		vk_region.dstOffset.x = dst_pixel_range.offset.x;
-		vk_region.dstOffset.y = dst_pixel_range.offset.y;
-		vk_region.dstOffset.z = dst_pixel_range.offset.z;
+		vk_region.dstOffset.x = static_cast<int>(dst_pixel_range.offset.x);
+		vk_region.dstOffset.y = static_cast<int>(dst_pixel_range.offset.y);
+		vk_region.dstOffset.z = static_cast<int>(dst_pixel_range.offset.z);
 		vk_region.extent.width = src_pixel_range.size.x;
 		vk_region.extent.height = src_pixel_range.size.y;
 		vk_region.extent.depth = src_pixel_range.size.z;
@@ -334,9 +334,9 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 		vk_region.bufferRowLength = 0;
 		vk_region.bufferImageHeight = 0;
 		vk_region.imageSubresource = dst_vk_range;
-		vk_region.imageOffset.x = dst_pixel_range.offset.x;
-		vk_region.imageOffset.y = dst_pixel_range.offset.y;
-		vk_region.imageOffset.z = dst_pixel_range.offset.z;
+		vk_region.imageOffset.x = static_cast<int>(dst_pixel_range.offset.x);
+		vk_region.imageOffset.y = static_cast<int>(dst_pixel_range.offset.y);
+		vk_region.imageOffset.z = static_cast<int>(dst_pixel_range.offset.z);
 		vk_region.imageExtent.width = dst_pixel_range.size.x;
 		vk_region.imageExtent.height = dst_pixel_range.size.y;
 		vk_region.imageExtent.depth = dst_pixel_range.size.z;
@@ -389,9 +389,9 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 		vk_region.bufferRowLength = 0;
 		vk_region.bufferImageHeight = 0;
 		vk_region.imageSubresource = src_vk_range;
-		vk_region.imageOffset.x = src_pixel_range.offset.x;
-		vk_region.imageOffset.y = src_pixel_range.offset.y;
-		vk_region.imageOffset.z = src_pixel_range.offset.z;
+		vk_region.imageOffset.x = static_cast<int>(src_pixel_range.offset.x);
+		vk_region.imageOffset.y = static_cast<int>(src_pixel_range.offset.y);
+		vk_region.imageOffset.z = static_cast<int>(src_pixel_range.offset.z);
 		vk_region.imageExtent.width = src_pixel_range.size.x;
 		vk_region.imageExtent.height = src_pixel_range.size.y;
 		vk_region.imageExtent.depth = src_pixel_range.size.z;
