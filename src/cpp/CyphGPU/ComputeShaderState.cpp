@@ -40,8 +40,8 @@ const vk::Pipeline& cgpu::ComputeShaderState::getHandle()
 
 void cgpu::ComputeShaderState::createPipelineState()
 {
-	detail::ShaderChainBuilder shader_chain_builder{m_device_session->getMappings()};
-	shader_chain_builder.addShader(m_desc.compute_shader.blob, m_desc.compute_shader.entry_point.c_str(), vk::ShaderStageFlagBits::eCompute);
+	detail::ShaderChainBuilder shader_chain_builder{*m_device_session};
+	shader_chain_builder.addShader(m_desc.compute_shader.source, m_desc.compute_shader.entry_point.c_str(), vk::ShaderStageFlagBits::eCompute);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = shader_chain_builder.finalize();
 
@@ -74,7 +74,7 @@ std::size_t std::hash<cgpu::ComputeShaderState::Desc>::operator()(const cgpu::Co
 std::size_t std::hash<cgpu::ComputeShaderState::Desc::ComputeShader>::operator()(const cgpu::ComputeShaderState::Desc::ComputeShader& key) const noexcept
 {
 	size_t seed = 0;
-	cgpu::hashCombine(seed, key.blob);
+	cgpu::hashCombine(seed, key.source);
 	cgpu::hashCombine(seed, key.entry_point);
 	return seed;
 }

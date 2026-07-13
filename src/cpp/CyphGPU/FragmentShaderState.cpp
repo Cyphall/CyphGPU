@@ -40,8 +40,8 @@ const vk::Pipeline& cgpu::FragmentShaderState::getHandle()
 
 void cgpu::FragmentShaderState::createPipelineState()
 {
-	detail::ShaderChainBuilder shader_chain_builder{m_device_session->getMappings()};
-	shader_chain_builder.addShader(m_desc.fragment_shader->blob, m_desc.fragment_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eFragment);
+	detail::ShaderChainBuilder shader_chain_builder{*m_device_session};
+	shader_chain_builder.addShader(m_desc.fragment_shader->source, m_desc.fragment_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eFragment);
 
 	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = shader_chain_builder.finalize();
 
@@ -133,7 +133,7 @@ std::size_t std::hash<cgpu::FragmentShaderState::Desc>::operator()(const cgpu::F
 std::size_t std::hash<cgpu::FragmentShaderState::Desc::FragmentShader>::operator()(const cgpu::FragmentShaderState::Desc::FragmentShader& key) const noexcept
 {
 	size_t seed = 0;
-	cgpu::hashCombine(seed, key.blob);
+	cgpu::hashCombine(seed, key.source);
 	cgpu::hashCombine(seed, key.entry_point);
 	return seed;
 }

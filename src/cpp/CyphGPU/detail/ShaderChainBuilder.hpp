@@ -1,5 +1,9 @@
 #pragma once
 
+#include <CyphGPU/fwd.hpp>
+
+#include <list>
+#include <variant>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu::detail
@@ -7,10 +11,10 @@ namespace cgpu::detail
 class ShaderChainBuilder
 {
 public:
-	explicit ShaderChainBuilder(std::span<const vk::DescriptorSetAndBindingMappingEXT> mappings);
+	explicit ShaderChainBuilder(DeviceSession& device_session);
 
 	void addShader(
-		std::span<const uint32_t> blob,
+		const std::variant<std::vector<uint32_t>, std::string>& source,
 		const char* entry_point,
 		vk::ShaderStageFlagBits stage
 	);
@@ -24,8 +28,9 @@ private:
 		vk::ShaderModuleCreateInfo,
 		vk::ShaderDescriptorSetAndBindingMappingInfoEXT>;
 
-	std::span<const vk::DescriptorSetAndBindingMappingEXT> m_mappings;
+	DeviceSession* m_device_session;
 
+	std::list<std::vector<uint32_t>> m_identifier_data_storage;
 	std::vector<ShaderChain> m_shaders;
 };
 }

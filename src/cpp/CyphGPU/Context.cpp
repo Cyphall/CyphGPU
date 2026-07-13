@@ -6,12 +6,13 @@
 #include <unordered_set>
 #include <utility>
 
-cgpu::ContextPtr cgpu::Context::create()
+cgpu::ContextPtr cgpu::Context::create(Desc&& desc)
 {
-	return std::make_shared<Context>(PrivateKey{});
+	return std::make_shared<Context>(PrivateKey{}, std::move(desc));
 }
 
-cgpu::Context::Context(PrivateKey)
+cgpu::Context::Context(PrivateKey, Desc&& desc):
+	m_desc{std::move(desc)}
 {
 	if (!m_dynamic_loader.success())
 	{
@@ -21,6 +22,11 @@ cgpu::Context::Context(PrivateKey)
 	m_dispatcher.init(m_dynamic_loader);
 
 	checkCapabilitySupport();
+}
+
+const cgpu::Context::Desc& cgpu::Context::getDesc() const
+{
+	return m_desc;
 }
 
 const vk::detail::DispatchLoaderDynamic& cgpu::Context::getDispatcher() const

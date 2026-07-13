@@ -40,11 +40,11 @@ const vk::Pipeline& cgpu::PreRasterizationShaderState::getHandle()
 
 void cgpu::PreRasterizationShaderState::createPipelineState()
 {
-	detail::ShaderChainBuilder shader_chain_builder{m_device_session->getMappings()};
-	shader_chain_builder.addShader(m_desc.vertex_shader.blob, m_desc.vertex_shader.entry_point.c_str(), vk::ShaderStageFlagBits::eVertex);
+	detail::ShaderChainBuilder shader_chain_builder{*m_device_session};
+	shader_chain_builder.addShader(m_desc.vertex_shader.source, m_desc.vertex_shader.entry_point.c_str(), vk::ShaderStageFlagBits::eVertex);
 	if (m_desc.geometry_shader)
 	{
-		shader_chain_builder.addShader(m_desc.geometry_shader->blob, m_desc.geometry_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eGeometry);
+		shader_chain_builder.addShader(m_desc.geometry_shader->source, m_desc.geometry_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eGeometry);
 	}
 
 	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = shader_chain_builder.finalize();
@@ -141,7 +141,7 @@ std::size_t std::hash<cgpu::PreRasterizationShaderState::Desc>::operator()(const
 std::size_t std::hash<cgpu::PreRasterizationShaderState::Desc::VertexShader>::operator()(const cgpu::PreRasterizationShaderState::Desc::VertexShader& key) const noexcept
 {
 	size_t seed = 0;
-	cgpu::hashCombine(seed, key.blob);
+	cgpu::hashCombine(seed, key.source);
 	cgpu::hashCombine(seed, key.entry_point);
 	return seed;
 }
@@ -149,7 +149,7 @@ std::size_t std::hash<cgpu::PreRasterizationShaderState::Desc::VertexShader>::op
 std::size_t std::hash<cgpu::PreRasterizationShaderState::Desc::GeometryShader>::operator()(const cgpu::PreRasterizationShaderState::Desc::GeometryShader& key) const noexcept
 {
 	size_t seed = 0;
-	cgpu::hashCombine(seed, key.blob);
+	cgpu::hashCombine(seed, key.source);
 	cgpu::hashCombine(seed, key.entry_point);
 	return seed;
 }

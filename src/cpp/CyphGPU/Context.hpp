@@ -13,6 +13,12 @@ class Context final
 	{};
 
 public:
+	struct Desc
+	{
+		// Optional
+		std::optional<std::function<std::vector<uint32_t>(std::string_view)>> shader_identifier_resolver;
+	};
+
 	enum class Capability : uint8_t
 	{
 		eCore = 1 << 0,
@@ -28,15 +34,18 @@ public:
 	static constexpr uint32_t VULKAN_API_VERSION = vk::ApiVersion14;
 
 	[[nodiscard]]
-	static ContextPtr create();
+	static ContextPtr create(Desc&& desc);
 
-	explicit Context(PrivateKey);
+	explicit Context(PrivateKey, Desc&& desc);
 
 	Context(const Context&) = delete;
 	Context(Context&&) = delete;
 
 	Context& operator=(const Context&) = delete;
 	Context& operator=(Context&&) = delete;
+
+	[[nodiscard]]
+	const Desc& getDesc() const;
 
 	[[nodiscard]]
 	const vk::detail::DispatchLoaderDynamic& getDispatcher() const;
@@ -54,6 +63,8 @@ private:
 	{
 		std::vector<const char*> extensions;
 	};
+
+	Desc m_desc{};
 
 	vk::detail::DynamicLoader m_dynamic_loader{};
 	vk::detail::DispatchLoaderDynamic m_dispatcher{};

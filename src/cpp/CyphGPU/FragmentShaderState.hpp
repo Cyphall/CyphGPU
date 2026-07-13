@@ -2,6 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 
+#include <variant>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -17,7 +18,7 @@ public:
 		struct FragmentShader
 		{
 			// Required
-			std::vector<uint32_t> blob;
+			std::variant<std::vector<uint32_t>, std::string> source;
 
 			// Optional
 			std::string entry_point{"main"};
