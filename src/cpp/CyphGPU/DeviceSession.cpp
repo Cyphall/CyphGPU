@@ -305,7 +305,7 @@ void cgpu::DeviceSession::createDevice()
 	// Prepare features & extensions
 
 	std::unordered_set<const char*, StringHash, StringEqualTo> unique_extensions;
-	DynamicFeatureChain feature_chain;
+	detail::DynamicFeatureChain feature_chain;
 	for (Device::Capability capability : magic_enum::enum_values<Device::Capability>())
 	{
 		if (!(m_device->getCapabilities() & capability))

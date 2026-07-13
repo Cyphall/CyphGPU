@@ -11,7 +11,7 @@
 
 namespace
 {
-std::span<const vk::Bool32> featureStructToBoolSpan(const cgpu::DynamicFeatureChain::Structure& structure)
+std::span<const vk::Bool32> featureStructToBoolSpan(const cgpu::detail::DynamicFeatureChain::Structure& structure)
 {
 	const std::byte* ptr = reinterpret_cast<const std::byte*>(structure.data.get());
 	ptr += sizeof(vk::BaseOutStructure);
@@ -98,7 +98,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
 		},
-		[](DynamicFeatureChain& chain) {
+		[](detail::DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceFeatures2>().features;
 				// features.robustBufferAccess = vk::True;
@@ -315,7 +315,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRPresentId2ExtensionName,
 			vk::KHRPresentWait2ExtensionName,
 		},
-		[](DynamicFeatureChain& chain) {
+		[](detail::DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>();
 				features.swapchainMaintenance1 = vk::True;
@@ -337,14 +337,14 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		{
 			vk::EXTMemoryBudgetExtensionName,
 		},
-		[](DynamicFeatureChain&) {}
+		[](detail::DynamicFeatureChain&) {}
 	};
 
 	static CapabilityData memory_priority{
 		{
 			vk::EXTMemoryPriorityExtensionName,
 		},
-		[](DynamicFeatureChain& chain) {
+		[](detail::DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
 				features.memoryPriority = vk::True;
@@ -393,11 +393,11 @@ void cgpu::Device::checkCapabilitySupport()
 		}
 
 		// This will set some features to true but the driver should overwrite that so it's fine
-		DynamicFeatureChain supported_structures;
+		detail::DynamicFeatureChain supported_structures;
 		capability_data->feature_callback(supported_structures);
 		m_handle.getFeatures2(&supported_structures.get<vk::PhysicalDeviceFeatures2>(), m_context_session->getDispatcher());
 
-		DynamicFeatureChain required_structures;
+		detail::DynamicFeatureChain required_structures;
 		capability_data->feature_callback(required_structures);
 
 		for (const auto& [type, required_structure] : required_structures.getStructures())

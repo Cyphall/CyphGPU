@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
-namespace cgpu
+namespace cgpu::detail
 {
 class DynamicFeatureChain final
 {

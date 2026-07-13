@@ -1,7 +1,7 @@
 #pragma once
 
 #include <CyphGPU/ContextSession.hpp>
-#include <CyphGPU/DynamicFeatureChain.hpp>
+#include <CyphGPU/detail/DynamicFeatureChain.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <boost/optional.hpp>
@@ -89,7 +89,7 @@ private:
 	{
 		std::vector<const char*> extensions;
 
-		using FeatureCallback = void(DynamicFeatureChain& chain);
+		using FeatureCallback = void(detail::DynamicFeatureChain& chain);
 		FeatureCallback* feature_callback{};
 	};
 
