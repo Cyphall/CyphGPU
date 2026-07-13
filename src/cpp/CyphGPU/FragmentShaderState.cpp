@@ -1,41 +1,10 @@
 #include "FragmentShaderState.hpp"
 
+#include <CyphGPU/detail/ShaderChainBuilder.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/HashExt.hpp>
 
 #include <vulkan/vulkan_hash.hpp>
-
-namespace
-{
-using ShaderChain = vk::StructureChain<
-	vk::PipelineShaderStageCreateInfo,
-	vk::ShaderModuleCreateInfo,
-	vk::ShaderDescriptorSetAndBindingMappingInfoEXT>;
-
-[[nodiscard]]
-ShaderChain makeShaderChain(std::span<const uint32_t> blob, const char* entry_point, vk::ShaderStageFlagBits stage, std::span<const vk::DescriptorSetAndBindingMappingEXT> mappings)
-{
-	ShaderChain chain;
-
-	auto& stage_info = chain.get<vk::PipelineShaderStageCreateInfo>();
-	stage_info.flags = {};
-	stage_info.stage = stage;
-	stage_info.module = nullptr;
-	stage_info.pName = entry_point;
-	stage_info.pSpecializationInfo = nullptr;
-
-	auto& module_info = chain.get<vk::ShaderModuleCreateInfo>();
-	module_info.flags = {};
-	module_info.codeSize = static_cast<uint32_t>(blob.size() * sizeof(uint32_t));
-	module_info.pCode = blob.data();
-
-	auto& mapping_info = chain.get<vk::ShaderDescriptorSetAndBindingMappingInfoEXT>();
-	mapping_info.mappingCount = static_cast<uint32_t>(mappings.size());
-	mapping_info.pMappings = mappings.data();
-
-	return chain;
-}
-}
 
 cgpu::FragmentShaderStatePtr cgpu::FragmentShaderState::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {
@@ -71,22 +40,10 @@ const vk::Pipeline& cgpu::FragmentShaderState::getHandle()
 
 void cgpu::FragmentShaderState::createPipelineState()
 {
-	std::vector<ShaderChain> shader_chains;
-	if (m_desc.fragment_shader)
-	{
-		shader_chains.emplace_back(makeShaderChain(
-			m_desc.fragment_shader->blob,
-			m_desc.fragment_shader->entry_point.c_str(),
-			vk::ShaderStageFlagBits::eFragment,
-			m_device_session->getMappings()
-		));
-	}
+	detail::ShaderChainBuilder shader_chain_builder{m_device_session->getMappings()};
+	shader_chain_builder.addShader(m_desc.fragment_shader->blob, m_desc.fragment_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eFragment);
 
-	std::vector<vk::PipelineShaderStageCreateInfo> packed_shader_infos;
-	for (const auto& chain : shader_chains)
-	{
-		packed_shader_infos.emplace_back(chain.get());
-	}
+	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = shader_chain_builder.finalize();
 
 	vk::PipelineDepthStencilStateCreateInfo depth_stencil_state;
 	depth_stencil_state.flags = {};
@@ -127,8 +84,8 @@ void cgpu::FragmentShaderState::createPipelineState()
 
 	auto& create_info = chain.get<vk::GraphicsPipelineCreateInfo>();
 	// create_info.flags;
-	create_info.stageCount = static_cast<uint32_t>(packed_shader_infos.size());
-	create_info.pStages = packed_shader_infos.data();
+	create_info.stageCount = static_cast<uint32_t>(shader_stages.size());
+	create_info.pStages = shader_stages.data();
 	// create_info.pVertexInputState;
 	// create_info.pInputAssemblyState;
 	// create_info.pTessellationState;

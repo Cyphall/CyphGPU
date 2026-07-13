@@ -1,5 +1,6 @@
 #include "ComputeShaderState.hpp"
 
+#include <CyphGPU/detail/ShaderChainBuilder.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/HashExt.hpp>
 
@@ -39,27 +40,10 @@ const vk::Pipeline& cgpu::ComputeShaderState::getHandle()
 
 void cgpu::ComputeShaderState::createPipelineState()
 {
-	vk::StructureChain<
-		vk::PipelineShaderStageCreateInfo,
-		vk::ShaderModuleCreateInfo,
-		vk::ShaderDescriptorSetAndBindingMappingInfoEXT>
-		shader_chain;
+	detail::ShaderChainBuilder shader_chain_builder{m_device_session->getMappings()};
+	shader_chain_builder.addShader(m_desc.compute_shader.blob, m_desc.compute_shader.entry_point.c_str(), vk::ShaderStageFlagBits::eCompute);
 
-	auto& stage_info = shader_chain.get<vk::PipelineShaderStageCreateInfo>();
-	stage_info.flags = {};
-	stage_info.stage = vk::ShaderStageFlagBits::eCompute;
-	stage_info.module = nullptr;
-	stage_info.pName = m_desc.compute_shader.entry_point.c_str();
-	stage_info.pSpecializationInfo = nullptr;
-
-	auto& module_info = shader_chain.get<vk::ShaderModuleCreateInfo>();
-	module_info.flags = {};
-	module_info.codeSize = static_cast<uint32_t>(m_desc.compute_shader.blob.size() * sizeof(uint32_t));
-	module_info.pCode = m_desc.compute_shader.blob.data();
-
-	auto& mapping_info = shader_chain.get<vk::ShaderDescriptorSetAndBindingMappingInfoEXT>();
-	mapping_info.mappingCount = static_cast<uint32_t>(m_device_session->getMappings().size());
-	mapping_info.pMappings = m_device_session->getMappings().data();
+	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = shader_chain_builder.finalize();
 
 	vk::StructureChain<
 		vk::ComputePipelineCreateInfo,
@@ -68,7 +52,7 @@ void cgpu::ComputeShaderState::createPipelineState()
 
 	auto& create_info = chain.get<vk::ComputePipelineCreateInfo>();
 	// create_info.flags;
-	create_info.stage = shader_chain.get();
+	create_info.stage = shader_stages[0];
 	create_info.layout = nullptr;
 	// create_info.basePipelineHandle;
 	// create_info.basePipelineIndex;
