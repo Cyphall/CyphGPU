@@ -1,6 +1,5 @@
-#include "shader.h"
-
 #include <boost/scope/scope_exit.hpp>
+#include <cmrc/cmrc.hpp>
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContext.hpp>
 #include <CyphGPU/Context.hpp>
@@ -15,10 +14,23 @@
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
 
+CMRC_DECLARE(CyphGPU_sample_shaders);
+
 int main()
 {
 	// Create context
-	cgpu::ContextPtr context = cgpu::Context::create({});
+	cgpu::ContextPtr context = cgpu::Context::create({
+		.shader_identifier_resolver = [](std::string_view identifier) -> std::vector<uint32_t>{
+			cmrc::file spirvFile = cmrc::CyphGPU_sample_shaders::get_filesystem().open(std::format("{}.spv", identifier));
+
+			std::vector<uint32_t> blob;
+			blob.resize(spirvFile.size() / 4);
+
+			std::memcpy(blob.data(), spirvFile.begin(), spirvFile.size());
+
+			return blob;
+		}
+	});
 
 	// Create context session
 	cgpu::ContextSessionPtr context_session = cgpu::ContextSession::create(
@@ -98,14 +110,14 @@ int main()
 	cgpu::PreRasterizationShaderStatePtr pre_rasterization_shader_state = cgpu::PreRasterizationShaderState::create(
 		device_session,
 		{
-			.vertex_shader = {.source = std::vector<uint32_t>{shader, shader + shader_sizeInBytes / 4}},
+			.vertex_shader = {.source = "shader.slang"},
 		}
 	);
 
 	cgpu::FragmentShaderStatePtr fragment_shader_state = cgpu::FragmentShaderState::create(
 		device_session,
 		{
-			.fragment_shader = {{.source = std::vector<uint32_t>{shader, shader + shader_sizeInBytes / 4}}},
+			.fragment_shader = {{.source = "shader.slang"}},
 		}
 	);
 

@@ -17,6 +17,11 @@ target_sources(CyphGPU_sample PRIVATE
 target_sources(CyphGPU_sample PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 )
 
+include(CyphGPUShaders)
+cgpu_target_shader_pipelines(CyphGPU_sample CyphGPU_sample_shaders "src/slang"
+	"src/slang/shader.slang"
+)
+
 set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD 23)
 set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD_REQUIRED ON)
 set_target_properties(CyphGPU_sample PROPERTIES CXX_EXTENSIONS OFF)

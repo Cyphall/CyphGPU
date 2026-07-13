@@ -8,6 +8,7 @@
 		"boost-optional",
 		"spdlog",
 		"boost-scope",
+		"cmakerc",
 		"tracy",
 		{
 			"name": "glfw3",
