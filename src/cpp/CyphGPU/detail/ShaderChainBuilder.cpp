@@ -4,6 +4,8 @@
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace
 {
 template<class... Ts>
@@ -35,13 +37,22 @@ void cgpu::detail::ShaderChainBuilder::addShader(
 
 	std::span<const uint32_t> blob = std::visit(
 		overloaded{
-			[&](const std::vector<uint32_t>& value) -> std::span<const uint32_t> {
-				return value;
+			[&](const std::vector<uint32_t>& raw_blob) -> std::span<const uint32_t> {
+				return raw_blob;
 			},
-			[&](const std::string& value) -> std::span<const uint32_t> {
-				return m_identifier_data_storage.emplace_back(
-					m_device_session->getDevice()->getContextSession()->getContext()->getDesc().shader_identifier_resolver.value()(value)
-				);
+			[&](const std::string& identifier) -> std::span<const uint32_t> {
+				for (const ShaderBundle* bundle : m_device_session->getDevice()->getContextSession()->getContext()->getDesc().shader_bundles.value())
+				{
+					auto shader_blob = bundle->tryGetShaderBlob(identifier);
+					if (!shader_blob)
+					{
+						continue;
+					}
+
+					return *shader_blob;
+				}
+
+				throw std::runtime_error(std::format("Could not find shader file for identifier \"{}\".", identifier));
 			},
 		},
 		source

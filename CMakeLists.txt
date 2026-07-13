@@ -60,6 +60,10 @@ find_package(spdlog CONFIG REQUIRED)
 
 find_package(Tracy CONFIG REQUIRED)
 
+# ---- Dependency: vector-of-bool/cmrc ----
+
+find_package(CMakeRC CONFIG REQUIRED)
+
 # ---- Library ----
 
 add_library(CyphGPU)
@@ -89,6 +93,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/Resource.cpp"
 	"src/cpp/CyphGPU/GraphicsPassContext.cpp"
 	"src/cpp/CyphGPU/detail/ShaderChainBuilder.cpp"
+	"src/cpp/CyphGPU/ShaderBundle.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -119,6 +124,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/Resource.hpp"
 	"src/cpp/CyphGPU/GraphicsPassContext.hpp"
 	"src/cpp/CyphGPU/detail/ShaderChainBuilder.hpp"
+	"src/cpp/CyphGPU/ShaderBundle.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
@@ -228,6 +234,10 @@ if (CYPHGPU_ENABLE_TRACY)
 else ()
 	target_include_directories(CyphGPU PUBLIC $<TARGET_PROPERTY:Tracy::TracyClient,INTERFACE_INCLUDE_DIRECTORIES>)
 endif ()
+
+# ---- Dependency: vector-of-bool/cmrc ----
+
+target_link_libraries(CyphGPU PUBLIC cmrc::base)
 
 # ---- Sample ----
 

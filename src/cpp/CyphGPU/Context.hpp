@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/ShaderBundle.hpp>
 
 #include <boost/optional.hpp>
 #include <vulkan/vulkan.hpp>
@@ -16,7 +17,7 @@ public:
 	struct Desc
 	{
 		// Optional
-		std::optional<std::function<std::vector<uint32_t>(std::string_view)>> shader_identifier_resolver;
+		std::optional<std::vector<const ShaderBundle*>> shader_bundles;
 	};
 
 	enum class Capability : uint8_t

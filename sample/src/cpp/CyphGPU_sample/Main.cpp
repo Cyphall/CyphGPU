@@ -1,5 +1,4 @@
 #include <boost/scope/scope_exit.hpp>
-#include <cmrc/cmrc.hpp>
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContext.hpp>
 #include <CyphGPU/Context.hpp>
@@ -14,22 +13,13 @@
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
 
-CMRC_DECLARE(CyphGPU_sample_shaders);
+CGPU_DECLARE_SHADER_BUNDLE(shaders)
 
 int main()
 {
 	// Create context
 	cgpu::ContextPtr context = cgpu::Context::create({
-		.shader_identifier_resolver = [](std::string_view identifier) -> std::vector<uint32_t>{
-			cmrc::file spirvFile = cmrc::CyphGPU_sample_shaders::get_filesystem().open(std::format("{}.spv", identifier));
-
-			std::vector<uint32_t> blob;
-			blob.resize(spirvFile.size() / 4);
-
-			std::memcpy(blob.data(), spirvFile.begin(), spirvFile.size());
-
-			return blob;
-		}
+		.shader_bundles = {{&shaders}},
 	});
 
 	// Create context session

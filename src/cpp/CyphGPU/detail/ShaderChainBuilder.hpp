@@ -30,7 +30,6 @@ private:
 
 	DeviceSession* m_device_session;
 
-	std::list<std::vector<uint32_t>> m_identifier_data_storage;
 	std::vector<ShaderChain> m_shaders;
 };
 }

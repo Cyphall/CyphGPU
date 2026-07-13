@@ -1,4 +1,4 @@
-function(cgpu_target_shader_pipelines TARGET RESOURCE_NAME PREFIX)
+function(cgpu_target_shader_pipelines TARGET BUNDLE PREFIX)
 	find_package(CMakeRC CONFIG REQUIRED)
 	find_program(SLANGC_EXECUTABLE slangc REQUIRED)
 
@@ -43,10 +43,17 @@ function(cgpu_target_shader_pipelines TARGET RESOURCE_NAME PREFIX)
 		list(APPEND SHADER_SPIRV_FILES "${SHADER_SPIRV_FILE_PATH_ABS}")
 	endforeach ()
 
-	cmrc_add_resource_library(${TARGET}_${RESOURCE_NAME}
-		NAMESPACE ${RESOURCE_NAME}
+	set(SHADERS_TARGET "${TARGET}_${BUNDLE}")
+
+	if (NOT TARGET ${SHADERS_TARGET})
+		cmrc_add_resource_library(${SHADERS_TARGET}
+			NAMESPACE ${BUNDLE}
+		)
+		target_link_libraries(${TARGET} PRIVATE ${SHADERS_TARGET})
+	endif ()
+
+	cmrc_add_resources(${SHADERS_TARGET}
 		WHENCE "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_OUTPUT_BASE_PATH}/${PREFIX}"
 		${SHADER_SPIRV_FILES}
 	)
-	target_link_libraries(${TARGET} PRIVATE ${TARGET}_${RESOURCE_NAME})
 endfunction()
