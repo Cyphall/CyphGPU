@@ -49,7 +49,20 @@ void cgpu::detail::ShaderChainBuilder::addShader(
 						continue;
 					}
 
-					return *shader_blob;
+					if (shader_blob->size() % sizeof(uint32_t) != 0)
+					{
+						throw std::runtime_error(std::format("Shader file size for identifier \"{}\" is not a multiple of {}.", identifier, sizeof(uint32_t)));
+					}
+
+					if (std::bit_cast<uintptr_t>(shader_blob->data()) % alignof(uint32_t) != 0)
+					{
+						throw std::runtime_error(std::format("Shader file alignment for identifier \"{}\" is not a multiple of {}.", identifier, alignof(uint32_t)));
+					}
+
+					return {
+						reinterpret_cast<const uint32_t*>(shader_blob->data()),
+						shader_blob->size() / 4,
+					};
 				}
 
 				throw std::runtime_error(std::format("Could not find shader file for identifier \"{}\".", identifier));

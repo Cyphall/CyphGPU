@@ -7,25 +7,18 @@ cgpu::ShaderBundle::ShaderBundle(cmrc::embedded_filesystem filesystem):
 {
 }
 
-std::optional<std::span<const uint32_t>> cgpu::ShaderBundle::tryGetShaderBlob(std::string_view identifier) const
+std::optional<std::span<const std::byte>> cgpu::ShaderBundle::tryGetShaderBlob(std::string_view identifier) const
 {
-	cmrc::file spirvFile{};
 	try
 	{
-		spirvFile = m_filesystem.open(std::format("{}.spv", identifier));
+		cmrc::file spirvFile = m_filesystem.open(std::format("{}.spv", identifier));
+		return std::span{
+			reinterpret_cast<const std::byte*>(spirvFile.begin()),
+			spirvFile.size(),
+		};
 	}
 	catch (...)
 	{
 		return std::nullopt;
 	}
-
-	if (spirvFile.size() % 4 != 0)
-	{
-		throw std::runtime_error(std::format("Shader file size for identifier \"{}\" is not a multiple of 4.", identifier));
-	}
-
-	return std::span{
-		reinterpret_cast<const uint32_t*>(spirvFile.begin()),
-		spirvFile.size() / 4,
-	};
 }
