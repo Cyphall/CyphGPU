@@ -41,7 +41,7 @@ void cgpu::detail::ShaderChainBuilder::addShader(
 				return raw_blob;
 			},
 			[&](const std::string& identifier) -> std::span<const uint32_t> {
-				for (const ShaderBundle* bundle : m_device_session->getDevice()->getContextSession()->getContext()->getDesc().shader_bundles.value())
+				for (const ShaderBundle* bundle : m_device_session->getDevice()->getContextSession()->getContext()->getDesc().shader_bundles)
 				{
 					auto shader_blob = bundle->tryGetShaderBlob(identifier);
 					if (!shader_blob)

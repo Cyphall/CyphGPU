@@ -19,7 +19,7 @@ int main()
 {
 	// Create context
 	cgpu::ContextPtr context = cgpu::Context::create({
-		.shader_bundles = {{&shaders}},
+		.shader_bundles = {&shaders},
 	});
 
 	// Create context session

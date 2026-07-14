@@ -17,7 +17,7 @@ public:
 	struct Desc
 	{
 		// Optional
-		std::optional<std::vector<const ShaderBundle*>> shader_bundles;
+		std::vector<const ShaderBundle*> shader_bundles{};
 	};
 
 	enum class Capability : uint8_t
