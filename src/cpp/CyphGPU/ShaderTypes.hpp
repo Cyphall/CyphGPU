@@ -63,8 +63,7 @@ class Vector
 public:
 	Vector() = default;
 
-	Vector(const glm::vec<N, T>& value):
-		m_value{value}
+	Vector(const glm::vec<N, T>& value)
 	{
 		std::memcpy(&m_value, glm::value_ptr(value), sizeof(m_value));
 	}
@@ -87,8 +86,7 @@ class Matrix
 public:
 	Matrix() = default;
 
-	Matrix(const glm::mat<C, R, T>& value):
-		m_value{value}
+	Matrix(const glm::mat<C, R, T>& value)
 	{
 		glm::mat<R, C, T> row_major_value = glm::transpose(value);
 		std::memcpy(&m_value, glm::value_ptr(row_major_value), sizeof(m_value));
