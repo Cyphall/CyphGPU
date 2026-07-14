@@ -150,9 +150,12 @@ void cgpu::CommandRecorder::submit()
 	m_submitted = true;
 #endif
 
-	m_cmdbuf.end(
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkEndCommandBuffer");
+		m_cmdbuf.end(
+			*m_dispatcher
+		);
+	}
 
 	for (const auto& buffer : m_slot->getParameterBuffers())
 	{
@@ -265,13 +268,16 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 			*params.color_value
 		);
 
-		m_cmdbuf.clearColorImage(
-			(*params.image)->getHandle(),
-			vk::ImageLayout::eGeneral,
-			clear_value,
-			vk_ranges,
-			*m_dispatcher
-		);
+		{
+			ZoneScopedN("vkCmdClearColorImage");
+			m_cmdbuf.clearColorImage(
+				(*params.image)->getHandle(),
+				vk::ImageLayout::eGeneral,
+				clear_value,
+				vk_ranges,
+				*m_dispatcher
+			);
+		}
 	}
 
 	if (params.depth_value || params.stencil_value)
@@ -281,13 +287,16 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 			params.stencil_value.value_or(0),
 		};
 
-		m_cmdbuf.clearDepthStencilImage(
-			(*params.image)->getHandle(),
-			vk::ImageLayout::eGeneral,
-			clear_value,
-			vk_ranges,
-			*m_dispatcher
-		);
+		{
+			ZoneScopedN("vkCmdClearDepthStencilImage");
+			m_cmdbuf.clearDepthStencilImage(
+				(*params.image)->getHandle(),
+				vk::ImageLayout::eGeneral,
+				clear_value,
+				vk_ranges,
+				*m_dispatcher
+			);
+		}
 	}
 
 	addReferencedObject(*params.image, ResourceAccess::eReadWrite);
@@ -353,10 +362,13 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
-	m_cmdbuf.copyImage2(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdCopyImage2");
+		m_cmdbuf.copyImage2(
+			info,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
@@ -410,10 +422,13 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
-	m_cmdbuf.copyBufferToImage2(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdCopyBufferToImage2");
+		m_cmdbuf.copyBufferToImage2(
+			info,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
@@ -467,10 +482,13 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
-	m_cmdbuf.copyImageToBuffer2(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdCopyImageToBuffer2");
+		m_cmdbuf.copyImageToBuffer2(
+			info,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
@@ -516,10 +534,13 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
-	m_cmdbuf.copyBuffer2(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdCopyBuffer2");
+		m_cmdbuf.copyBuffer2(
+			info,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
@@ -579,10 +600,13 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 	info.pRegions = vk_regions.data();
 	info.filter = params.filter.value_or(vk::Filter::eNearest);
 
-	m_cmdbuf.blitImage2(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdBlitImage2");
+		m_cmdbuf.blitImage2(
+			info,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
 	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
@@ -609,10 +633,13 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 	dep_info.imageMemoryBarrierCount = 0;
 	// dep_info.pImageMemoryBarriers;
 
-	m_cmdbuf.pipelineBarrier2(
-		dep_info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdPipelineBarrier2");
+		m_cmdbuf.pipelineBarrier2(
+			dep_info,
+			*m_dispatcher
+		);
+	}
 }
 
 void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
@@ -869,10 +896,13 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	rendering_info.pDepthAttachment = vk_depth_attachment ? &*vk_depth_attachment : nullptr;
 	rendering_info.pStencilAttachment = vk_stencil_attachment ? &*vk_stencil_attachment : nullptr;
 
-	m_cmdbuf.beginRendering(
-		rendering_info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdBeginRendering");
+		m_cmdbuf.beginRendering(
+			rendering_info,
+			*m_dispatcher
+		);
+	}
 
 	vk::Viewport viewport;
 	viewport.x = static_cast<float>(render_area.offset.x);
@@ -882,17 +912,23 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
-	m_cmdbuf.setViewport(
-		0,
-		viewport,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdSetViewport");
+		m_cmdbuf.setViewport(
+			0,
+			viewport,
+			*m_dispatcher
+		);
+	}
 
-	m_cmdbuf.setScissor(
-		0,
-		render_area,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdSetScissor");
+		m_cmdbuf.setScissor(
+			0,
+			render_area,
+			*m_dispatcher
+		);
+	}
 
 	std::exception_ptr exception_ptr;
 	try
@@ -905,9 +941,12 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 		exception_ptr = std::current_exception();
 	}
 
-	m_cmdbuf.endRendering(
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdEndRendering");
+		m_cmdbuf.endRendering(
+			*m_dispatcher
+		);
+	}
 
 	for (const auto& attachment : color_attachments)
 	{
@@ -964,20 +1003,29 @@ cgpu::CommandRecorder::CommandRecorder(
 	info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 	// info.pInheritanceInfo;
 
-	m_cmdbuf.begin(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkBeginCommandBuffer");
+		m_cmdbuf.begin(
+			info,
+			*m_dispatcher
+		);
+	}
 
-	m_cmdbuf.bindResourceHeapEXT(
-		m_slot->getDeviceSession()->getResourceBindHeapInfo(),
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdBindResourceHeapEXT");
+		m_cmdbuf.bindResourceHeapEXT(
+			m_slot->getDeviceSession()->getResourceBindHeapInfo(),
+			*m_dispatcher
+		);
+	}
 
-	m_cmdbuf.bindSamplerHeapEXT(
-		m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdBindSamplerHeapEXT");
+		m_cmdbuf.bindSamplerHeapEXT(
+			m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
+			*m_dispatcher
+		);
+	}
 }
 
 template<class T>
@@ -1018,11 +1066,14 @@ void cgpu::CommandRecorder::bindPipelineStates(
 		fragment_output_state
 	);
 
-	m_cmdbuf.bindPipeline(
-		vk::PipelineBindPoint::eGraphics,
-		pipeline,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdBindPipeline");
+		m_cmdbuf.bindPipeline(
+			vk::PipelineBindPoint::eGraphics,
+			pipeline,
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(vertex_input_state);
 	addReferencedObject(pre_rasterization_shader_state);
@@ -1036,11 +1087,14 @@ void cgpu::CommandRecorder::bindPipelineStates(
 {
 	ZoneScoped;
 
-	m_cmdbuf.bindPipeline(
-		vk::PipelineBindPoint::eCompute,
-		compute_shader_state->getHandle(),
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdBindPipeline");
+		m_cmdbuf.bindPipeline(
+			vk::PipelineBindPoint::eCompute,
+			compute_shader_state->getHandle(),
+			*m_dispatcher
+		);
+	}
 
 	addReferencedObject(compute_shader_state);
 }
@@ -1064,10 +1118,13 @@ void cgpu::CommandRecorder::pushParameters(
 	info.data.address = &param_mem.gpu_ptr;
 	info.data.size = sizeof(vk::DeviceAddress);
 
-	m_cmdbuf.pushDataEXT(
-		info,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdPushDataEXT");
+		m_cmdbuf.pushDataEXT(
+			info,
+			*m_dispatcher
+		);
+	}
 }
 
 void cgpu::CommandRecorder::draw(
@@ -1079,13 +1136,16 @@ void cgpu::CommandRecorder::draw(
 {
 	ZoneScoped;
 
-	m_cmdbuf.draw(
-		vertex_count,
-		instance_count,
-		first_vertex,
-		first_instance,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdDraw");
+		m_cmdbuf.draw(
+			vertex_count,
+			instance_count,
+			first_vertex,
+			first_instance,
+			*m_dispatcher
+		);
+	}
 }
 
 void cgpu::CommandRecorder::drawIndexed(
@@ -1098,14 +1158,17 @@ void cgpu::CommandRecorder::drawIndexed(
 {
 	ZoneScoped;
 
-	m_cmdbuf.drawIndexed(
-		index_count,
-		instance_count,
-		first_index,
-		vertex_offset,
-		first_instance,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdDrawIndexed");
+		m_cmdbuf.drawIndexed(
+			index_count,
+			instance_count,
+			first_index,
+			vertex_offset,
+			first_instance,
+			*m_dispatcher
+		);
+	}
 }
 
 void cgpu::CommandRecorder::setViewport(
@@ -1114,11 +1177,14 @@ void cgpu::CommandRecorder::setViewport(
 {
 	ZoneScoped;
 
-	m_cmdbuf.setViewport(
-		0,
-		viewport,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdSetViewport");
+		m_cmdbuf.setViewport(
+			0,
+			viewport,
+			*m_dispatcher
+		);
+	}
 }
 
 void cgpu::CommandRecorder::setScissor(
@@ -1127,11 +1193,14 @@ void cgpu::CommandRecorder::setScissor(
 {
 	ZoneScoped;
 
-	m_cmdbuf.setScissor(
-		0,
-		scissor,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdSetScissor");
+		m_cmdbuf.setScissor(
+			0,
+			scissor,
+			*m_dispatcher
+		);
+	}
 }
 
 void cgpu::CommandRecorder::dispatch(
@@ -1140,10 +1209,13 @@ void cgpu::CommandRecorder::dispatch(
 {
 	ZoneScoped;
 
-	m_cmdbuf.dispatch(
-		group_count.x,
-		group_count.y,
-		group_count.z,
-		*m_dispatcher
-	);
+	{
+		ZoneScopedN("vkCmdDispatch");
+		m_cmdbuf.dispatch(
+			group_count.x,
+			group_count.y,
+			group_count.z,
+			*m_dispatcher
+		);
+	}
 }
