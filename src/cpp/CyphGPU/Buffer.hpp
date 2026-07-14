@@ -32,9 +32,9 @@ public:
 		// Required
 		std::string name;
 		vk::DeviceSize size;
-		vk::BufferUsageFlags2 usages;
 
 		// Optional
+		vk::BufferUsageFlags2 usages{};
 		MemoryType memory_type{MemoryType::eGPUHighPrio};
 		vk::DeviceSize min_alignment{1};
 		/// Other desc parameters must still match what the buffer was created with.
