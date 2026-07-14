@@ -301,8 +301,6 @@ public:
 			Req<uint32_t> value;
 		};
 
-		using Callback = void(GraphicsPassContext& ctx);
-
 		/// Default: Attachment images extent.
 		///
 		/// Must be set if there is no attachment or if attachments have different extents.
@@ -313,16 +311,14 @@ public:
 		Opt<std::vector<ColorAttachment>> color_attachments{};
 		/// Default: No depth-stencil attachment.
 		Opt<DepthStencilAttachment> depth_stencil_attachment{};
-		Req<Callback*> callback;
+		Req<std::function<void(GraphicsPassContext& ctx)>> callback;
 	};
 
 	void graphicsPass(const GraphicsPassParams& params);
 
 	struct ComputePassParams
 	{
-		using Callback = void(ComputePassContext& ctx);
-
-		Req<Callback*> callback;
+		Req<std::function<void(ComputePassContext& ctx)>> callback;
 	};
 
 	void computePass(const ComputePassParams& params);
