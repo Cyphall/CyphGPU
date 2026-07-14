@@ -7,10 +7,11 @@
 		"magic-enum",
 		"boost-optional",
 		"spdlog",
-		"boost-scope",
+		"tracy",
 		"cmakerc",
 		"half",
-		"tracy",
+		"slang",
+		"boost-scope",
 		{
 			"name": "glfw3",
 			"features": [
