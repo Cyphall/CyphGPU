@@ -1054,7 +1054,7 @@ void cgpu::CommandRecorder::pushParameters(
 {
 	ZoneScoped;
 
-	alignment = std::max(alignment, m_minUniformBufferAlignment);
+	alignment = std::max<size_t>(alignment, m_minUniformBufferAlignment);
 
 	auto param_mem = m_slot->allocParameterMemory(size, alignment);
 	std::memcpy(param_mem.cpu_ptr, data, size);
