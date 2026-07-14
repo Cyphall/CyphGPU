@@ -47,8 +47,11 @@ private:
 
 	DeviceSessionPtr m_device_session;
 
-	// Indexed withy queue family
+	// Indexed with queue family
 	std::unordered_map<uint32_t, vk::CommandPool> m_pools{};
+
+	size_t m_num_cmdrec{0};
+	bool m_high_cmdrecs_warning_emitted{false};
 
 	std::vector<BufferPtr> m_parameter_buffers{};
 	uint64_t m_parameter_offset{};

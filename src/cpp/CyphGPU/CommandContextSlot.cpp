@@ -7,6 +7,7 @@
 
 #include <ranges>
 #include <tracy/Tracy.hpp>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -49,6 +50,13 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 	info.commandBufferCount = 1;
 
 	vk::CommandBuffer cmdbuf = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0];
+
+	m_num_cmdrec++;
+	if (m_num_cmdrec == 500 && !m_high_cmdrecs_warning_emitted)
+	{
+		spdlog::warn("500 command recorders were created in this slot. Did you forget to call finish() on the command context?");
+		m_high_cmdrecs_warning_emitted = true;
+	}
 
 	return CommandRecorder{shared_from_this(), queue, cmdbuf};
 }
@@ -132,6 +140,8 @@ void cgpu::CommandContextSlot::reset()
 	{
 		m_device_session->getHandle().resetCommandPool(pool, {}, m_device_session->getDispatcher());
 	}
+
+	m_num_cmdrec = 0;
 
 	m_parameter_offset = 0;
 
