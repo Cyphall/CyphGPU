@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/ShaderTypes.hpp>
 
 #include <vulkan/vulkan.hpp>
 
@@ -51,7 +52,7 @@ public:
 	const Desc& getDesc() const;
 
 	[[nodiscard]]
-	uint32_t getDescriptor() const;
+	SamplerHandle getDescriptor() const;
 
 private:
 	friend class DeviceSession;

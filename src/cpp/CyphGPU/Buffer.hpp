@@ -3,6 +3,7 @@
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Resource.hpp>
+#include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
@@ -77,6 +78,13 @@ public:
 	[[nodiscard]]
 	vk::DeviceAddress getDevicePtr(vk::DeviceSize offset = 0);
 
+	template<class T = std::byte>
+	[[nodiscard]]
+	T* getDevicePtr(vk::DeviceSize offset = 0)
+	{
+		return std::bit_cast<T*>(getDevicePtr(offset));
+	}
+
 	[[nodiscard]]
 	std::byte* getHostPtr(vk::DeviceSize offset = 0);
 
@@ -88,10 +96,10 @@ public:
 	}
 
 	[[nodiscard]]
-	uint32_t getUniformTexelDescriptor(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
+	UniformTexelBufferHandle getUniformTexelDescriptor(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	uint32_t getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
+	StorageTexelBufferHandle getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
 
 private:
 	struct UniformTexelDescriptorInfo

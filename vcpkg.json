@@ -9,6 +9,7 @@
 		"spdlog",
 		"boost-scope",
 		"cmakerc",
+		"half",
 		"tracy",
 		{
 			"name": "glfw3",

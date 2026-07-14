@@ -3,6 +3,7 @@
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
 #include <CyphGPU/Resource.hpp>
+#include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
@@ -105,10 +106,10 @@ public:
 	const vk::Image& getHandle();
 
 	[[nodiscard]]
-	uint32_t getSampledDescriptor(const SampledDescriptorOverrides& overrides = {});
+	SampledImageHandle getSampledDescriptor(const SampledDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	uint32_t getStorageDescriptor(const StorageDescriptorOverrides& overrides = {});
+	StorageImageHandle getStorageDescriptor(const StorageDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);

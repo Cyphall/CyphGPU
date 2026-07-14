@@ -32,7 +32,7 @@ const cgpu::Sampler::Desc& cgpu::Sampler::getDesc() const
 	return m_desc;
 }
 
-uint32_t cgpu::Sampler::getDescriptor() const
+cgpu::SamplerHandle cgpu::Sampler::getDescriptor() const
 {
 	return m_descriptor;
 }

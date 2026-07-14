@@ -64,6 +64,10 @@ find_package(Tracy CONFIG REQUIRED)
 
 find_package(CMakeRC CONFIG REQUIRED)
 
+# ---- Dependency: half ----
+
+find_path(HALF_INCLUDE_DIRS "half.hpp")
+
 # ---- Library ----
 
 add_library(CyphGPU)
@@ -125,6 +129,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/GraphicsPassContext.hpp"
 	"src/cpp/CyphGPU/detail/ShaderChainBuilder.hpp"
 	"src/cpp/CyphGPU/ShaderBundle.hpp"
+	"src/cpp/CyphGPU/ShaderTypes.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
@@ -238,6 +243,10 @@ endif ()
 # ---- Dependency: vector-of-bool/cmrc ----
 
 target_link_libraries(CyphGPU PUBLIC cmrc::base)
+
+# ---- Dependency: half ----
+
+target_include_directories(CyphGPU PUBLIC ${HALF_INCLUDE_DIRS})
 
 # ---- Sample ----
 
