@@ -42,7 +42,7 @@ vk::ImageAspectFlags getAspects(vk::Format format);
 template<class T>
 constexpr T alignUp(T size, std::type_identity_t<T> alignment)
 {
-	return ((size + alignment - 1) / alignment) * alignment;
+	return ((size + alignment - T{1}) / alignment) * alignment;
 }
 
 glm::uvec3 calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t level);
