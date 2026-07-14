@@ -40,7 +40,7 @@ vk::Format getSrgbEquivalent(vk::Format format);
 vk::ImageAspectFlags getAspects(vk::Format format);
 
 template<class T>
-T alignUp(T size, T alignment)
+constexpr T alignUp(T size, std::type_identity_t<T> alignment)
 {
 	return ((size + alignment - 1) / alignment) * alignment;
 }
