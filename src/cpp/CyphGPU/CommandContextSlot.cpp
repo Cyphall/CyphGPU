@@ -6,8 +6,8 @@
 #include <CyphGPU/Utils.hpp>
 
 #include <ranges>
-#include <tracy/Tracy.hpp>
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
 
 namespace
 {
@@ -26,7 +26,10 @@ cgpu::CommandContextSlot::~CommandContextSlot()
 
 	for (const auto& pool_data : m_pools | std::views::values)
 	{
-		m_device_session->getHandle().destroyCommandPool(pool_data.pool, nullptr, m_device_session->getDispatcher());
+		{
+			ZoneScopedN("vkDestroyCommandPool");
+			m_device_session->getHandle().destroyCommandPool(pool_data.pool, nullptr, m_device_session->getDispatcher());
+		}
 	}
 }
 
@@ -41,7 +44,10 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 		info.flags = vk::CommandPoolCreateFlagBits::eTransient;
 		info.queueFamilyIndex = it->first;
 
-		it->second.pool = m_device_session->getHandle().createCommandPool(info, nullptr, m_device_session->getDispatcher());
+		{
+			ZoneScopedN("vkCreateCommandPool");
+			it->second.pool = m_device_session->getHandle().createCommandPool(info, nullptr, m_device_session->getDispatcher());
+		}
 	}
 
 	if (it->second.available_cmdbufs.empty())
@@ -51,7 +57,10 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 		info.level = vk::CommandBufferLevel::ePrimary;
 		info.commandBufferCount = 1;
 
-		it->second.available_cmdbufs.push_back(m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0]);
+		{
+			ZoneScopedN("vkAllocateCommandBuffers");
+			it->second.available_cmdbufs.push_back(m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0]);
+		}
 	}
 
 	vk::CommandBuffer cmdbuf = it->second.available_cmdbufs.back();
@@ -146,12 +155,18 @@ void cgpu::CommandContextSlot::reset()
 
 	for (auto& pool_data : m_pools | std::views::values)
 	{
-		m_device_session->getHandle().resetCommandPool(pool_data.pool, {}, m_device_session->getDispatcher());
+		{
+			ZoneScopedN("vkResetCommandPool");
+			m_device_session->getHandle().resetCommandPool(pool_data.pool, {}, m_device_session->getDispatcher());
+		}
 
 		// Free cmdbufs that were not used last run
 		if (!pool_data.available_cmdbufs.empty())
 		{
-			m_device_session->getHandle().freeCommandBuffers(pool_data.pool, pool_data.available_cmdbufs, m_device_session->getDispatcher());
+			{
+				ZoneScopedN("vkFreeCommandBuffers");
+				m_device_session->getHandle().freeCommandBuffers(pool_data.pool, pool_data.available_cmdbufs, m_device_session->getDispatcher());
+			}
 			pool_data.available_cmdbufs.clear();
 		}
 

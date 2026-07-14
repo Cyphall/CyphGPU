@@ -68,7 +68,12 @@ void cgpu::CommandContext::recycleFinishedSlots()
 			info.pSemaphores = finished_signals.keys().data();
 			info.pValues = finished_signals.values().data();
 
-			bool finished = m_device_session->getHandle().waitSemaphores(info, 0, m_device_session->getDispatcher()) == vk::Result::eSuccess;
+			bool finished{};
+			{
+				ZoneScopedN("vkWaitSemaphores");
+				finished = m_device_session->getHandle().waitSemaphores(info, 0, m_device_session->getDispatcher()) == vk::Result::eSuccess;
+			}
+
 			if (finished)
 			{
 				slot->reset();
