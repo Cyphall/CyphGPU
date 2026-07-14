@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils")
-
 # ---- Project ----
 
 project(
@@ -186,8 +184,14 @@ if (CYPHGPU_INSTALL)
 
 	install(
 		FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/CyphGPUConfig.cmake"
-		"${CMAKE_CURRENT_BINARY_DIR}/CyphGPUConfigVersion.cmake"
+			"${CMAKE_CURRENT_BINARY_DIR}/CyphGPUConfig.cmake"
+			"${CMAKE_CURRENT_BINARY_DIR}/CyphGPUConfigVersion.cmake"
+		DESTINATION "lib/cmake/CyphGPU"
+	)
+
+	install(
+		FILES
+			"${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils/shader.cmake"
 		DESTINATION "lib/cmake/CyphGPU"
 	)
 endif ()

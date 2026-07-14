@@ -17,7 +17,7 @@ target_sources(CyphGPU_sample PRIVATE
 target_sources(CyphGPU_sample PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 )
 
-include(CyphGPUShaders)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/utils/shader.cmake")
 cgpu_target_shader_pipelines(CyphGPU_sample shaders "src/slang"
 	"src/slang/shader.slang"
 )
