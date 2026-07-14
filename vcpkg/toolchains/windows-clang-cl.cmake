@@ -1,5 +1,5 @@
-set(CMAKE_C_COMPILER clang-cl)
-set(CMAKE_CXX_COMPILER clang-cl)
+set(CMAKE_C_COMPILER clang-cl.exe)
+set(CMAKE_CXX_COMPILER clang-cl.exe)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(VCPKG_C_FLAGS "/Zc:__cplusplus /utf-8")
