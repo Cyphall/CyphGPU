@@ -45,10 +45,17 @@ private:
 	friend class CommandContext;
 	friend class CommandRecorder;
 
+	struct CommandPoolData
+	{
+		vk::CommandPool pool;
+		std::vector<vk::CommandBuffer> available_cmdbufs;
+		std::vector<vk::CommandBuffer> in_use_cmdbufs;
+	};
+
 	DeviceSessionPtr m_device_session;
 
 	// Indexed with queue family
-	std::unordered_map<uint32_t, vk::CommandPool> m_pools{};
+	std::unordered_map<uint32_t, CommandPoolData> m_pools{};
 
 	size_t m_num_cmdrec{0};
 	bool m_high_cmdrecs_warning_emitted{false};
