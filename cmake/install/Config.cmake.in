@@ -1,12 +1,14 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
+find_dependency(glm)
 find_dependency(VulkanHeaders)
 find_dependency(VulkanMemoryAllocator)
-find_dependency(glm)
 find_dependency(magic_enum)
 find_dependency(boost_optional)
 find_dependency(spdlog)
+find_dependency(Tracy)
+find_dependency(CMakeRC)
 
 include("${CMAKE_CURRENT_LIST_DIR}/CyphGPUTargets.cmake")
 
