@@ -132,7 +132,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/PassContext.hpp"
 )
 
-target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)
+target_precompile_headers(CyphGPU PRIVATE <vulkan/vulkan.hpp>)
 
 set_target_properties(CyphGPU PROPERTIES CXX_STANDARD 23)
 set_target_properties(CyphGPU PROPERTIES CXX_STANDARD_REQUIRED ON)
