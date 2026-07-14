@@ -12,4 +12,6 @@ find_dependency(CMakeRC)
 
 include("${CMAKE_CURRENT_LIST_DIR}/CyphGPUTargets.cmake")
 
+set_property(TARGET CyphGPU APPEND PROPERTY INTERFACE_LINK_LIBRARIES cmrc::base)
+
 check_required_components(CyphGPU)

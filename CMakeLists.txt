@@ -244,7 +244,7 @@ endif ()
 
 # ---- Dependency: vector-of-bool/cmrc ----
 
-target_link_libraries(CyphGPU PUBLIC cmrc::base)
+target_link_libraries(CyphGPU PUBLIC $<BUILD_INTERFACE:cmrc::base>)
 
 # ---- Dependency: half ----
 
