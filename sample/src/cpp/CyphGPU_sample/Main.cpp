@@ -87,8 +87,8 @@ int main()
 		}
 	);
 
-	std::ignore = buffer->getUniformTexelDescriptor(vk::Format::eR8G8B8A8Unorm);
-	std::ignore = buffer->getStorageTexelDescriptor(vk::Format::eR8G8B8A8Unorm);
+	std::ignore = buffer->getUniformTexelDescriptorIndirect(vk::Format::eR8G8B8A8Unorm);
+	std::ignore = buffer->getStorageTexelDescriptorIndirect(vk::Format::eR8G8B8A8Unorm);
 
 	cgpu::VertexInputStatePtr vertex_input_state = cgpu::VertexInputState::create(
 		device_session,
@@ -134,8 +134,8 @@ int main()
 		}
 	);
 
-	std::ignore = image->getSampledDescriptor();
-	std::ignore = image->getStorageDescriptor();
+	std::ignore = image->getSampledDescriptorIndirect();
+	std::ignore = image->getStorageDescriptorIndirect();
 	std::ignore = image->getAttachmentView(vk::Format::eR8G8B8A8Srgb, 0, {0, 1}, vk::ImageAspectFlagBits::eColor, vk::ImageUsageFlagBits::eColorAttachment);
 
 	cgpu::SamplerPtr sampler = cgpu::Sampler::create(

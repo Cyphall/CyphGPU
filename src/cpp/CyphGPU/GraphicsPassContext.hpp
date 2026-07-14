@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/PassContext.hpp>
 
 #include <optional>
 
@@ -8,7 +9,7 @@ namespace cgpu
 {
 class CommandRecorder;
 
-class GraphicsPassContext
+class GraphicsPassContext : public PassContext
 {
 public:
 	// ----- Commands -----
@@ -19,22 +20,6 @@ public:
 		const FragmentShaderStatePtr& fragment_shader_state,
 		const FragmentOutputStatePtr& fragment_output_state
 	);
-
-	void pushParameters(
-		uint32_t slot,
-		const void* data,
-		size_t size,
-		size_t alignment
-	);
-
-	template<class T>
-	void pushParameters(
-		uint32_t slot,
-		const T& data
-	)
-	{
-		pushParameters(slot, &data, sizeof(T), alignof(T));
-	}
 
 	void draw(
 		uint32_t vertex_count,
@@ -49,7 +34,7 @@ public:
 		uint32_t first_index,
 		int32_t vertex_offset,
 		uint32_t first_instance
-		);
+	);
 
 	void setViewport(
 		const vk::Viewport& viewport
@@ -62,13 +47,11 @@ public:
 private:
 	friend class CommandRecorder;
 
-	CommandRecorder* m_rec;
-
 	std::optional<VertexInputStatePtr> m_current_vertex_input_state;
 	std::optional<PreRasterizationShaderStatePtr> m_current_pre_rasterization_shader_state;
 	std::optional<FragmentShaderStatePtr> m_current_fragment_shader_state;
 	std::optional<FragmentOutputStatePtr> m_current_fragment_output_state;
 
-	explicit GraphicsPassContext(CommandRecorder& rec);
+	using PassContext::PassContext;
 };
 }

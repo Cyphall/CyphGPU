@@ -30,16 +30,6 @@ void cgpu::GraphicsPassContext::bindPipelineStates(
 	m_current_fragment_output_state = fragment_output_state;
 }
 
-void cgpu::GraphicsPassContext::pushParameters(uint32_t slot, const void* data, size_t size, size_t alignment)
-{
-	m_rec->pushParameters(
-		slot,
-		data,
-		size,
-		alignment
-	);
-}
-
 void cgpu::GraphicsPassContext::draw(
 	uint32_t vertex_count,
 	uint32_t instance_count,
@@ -84,9 +74,4 @@ void cgpu::GraphicsPassContext::setScissor(
 )
 {
 	m_rec->setScissor(scissor);
-}
-
-cgpu::GraphicsPassContext::GraphicsPassContext(CommandRecorder& rec):
-	m_rec(&rec)
-{
 }

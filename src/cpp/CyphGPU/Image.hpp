@@ -106,10 +106,10 @@ public:
 	const vk::Image& getHandle();
 
 	[[nodiscard]]
-	SampledImageHandle getSampledDescriptor(const SampledDescriptorOverrides& overrides = {});
+	SampledImageHandle getSampledDescriptorIndirect(const SampledDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	StorageImageHandle getStorageDescriptor(const StorageDescriptorOverrides& overrides = {});
+	StorageImageHandle getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);

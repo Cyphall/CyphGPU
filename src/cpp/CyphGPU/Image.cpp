@@ -54,7 +54,7 @@ const vk::Image& cgpu::Image::getHandle()
 	return m_handle;
 }
 
-cgpu::SampledImageHandle cgpu::Image::getSampledDescriptor(const SampledDescriptorOverrides& overrides)
+cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const SampledDescriptorOverrides& overrides)
 {
 	SampledDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
@@ -93,7 +93,7 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptor(const SampledDescript
 	return it->second;
 }
 
-cgpu::StorageImageHandle cgpu::Image::getStorageDescriptor(const StorageDescriptorOverrides& overrides)
+cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides)
 {
 	StorageDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);

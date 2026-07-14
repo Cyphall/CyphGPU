@@ -12,6 +12,7 @@
 namespace cgpu
 {
 class CommandContextSlot;
+class PassContext;
 class GraphicsPassContext;
 class ComputePassContext;
 
@@ -328,6 +329,7 @@ public:
 
 private:
 	friend class CommandContextSlot;
+	friend class PassContext;
 	friend class GraphicsPassContext;
 	friend class ComputePassContext;
 

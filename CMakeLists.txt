@@ -98,6 +98,7 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/GraphicsPassContext.cpp"
 	"src/cpp/CyphGPU/detail/ShaderChainBuilder.cpp"
 	"src/cpp/CyphGPU/ShaderBundle.cpp"
+	"src/cpp/CyphGPU/PassContext.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -130,6 +131,7 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/detail/ShaderChainBuilder.hpp"
 	"src/cpp/CyphGPU/ShaderBundle.hpp"
 	"src/cpp/CyphGPU/ShaderTypes.hpp"
+	"src/cpp/CyphGPU/PassContext.hpp"
 )
 
 target_precompile_headers(CyphGPU PUBLIC <vulkan/vulkan.hpp>)

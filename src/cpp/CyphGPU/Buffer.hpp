@@ -80,7 +80,7 @@ public:
 
 	template<class T = std::byte>
 	[[nodiscard]]
-	T* getDevicePtr(vk::DeviceSize offset = 0)
+	T* getDevicePtrIndirect(vk::DeviceSize offset = 0)
 	{
 		return std::bit_cast<T*>(getDevicePtr(offset));
 	}
@@ -96,10 +96,10 @@ public:
 	}
 
 	[[nodiscard]]
-	UniformTexelBufferHandle getUniformTexelDescriptor(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
+	UniformTexelBufferHandle getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	StorageTexelBufferHandle getStorageTexelDescriptor(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
+	StorageTexelBufferHandle getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
 
 private:
 	struct UniformTexelDescriptorInfo
