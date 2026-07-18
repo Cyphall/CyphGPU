@@ -19,9 +19,11 @@ CyphGPU supports Windows, macOS and Linux.
 - MSVC, Clang or GCC
 - CMake 3.28+
 - Ninja
-- VCPKG_ROOT env variable set to a vcpkg install
+- VCPKG_ROOT env variable set to a vcpkg install, or another way of providing dependencies
 
 > [!NOTE]  
+> All CMake presets require vcpkg.
+>
 > When building the sample app, macOS and Linux may need some additional system dependencies.
 
 ### Steps:
