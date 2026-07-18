@@ -64,7 +64,7 @@ find_package(CMakeRC CONFIG REQUIRED)
 
 # ---- Dependency: half ----
 
-find_path(HALF_INCLUDE_DIRS "half.hpp")
+find_path(HALF_INCLUDE_DIRS "half.hpp" REQUIRED)
 
 # ---- Library ----
 
