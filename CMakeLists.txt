@@ -252,7 +252,7 @@ target_link_libraries(CyphGPU PUBLIC $<BUILD_INTERFACE:cmrc::base>)
 
 # ---- Dependency: half ----
 
-target_include_directories(CyphGPU PUBLIC ${HALF_INCLUDE_DIRS})
+target_include_directories(CyphGPU PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIRS}>)
 
 # ---- Sample ----
 
