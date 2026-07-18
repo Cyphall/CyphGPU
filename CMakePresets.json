@@ -10,6 +10,7 @@
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/vcpkg/triplets",
+		"VCPKG_MANIFEST_FEATURES": "sample",
         "CYPHGPU_ENABLE_SAMPLE": "ON"
       }
     },

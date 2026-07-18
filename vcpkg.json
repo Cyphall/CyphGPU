@@ -10,16 +10,23 @@
 		"tracy",
 		"cmakerc",
 		"half",
-		"slang",
-		"boost-scope",
-		{
-			"name": "glfw3",
-			"features": [
+		"slang"
+	],
+	"features": {
+		"sample": {
+			"description": "Enable CyphGPU sample",
+			"dependencies": [
+				"boost-scope",
 				{
-					"name": "wayland",
-					"platform": "linux"
+					"name": "glfw3",
+					"features": [
+						{
+							"name": "wayland",
+							"platform": "linux"
+						}
+					]
 				}
 			]
 		}
-	]
+	}
 }
