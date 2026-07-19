@@ -157,11 +157,21 @@ void cgpu::Swapchain::createSwapchain()
 		m_device_session->getDevice()->getContextSession()->getDispatcher()
 	);
 
-	m_image_count = glm::clamp(
-		m_desc.preferred_image_count,
-		surface_caps.surfaceCapabilities.minImageCount,
-		surface_caps.surfaceCapabilities.maxImageCount
-	);
+	if (surface_caps.surfaceCapabilities.maxImageCount > 0)
+	{
+		m_image_count = glm::clamp(
+			m_desc.preferred_image_count,
+			surface_caps.surfaceCapabilities.minImageCount,
+			surface_caps.surfaceCapabilities.maxImageCount
+		);
+	}
+	else
+	{
+		m_image_count = glm::max(
+			m_desc.preferred_image_count,
+			surface_caps.surfaceCapabilities.minImageCount
+		);
+	}
 
 	m_extent = glm::clamp(
 		m_desc.preferred_extent,
