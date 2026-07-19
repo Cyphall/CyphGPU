@@ -983,6 +983,44 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 	}
 }
 
+void cgpu::CommandRecorder::beginDebugRegion(const BeginDebugRegionParams& params)
+{
+	ZoneScoped;
+
+	assert(!m_submitted);
+
+	glm::vec4 color = params.color ? *params.color : glm::vec4{0.0f};
+
+	vk::DebugUtilsLabelEXT info;
+	info.pLabelName = params.name->c_str();
+	info.color[0] = color[0];
+	info.color[1] = color[1];
+	info.color[2] = color[2];
+	info.color[3] = color[3];
+
+	{
+		ZoneScopedN("vkCmdBeginDebugUtilsLabelEXT");
+		m_cmdbuf.beginDebugUtilsLabelEXT(
+			info,
+			*m_dispatcher
+		);
+	}
+}
+
+void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
+{
+	ZoneScoped;
+
+	assert(!m_submitted);
+
+	{
+		ZoneScopedN("vkCmdEndDebugUtilsLabelEXT");
+		m_cmdbuf.endDebugUtilsLabelEXT(
+			*m_dispatcher
+		);
+	}
+}
+
 cgpu::CommandRecorder::CommandRecorder(
 	std::shared_ptr<CommandContextSlot>&& slot,
 	const QueuePtr& queue,
@@ -1214,4 +1252,15 @@ void cgpu::CommandRecorder::dispatch(
 			*m_dispatcher
 		);
 	}
+}
+
+cgpu::ScopedDebugRegion::ScopedDebugRegion(CommandRecorder& rec, const CommandRecorder::BeginDebugRegionParams& params):
+	m_rec{&rec}
+{
+	m_rec->beginDebugRegion(params);
+}
+
+cgpu::ScopedDebugRegion::~ScopedDebugRegion()
+{
+	m_rec->endDebugRegion({});
 }

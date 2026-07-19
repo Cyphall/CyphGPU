@@ -323,6 +323,20 @@ public:
 
 	void computePass(const ComputePassParams& params);
 
+	struct BeginDebugRegionParams
+	{
+		Req<std::string> name;
+		/// Default: No color.
+		Opt<glm::vec4> color;
+	};
+
+	void beginDebugRegion(const BeginDebugRegionParams& params);
+
+	struct EndDebugRegionParams
+	{};
+
+	void endDebugRegion(const EndDebugRegionParams& params);
+
 private:
 	friend class CommandContextSlot;
 	friend class PassContext;
@@ -400,5 +414,15 @@ private:
 	void dispatch(
 		const glm::uvec3& group_count
 	);
+};
+
+class ScopedDebugRegion
+{
+public:
+	explicit ScopedDebugRegion(CommandRecorder& rec, const CommandRecorder::BeginDebugRegionParams& params);
+	~ScopedDebugRegion();
+
+private:
+	CommandRecorder* m_rec;
 };
 }
