@@ -61,7 +61,12 @@ int main()
 
 	// Create surface
 	VkSurfaceKHR surface_raw{};
-	glfwCreateWindowSurface(context_session->getHandle(), window, nullptr, &surface_raw);
+	vk::detail::resultCheck(
+		static_cast<vk::Result>(
+			glfwCreateWindowSurface(context_session->getHandle(), window, nullptr, &surface_raw)
+		),
+		"glfwCreateWindowSurface"
+	);
 
 	cgpu::SurfacePtr surface = cgpu::Surface::create(
 		context_session,
