@@ -17,6 +17,7 @@
 			"description": "Enable CyphGPU sample",
 			"dependencies": [
 				"boost-scope",
+				"stb",
 				{
 					"name": "glfw3",
 					"features": [

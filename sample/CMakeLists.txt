@@ -6,6 +6,10 @@ find_package(boost_scope CONFIG REQUIRED)
 
 find_package(glfw3 CONFIG REQUIRED)
 
+# ---- Dependency: nothings/stb ----
+
+find_package(Stb REQUIRED)
+
 # ---- Library ----
 
 add_executable(CyphGPU_sample)
@@ -15,6 +19,8 @@ target_sources(CyphGPU_sample PRIVATE
 )
 
 target_sources(CyphGPU_sample PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
+	"src/cpp/CyphGPU_sample/texture.h"
+	"src/cpp/CyphGPU_sample/mesh.h"
 )
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/utils/shader.cmake")
@@ -57,6 +63,12 @@ foreach (COPYRIGHT_FILE IN LISTS COPYRIGHT_FILES)
 	endif ()
 endforeach ()
 
+install(
+	FILES "${CMAKE_CURRENT_SOURCE_DIR}/vkcube-license.txt"
+	DESTINATION "share/CyphGPU_sample/third-party-licenses"
+	RENAME "vulkan-tools.txt"
+)
+
 # ---- Dependency: CyphGPU ----
 
 target_link_libraries(CyphGPU_sample PRIVATE CyphGPU)
@@ -68,3 +80,7 @@ target_link_libraries(CyphGPU_sample PRIVATE Boost::scope)
 # ---- Dependency: glfw3 ----
 
 target_link_libraries(CyphGPU_sample PRIVATE glfw)
+
+# ---- Dependency: nothings/stb ----
+
+target_include_directories(CyphGPU_sample PRIVATE ${Stb_INCLUDE_DIR})
