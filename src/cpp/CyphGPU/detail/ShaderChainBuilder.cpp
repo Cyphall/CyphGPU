@@ -8,10 +8,10 @@
 
 namespace
 {
-template<class... Ts>
-struct overloaded : Ts...
+template<class... TOverloads>
+struct Overloaded : TOverloads...
 {
-	using Ts::operator()...;
+	using TOverloads::operator()...;
 };
 }
 
@@ -36,7 +36,7 @@ void cgpu::detail::ShaderChainBuilder::addShader(
 	stage_info.pSpecializationInfo = nullptr;
 
 	std::span<const uint32_t> blob = std::visit(
-		overloaded{
+		Overloaded{
 			[&](const std::vector<uint32_t>& raw_blob) -> std::span<const uint32_t> {
 				return raw_blob;
 			},

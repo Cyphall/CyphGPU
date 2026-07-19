@@ -11,10 +11,10 @@ std::optional<std::span<const std::byte>> cgpu::ShaderBundle::tryGetShaderBlob(s
 {
 	try
 	{
-		cmrc::file spirvFile = m_filesystem.open(std::format("{}.spv", identifier));
+		cmrc::file spirv_file = m_filesystem.open(std::format("{}.spv", identifier));
 		return std::span{
-			reinterpret_cast<const std::byte*>(spirvFile.begin()),
-			spirvFile.size(),
+			reinterpret_cast<const std::byte*>(spirv_file.begin()),
+			spirv_file.size(),
 		};
 	}
 	catch (...)

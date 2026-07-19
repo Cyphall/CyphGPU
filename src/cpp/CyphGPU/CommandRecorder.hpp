@@ -332,7 +332,7 @@ private:
 	std::shared_ptr<CommandContextSlot> m_slot;
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
 
-	vk::DeviceSize m_minUniformBufferAlignment;
+	vk::DeviceSize m_min_uniform_buffer_alignment;
 
 	QueuePtr m_queue;
 	vk::CommandBuffer m_cmdbuf;

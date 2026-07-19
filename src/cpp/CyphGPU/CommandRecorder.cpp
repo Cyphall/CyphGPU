@@ -15,10 +15,10 @@
 
 namespace
 {
-template<class... Ts>
-struct overloaded : Ts...
+template<class... TOverloads>
+struct Overloaded : TOverloads...
 {
-	using Ts::operator()...;
+	using TOverloads::operator()...;
 };
 
 constexpr std::array CLEAR_IMAGE_DEFAULT_RANGE = {
@@ -653,7 +653,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	if (params.layer_mode)
 	{
 		std::visit(
-			overloaded{
+			Overloaded{
 				[&](const GraphicsPassParams::LayerCount& value) {layer_count = *value.value; view_mask = 0; },
 				[&](const GraphicsPassParams::MultiviewMask& value) {view_mask = *value.value; layer_count = 0; },
 			},
@@ -991,7 +991,7 @@ cgpu::CommandRecorder::CommandRecorder(
 ):
 	m_slot{std::move(slot)},
 	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
-	m_minUniformBufferAlignment{m_slot->getDeviceSession()->getDevice()->getProperties<vk::PhysicalDeviceProperties2>().properties.limits.minUniformBufferOffsetAlignment},
+	m_min_uniform_buffer_alignment{m_slot->getDeviceSession()->getDevice()->getProperties<vk::PhysicalDeviceProperties2>().properties.limits.minUniformBufferOffsetAlignment},
 	m_queue{queue},
 	m_cmdbuf{cmdbuf}
 {
@@ -1108,7 +1108,7 @@ void cgpu::CommandRecorder::pushParameters(
 {
 	ZoneScoped;
 
-	alignment = std::max<size_t>(alignment, m_minUniformBufferAlignment);
+	alignment = std::max<size_t>(alignment, m_min_uniform_buffer_alignment);
 
 	auto param_mem = m_slot->allocParameterMemory(size, alignment);
 	std::memcpy(param_mem.cpu_ptr, data, size);

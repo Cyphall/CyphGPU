@@ -11,6 +11,7 @@ class ShaderBundle
 public:
 	explicit ShaderBundle(cmrc::embedded_filesystem filesystem);
 
+	[[nodiscard]]
 	std::optional<std::span<const std::byte>> tryGetShaderBlob(std::string_view identifier) const;
 
 private:

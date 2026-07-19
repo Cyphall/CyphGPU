@@ -592,7 +592,7 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 void cgpu::DeviceSession::createGraphicsPipelineOptThread()
 {
 	m_graphics_pipeline_opt_thread = std::jthread{
-		[&](std::stop_token token) {
+		[&](std::stop_token token) { // NOLINT(*-unnecessary-value-param)
 			while (true)
 			{
 				std::pair<GraphicsPipelineKey, GraphicsPipelineValue*> request{};
