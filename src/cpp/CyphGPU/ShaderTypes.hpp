@@ -156,7 +156,15 @@ CGPU_DECLARE_STRUCTURED_ALIAS(double, float64_t)
 
 // Descriptor handles
 
-using SamplerState = cgpu::SamplerHandle;
+#define CGPU_DECLARE_SAMPLER_DESCRIPTOR_ALIAS(descriptor_handle_type, name) \
+	struct name                                                             \
+	{                                                                       \
+		using Handle = descriptor_handle_type;                              \
+	};
+
+CGPU_DECLARE_SAMPLER_DESCRIPTOR_ALIAS(cgpu::SamplerHandle, SamplerState);
+
+#undef CGPU_DECLARE_SAMPLER_DESCRIPTOR_ALIAS
 
 #define CGPU_DECLARE_TEXTURE_DESCRIPTOR_ALIAS(descriptor_handle_type, name) \
 	template<class = float4, int = 0, int = 0>                              \
