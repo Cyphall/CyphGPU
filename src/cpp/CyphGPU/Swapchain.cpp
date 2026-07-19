@@ -416,8 +416,10 @@ void cgpu::Swapchain::throttle()
 		return;
 	}
 
+	uint64_t frame_index_to_wait = m_current_frame_index - max_latency;
+
 	vk::PresentWait2InfoKHR info;
-	info.presentId = m_current_frame_index - max_latency + 1;
+	info.presentId = frame_index_to_wait + 1;
 	info.timeout = std::numeric_limits<uint64_t>::max();
 
 	try
