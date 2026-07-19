@@ -131,44 +131,6 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	return it->second;
 }
 
-vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage)
-{
-	AttachmentViewInfo info;
-	info.format = format;
-	info.level = level;
-	info.layers = layers;
-	info.aspects = aspects;
-	info.usage = usage;
-
-	auto [it, inserted] = m_attachment_cache.try_emplace(info);
-	if (inserted)
-	{
-		vk::StructureChain<
-			vk::ImageViewCreateInfo,
-			vk::ImageViewUsageCreateInfo>
-			chain;
-
-		auto& view_info = chain.get<vk::ImageViewCreateInfo>();
-		view_info.flags = {};
-		view_info.image = m_handle;
-		view_info.viewType = info.layers.size > 1 ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
-		view_info.format = info.format;
-		view_info.components = vk::ComponentMapping{};
-		view_info.subresourceRange.aspectMask = info.aspects;
-		view_info.subresourceRange.baseMipLevel = info.level;
-		view_info.subresourceRange.levelCount = 1;
-		view_info.subresourceRange.baseArrayLayer = info.layers.offset;
-		view_info.subresourceRange.layerCount = info.layers.size;
-
-		auto& view_usage_info = chain.get<vk::ImageViewUsageCreateInfo>();
-		view_usage_info.usage = usage;
-
-		it->second = m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher());
-	}
-
-	return it->second;
-}
-
 void cgpu::Image::createImage()
 {
 	if (m_desc.existing_handle)
@@ -286,4 +248,42 @@ uint32_t cgpu::Image::calcDefaultLayerCount(vk::ImageViewType type)
 		return m_desc.layers;
 	}
 	return 1;
+}
+
+vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage)
+{
+	AttachmentViewInfo info;
+	info.format = format;
+	info.level = level;
+	info.layers = layers;
+	info.aspects = aspects;
+	info.usage = usage;
+
+	auto [it, inserted] = m_attachment_cache.try_emplace(info);
+	if (inserted)
+	{
+		vk::StructureChain<
+			vk::ImageViewCreateInfo,
+			vk::ImageViewUsageCreateInfo>
+			chain;
+
+		auto& view_info = chain.get<vk::ImageViewCreateInfo>();
+		view_info.flags = {};
+		view_info.image = m_handle;
+		view_info.viewType = info.layers.size > 1 ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
+		view_info.format = info.format;
+		view_info.components = vk::ComponentMapping{};
+		view_info.subresourceRange.aspectMask = info.aspects;
+		view_info.subresourceRange.baseMipLevel = info.level;
+		view_info.subresourceRange.levelCount = 1;
+		view_info.subresourceRange.baseArrayLayer = info.layers.offset;
+		view_info.subresourceRange.layerCount = info.layers.size;
+
+		auto& view_usage_info = chain.get<vk::ImageViewUsageCreateInfo>();
+		view_usage_info.usage = usage;
+
+		it->second = m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher());
+	}
+
+	return it->second;
 }

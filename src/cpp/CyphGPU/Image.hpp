@@ -14,6 +14,8 @@
 
 namespace cgpu
 {
+class CommandRecorder;
+
 class Image final : public Resource
 {
 	class PrivateKey
@@ -111,11 +113,9 @@ public:
 	[[nodiscard]]
 	StorageImageHandle getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides = {});
 
-	[[nodiscard]]
-	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
-
 private:
 	friend class Swapchain;
+	friend class CommandRecorder;
 
 	struct SampledDescriptorInfo
 	{
@@ -170,5 +170,8 @@ private:
 	void createImage();
 
 	uint32_t calcDefaultLayerCount(vk::ImageViewType type);
+
+	[[nodiscard]]
+	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
 };
 }
