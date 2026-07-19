@@ -6,6 +6,7 @@
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
 #include <ranges>
 #include <unordered_set>
@@ -90,12 +91,21 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 	createAllocator();
 	createMemoryPools();
 	createDescriptorHeaps();
+	createGraphicsPipelineOptThread();
 }
 
 cgpu::DeviceSession::~DeviceSession()
 {
+	{
+		std::unique_lock opt_lock{m_graphics_pipeline_opt_mutex};
+		m_graphics_pipeline_opt_queue = {};
+	}
+	m_graphics_pipeline_opt_thread.request_stop();
+	m_graphics_pipeline_opt_thread.join();
+
 	for (const auto& graphics_pipeline : m_graphics_pipeline_cache | std::views::values)
 	{
+		m_handle.destroyPipeline(graphics_pipeline->opt_pipeline, nullptr, m_dispatcher);
 		m_handle.destroyPipeline(graphics_pipeline->fast_link_pipeline, nullptr, m_dispatcher);
 	}
 
@@ -579,6 +589,32 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 	}
 }
 
+void cgpu::DeviceSession::createGraphicsPipelineOptThread()
+{
+	m_graphics_pipeline_opt_thread = std::jthread{
+		[&](std::stop_token token) {
+			while (true)
+			{
+				std::pair<GraphicsPipelineKey, GraphicsPipelineValue*> request{};
+				{
+					std::unique_lock lock{m_graphics_pipeline_opt_mutex};
+					if (!m_graphics_pipeline_opt_cv.wait(lock, token, [&] { return !m_graphics_pipeline_opt_queue.empty(); }))
+					{
+						return;
+					}
+					request = m_graphics_pipeline_opt_queue.front();
+					m_graphics_pipeline_opt_queue.pop();
+				}
+
+				request.second->opt_pipeline = linkGraphicsPipeline(
+					request.first,
+					true
+				);
+			}
+		}
+	};
+}
+
 const VmaAllocator& cgpu::DeviceSession::getAllocator() const
 {
 	return m_allocator;
@@ -668,18 +704,15 @@ cgpu::ComputeShaderState& cgpu::DeviceSession::getComputeShaderState(ComputeShad
 }
 
 vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(
-	const VertexInputStatePtr& vertex_input_state,
-	const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
-	const FragmentShaderStatePtr& fragment_shader_state,
-	const FragmentOutputStatePtr& fragment_output_state,
+	const GraphicsPipelineKey& key,
 	bool lto
 )
 {
 	std::array libraries = {
-		vertex_input_state->getHandle(),
-		pre_rasterization_shader_state->getHandle(),
-		fragment_shader_state->getHandle(),
-		fragment_output_state->getHandle(),
+		key.vertex_input_state->getHandle(),
+		key.pre_rasterization_shader_state->getHandle(),
+		key.fragment_shader_state->getHandle(),
+		key.fragment_output_state->getHandle(),
 	};
 
 	vk::StructureChain<
@@ -730,23 +763,30 @@ vk::Pipeline cgpu::DeviceSession::getGraphicsPipeline(
 {
 	std::unique_lock lock{m_graphics_pipeline_cache_mutex};
 
-	auto [it, inserted] = m_graphics_pipeline_cache.try_emplace({
+	GraphicsPipelineKey key{
 		vertex_input_state.get(),
 		pre_rasterization_shader_state.get(),
 		fragment_shader_state.get(),
 		fragment_output_state.get(),
-	});
+	};
+
+	auto [it, inserted] = m_graphics_pipeline_cache.try_emplace(key);
 	if (inserted)
 	{
 		it->second = std::make_unique<GraphicsPipelineValue>();
 		it->second->fast_link_pipeline = linkGraphicsPipeline(
-			vertex_input_state,
-			pre_rasterization_shader_state,
-			fragment_shader_state,
-			fragment_output_state,
+			key,
 			false
 		);
+
+		{
+			std::unique_lock opt_lock{m_graphics_pipeline_opt_mutex};
+			m_graphics_pipeline_opt_queue.emplace(key, it->second.get());
+		}
+
+		m_graphics_pipeline_opt_cv.notify_one();
 	}
 
-	return it->second->fast_link_pipeline;
+	vk::Pipeline opt_pipeline = it->second->opt_pipeline;
+	return opt_pipeline ? opt_pipeline : it->second->fast_link_pipeline;
 }

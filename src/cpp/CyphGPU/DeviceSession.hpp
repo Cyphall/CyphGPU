@@ -9,8 +9,11 @@
 #include <CyphGPU/Sampler.hpp>
 #include <CyphGPU/VertexInputState.hpp>
 
+#include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>
+#include <queue>
+#include <thread>
 #include <unordered_map>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
@@ -139,7 +142,8 @@ private:
 
 	struct GraphicsPipelineValue
 	{
-		vk::Pipeline fast_link_pipeline;
+		vk::Pipeline fast_link_pipeline{};
+		std::atomic<vk::Pipeline> opt_pipeline{};
 	};
 
 	DevicePtr m_device;
@@ -179,10 +183,16 @@ private:
 		m_graphics_pipeline_cache{};
 	std::mutex m_graphics_pipeline_cache_mutex{};
 
+	std::mutex m_graphics_pipeline_opt_mutex{};
+	std::condition_variable_any m_graphics_pipeline_opt_cv{};
+	std::queue<std::pair<GraphicsPipelineKey, GraphicsPipelineValue*>> m_graphics_pipeline_opt_queue{};
+	std::jthread m_graphics_pipeline_opt_thread{};
+
 	void createDevice();
 	void createAllocator();
 	void createMemoryPools();
 	void createDescriptorHeaps();
+	void createGraphicsPipelineOptThread();
 
 	[[nodiscard]]
 	const VmaAllocator& getAllocator() const;
@@ -231,10 +241,7 @@ private:
 
 	[[nodiscard]]
 	vk::Pipeline linkGraphicsPipeline(
-		const VertexInputStatePtr& vertex_input_state,
-		const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
-		const FragmentShaderStatePtr& fragment_shader_state,
-		const FragmentOutputStatePtr& fragment_output_state,
+		const GraphicsPipelineKey& key,
 		bool lto
 	);
 
