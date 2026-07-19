@@ -37,26 +37,6 @@ namespace shader_types
 {
 namespace detail
 {
-template<class T>
-class Scalar
-{
-public:
-	Scalar() = default;
-
-	Scalar(const T& value):
-		m_value{value}
-	{}
-
-	[[nodiscard]]
-	const T& get() const
-	{
-		return m_value;
-	}
-
-private:
-	T m_value{};
-};
-
 template<class T, size_t N>
 class Vector
 {
