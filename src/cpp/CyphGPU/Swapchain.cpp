@@ -412,6 +412,12 @@ void cgpu::Swapchain::throttle()
 {
 	ZoneScoped;
 
+	if (m_desc.present_mode != vk::PresentModeKHR::eFifo &&
+	    m_desc.present_mode != vk::PresentModeKHR::eFifoRelaxed)
+	{
+		return;
+	}
+
 	if (m_status == vk::Result::eErrorOutOfDateKHR)
 	{
 		return;
