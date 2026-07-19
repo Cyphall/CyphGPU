@@ -4,7 +4,8 @@
 #include <CyphGPU/Queue.hpp>
 
 #include <memory>
-#include <queue>
+#include <stack>
+#include <vector>
 
 namespace cgpu
 {
