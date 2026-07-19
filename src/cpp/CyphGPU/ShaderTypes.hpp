@@ -49,7 +49,7 @@ public:
 	}
 
 	[[nodiscard]]
-	const glm::vec<N, T>& get() const
+	glm::vec<N, T> get() const
 	{
 		glm::vec<N, T> value;
 		std::memcpy(glm::value_ptr(value), &m_value, sizeof(m_value));
@@ -73,7 +73,7 @@ public:
 	}
 
 	[[nodiscard]]
-	const glm::mat<C, R, T>& get() const
+	glm::mat<C, R, T> get() const
 	{
 		glm::mat<R, C, T> row_major_value;
 		std::memcpy(glm::value_ptr(row_major_value), &m_value, sizeof(m_value));
