@@ -9,6 +9,7 @@
 #include <CyphGPU/Sampler.hpp>
 #include <CyphGPU/VertexInputState.hpp>
 
+#include <atomic>
 #include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>

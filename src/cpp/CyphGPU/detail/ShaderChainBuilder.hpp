@@ -2,8 +2,8 @@
 
 #include <CyphGPU/fwd.hpp>
 
-#include <list>
 #include <variant>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu::detail
