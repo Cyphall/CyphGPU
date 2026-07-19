@@ -41,7 +41,10 @@ const vk::Pipeline& cgpu::FragmentShaderState::getHandle()
 void cgpu::FragmentShaderState::createPipelineState()
 {
 	detail::ShaderChainBuilder shader_chain_builder{*m_device_session};
-	shader_chain_builder.addShader(m_desc.fragment_shader->source, m_desc.fragment_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eFragment);
+	if (m_desc.fragment_shader)
+	{
+		shader_chain_builder.addShader(m_desc.fragment_shader->source, m_desc.fragment_shader->entry_point.c_str(), vk::ShaderStageFlagBits::eFragment);
+	}
 
 	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = shader_chain_builder.finalize();
 
