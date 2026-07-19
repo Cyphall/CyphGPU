@@ -53,23 +53,7 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 		}
 	}
 
-	if (it->second.available_cmdbufs.empty())
-	{
-		vk::CommandBufferAllocateInfo info;
-		info.commandPool = it->second.pool;
-		info.level = vk::CommandBufferLevel::ePrimary;
-		info.commandBufferCount = 1;
-
-		{
-			ZoneScopedN("vkAllocateCommandBuffers");
-			it->second.available_cmdbufs.push_back(m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0]);
-		}
-	}
-
-	vk::CommandBuffer cmdbuf = it->second.available_cmdbufs.back();
-	it->second.available_cmdbufs.pop_back();
-
-	it->second.in_use_cmdbufs.push_back(cmdbuf);
+	vk::CommandBuffer cmdbuf = getCommandBufferFromPool(it->second);
 
 	m_num_cmdrec++;
 	if (m_num_cmdrec == 500 && !m_high_cmdrecs_warning_emitted)
@@ -197,4 +181,32 @@ std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()
 	ZoneScoped;
 
 	return m_used_parambufs;
+}
+
+vk::CommandBuffer cgpu::CommandContextSlot::getCommandBufferFromPool(CommandPoolData& pool_data)
+{
+	if (pool_data.available_cmdbufs.empty())
+	{
+		vk::CommandBufferAllocateInfo info;
+		info.commandPool = pool_data.pool;
+		info.level = vk::CommandBufferLevel::ePrimary;
+		info.commandBufferCount = 1;
+
+		{
+			ZoneScopedN("vkAllocateCommandBuffers");
+			pool_data.available_cmdbufs.push_back(m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0]);
+		}
+	}
+
+	vk::CommandBuffer cmdbuf = pool_data.available_cmdbufs.back();
+	pool_data.available_cmdbufs.pop_back();
+
+	pool_data.in_use_cmdbufs.push_back(cmdbuf);
+
+	return cmdbuf;
+}
+
+vk::CommandBuffer cgpu::CommandContextSlot::createImageInitCommandBuffer(const QueuePtr& queue)
+{
+	return getCommandBufferFromPool(m_pools.at(queue->getFamily()));
 }

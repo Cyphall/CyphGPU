@@ -170,6 +170,7 @@ void cgpu::CommandRecorder::submit()
 		}
 	};
 
+	std::vector<Image*> images_to_init;
 	for (auto& [resource, access] : m_referenced_resources)
 	{
 		resource->lock();
@@ -195,10 +196,89 @@ void cgpu::CommandRecorder::submit()
 		}
 		default: std::unreachable();
 		}
+
+		auto* image = dynamic_cast<Image*>(resource.get());
+		if (image != nullptr && !image->isLayoutInitialized())
+		{
+			images_to_init.emplace_back(image);
+			image->setLayoutInitialized();
+		}
 	}
 
+	std::vector<vk::CommandBuffer> cmdbufs;
+
+	//TODO: Freshly created images are in the Undefined layout,
+	// and I couldn't find any easier way to transition them to General
+	// than this prologue command buffer.
+	// Remove this if we ever get a better way to init image layouts on the host
+	// without compromising on perf or support (so no host_image_copy).
+	if (!images_to_init.empty())
+	{
+		auto cmdbuf = m_slot->createImageInitCommandBuffer(m_queue);
+
+		vk::CommandBufferBeginInfo begin_info;
+		begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		// begin_info.pInheritanceInfo;
+
+		{
+			ZoneScopedN("vkBeginCommandBuffer");
+			cmdbuf.begin(
+				begin_info,
+				*m_dispatcher
+			);
+		}
+
+		std::vector<vk::ImageMemoryBarrier2> barriers;
+		for (auto* image : images_to_init)
+		{
+			auto& barrier = barriers.emplace_back();
+			barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
+			barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+			barrier.dstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+			barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+			barrier.oldLayout = vk::ImageLayout::eUndefined;
+			barrier.newLayout = vk::ImageLayout::eGeneral;
+			barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+			barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+			barrier.image = image->getHandle();
+			barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = image->getDesc().levels;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = image->getDesc().layers;
+		}
+
+		vk::DependencyInfo dep_info;
+		dep_info.dependencyFlags = {};
+		dep_info.memoryBarrierCount = 0;
+		// dep_info.pMemoryBarriers;
+		dep_info.bufferMemoryBarrierCount = 0;
+		// dep_info.pBufferMemoryBarriers;
+		dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(barriers.size());
+		dep_info.pImageMemoryBarriers = barriers.data();
+
+		{
+			ZoneScopedN("vkCmdPipelineBarrier2");
+			cmdbuf.pipelineBarrier2(
+				dep_info,
+				*m_dispatcher
+			);
+		}
+
+		{
+			ZoneScopedN("vkEndCommandBuffer");
+			cmdbuf.end(
+				*m_dispatcher
+			);
+		}
+
+		cmdbufs.emplace_back(cmdbuf);
+	}
+
+	cmdbufs.emplace_back(m_cmdbuf);
+
 	Queue::Signal signal = m_queue->submit(
-		m_cmdbuf,
+		cmdbufs,
 		signals_to_wait.keys(),
 		signals_to_wait.values(),
 		std::move(m_referenced_objects)

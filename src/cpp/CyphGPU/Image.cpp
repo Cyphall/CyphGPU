@@ -136,6 +136,7 @@ void cgpu::Image::createImage()
 	if (m_desc.existing_handle)
 	{
 		m_handle = m_desc.existing_handle->image;
+		m_layout_initialized = true;
 	}
 	else
 	{
@@ -286,4 +287,14 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	}
 
 	return it->second;
+}
+
+bool cgpu::Image::isLayoutInitialized() const
+{
+	return m_layout_initialized;
+}
+
+void cgpu::Image::setLayoutInitialized()
+{
+	m_layout_initialized = true;
 }

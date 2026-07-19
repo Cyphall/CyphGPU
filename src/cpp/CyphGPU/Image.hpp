@@ -26,6 +26,7 @@ public:
 	{
 		struct ExistingHandle
 		{
+			/// The image must be in the GENERAL layout
 			vk::Image image;
 		};
 
@@ -158,6 +159,8 @@ private:
 	vk::Image m_handle{};
 	std::optional<VmaAllocation> m_alloc{};
 
+	bool m_layout_initialized{false};
+
 	vk::ImageViewType m_default_view_type{};
 	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};
 
@@ -173,5 +176,10 @@ private:
 
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
+
+	[[nodiscard]]
+	bool isLayoutInitialized() const;
+
+	void setLayoutInitialized();
 };
 }

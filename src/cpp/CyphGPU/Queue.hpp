@@ -101,7 +101,7 @@ private:
 	void waitAndClearPayloads();
 
 	Signal submit(
-		vk::CommandBuffer cmdbuf,
+		std::span<const vk::CommandBuffer> cmdbufs,
 		std::span<const vk::Semaphore> wait_semaphores,
 		std::span<const uint64_t> wait_values,
 		std::vector<std::shared_ptr<void>>&& referenced_objects

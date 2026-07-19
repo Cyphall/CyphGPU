@@ -304,7 +304,7 @@ void cgpu::Queue::waitAndClearPayloads()
 }
 
 cgpu::Queue::Signal cgpu::Queue::submit(
-	vk::CommandBuffer cmdbuf,
+	std::span<const vk::CommandBuffer> cmdbufs,
 	std::span<const vk::Semaphore> wait_semaphores,
 	std::span<const uint64_t> wait_values,
 	std::vector<std::shared_ptr<void>>&& referenced_objects
@@ -328,12 +328,14 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 		};
 	}
 
-	std::array cmdbuf_infos{
-		vk::CommandBufferSubmitInfo{
-			.commandBuffer = cmdbuf,
-			.deviceMask = 1,
-		},
-	};
+	std::vector<vk::CommandBufferSubmitInfo> cmdbuf_infos;
+	cmdbuf_infos.reserve(cmdbufs.size());
+	for (vk::CommandBuffer cmdbuf : cmdbufs)
+	{
+		auto& cmdbuf_info = cmdbuf_infos.emplace_back();
+		cmdbuf_info.commandBuffer = cmdbuf;
+		cmdbuf_info.deviceMask = 1;
+	}
 
 	std::array signal_infos{
 		vk::SemaphoreSubmitInfo{

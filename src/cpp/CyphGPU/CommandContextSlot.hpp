@@ -68,5 +68,9 @@ private:
 	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals{};
 
 	std::span<const BufferPtr> getParameterBuffers();
+
+	vk::CommandBuffer getCommandBufferFromPool(CommandPoolData& pool_data);
+
+	vk::CommandBuffer createImageInitCommandBuffer(const QueuePtr& queue);
 };
 }
