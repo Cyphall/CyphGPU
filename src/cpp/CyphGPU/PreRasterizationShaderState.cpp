@@ -33,7 +33,7 @@ const cgpu::PreRasterizationShaderState::Desc& cgpu::PreRasterizationShaderState
 	return m_desc;
 }
 
-const vk::Pipeline& cgpu::PreRasterizationShaderState::getHandle()
+const vk::Pipeline& cgpu::PreRasterizationShaderState::getHandle() const
 {
 	return m_handle;
 }

@@ -33,7 +33,7 @@ const cgpu::ComputeShaderState::Desc& cgpu::ComputeShaderState::getDesc() const
 	return m_desc;
 }
 
-const vk::Pipeline& cgpu::ComputeShaderState::getHandle()
+const vk::Pipeline& cgpu::ComputeShaderState::getHandle() const
 {
 	return m_handle;
 }

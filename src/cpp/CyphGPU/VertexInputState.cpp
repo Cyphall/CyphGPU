@@ -32,7 +32,7 @@ const cgpu::VertexInputState::Desc& cgpu::VertexInputState::getDesc() const
 	return m_desc;
 }
 
-const vk::Pipeline& cgpu::VertexInputState::getHandle()
+const vk::Pipeline& cgpu::VertexInputState::getHandle() const
 {
 	return m_handle;
 }

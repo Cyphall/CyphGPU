@@ -73,7 +73,7 @@ public:
 	const Desc& getDesc() const;
 
 	[[nodiscard]]
-	const vk::Pipeline& getHandle();
+	const vk::Pipeline& getHandle() const;
 
 private:
 	friend class DeviceSession;

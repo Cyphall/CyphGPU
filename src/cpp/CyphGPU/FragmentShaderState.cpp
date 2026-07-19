@@ -33,7 +33,7 @@ const cgpu::FragmentShaderState::Desc& cgpu::FragmentShaderState::getDesc() cons
 	return m_desc;
 }
 
-const vk::Pipeline& cgpu::FragmentShaderState::getHandle()
+const vk::Pipeline& cgpu::FragmentShaderState::getHandle() const
 {
 	return m_handle;
 }
