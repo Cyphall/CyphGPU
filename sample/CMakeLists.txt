@@ -40,6 +40,23 @@ else ()
 	message(FATAL_ERROR "Unknown compiler frontend variant: ${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}")
 endif ()
 
+install(
+	TARGETS CyphGPU_sample
+)
+
+file(GLOB COPYRIGHT_FILES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/*/copyright")
+foreach (COPYRIGHT_FILE IN LISTS COPYRIGHT_FILES)
+	cmake_path(GET COPYRIGHT_FILE PARENT_PATH COPYRIGHT_PORT_DIR)
+	cmake_path(GET COPYRIGHT_PORT_DIR FILENAME COPYRIGHT_PORT)
+	if (NOT COPYRIGHT_PORT MATCHES "^vcpkg-")
+		install(
+			FILES "${COPYRIGHT_FILE}"
+			DESTINATION "share/CyphGPU_sample/third-party-licenses"
+			RENAME "${COPYRIGHT_PORT}.txt"
+		)
+	endif ()
+endforeach ()
+
 # ---- Dependency: CyphGPU ----
 
 target_link_libraries(CyphGPU_sample PRIVATE CyphGPU)
