@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include <unordered_set>
 
 namespace
@@ -85,6 +86,11 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 	if (!(m_device->getCapabilities() & Device::Capability::eCore))
 	{
 		throw std::logic_error("Cannot create a session for a device that does not support the Core capability.");
+	}
+
+	if (!(m_device->getCapabilities() & Device::Capability::eUnifiedImageLayouts))
+	{
+		spdlog::warn("This device doesn't support the UnifiedImageLayouts capability, expect slower performance than expected.");
 	}
 
 	createDevice();

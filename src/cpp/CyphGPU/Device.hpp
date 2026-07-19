@@ -22,6 +22,7 @@ public:
 		eSwapchain = 1 << 1,
 		eMemoryBudget = 1 << 2,
 		eMemoryPriority = 1 << 3,
+		eUnifiedImageLayouts = 1 << 4,
 	};
 
 	using Capabilities = vk::Flags<Capability>;
@@ -118,7 +119,8 @@ struct vk::FlagTraits<cgpu::Device::Capability>
 		cgpu::Device::Capability::eCore |
 		cgpu::Device::Capability::eSwapchain |
 		cgpu::Device::Capability::eMemoryBudget |
-		cgpu::Device::Capability::eMemoryPriority;
+		cgpu::Device::Capability::eMemoryPriority |
+		cgpu::Device::Capability::eUnifiedImageLayouts;
 };
 
 // NOLINTEND(readability-identifier-naming)

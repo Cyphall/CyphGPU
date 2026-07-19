@@ -352,12 +352,25 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
+	static CapabilityData unified_image_layouts{
+		{
+			vk::KHRUnifiedImageLayoutsExtensionName,
+		},
+		[](detail::DynamicFeatureChain& chain) {
+			{
+				auto& features = chain.get<vk::PhysicalDeviceUnifiedImageLayoutsFeaturesKHR>();
+				features.unifiedImageLayouts = vk::True;
+			}
+		}
+	};
+
 	switch (capability)
 	{
 	case Capability::eCore: return core;
 	case Capability::eSwapchain: return swapchain;
 	case Capability::eMemoryBudget: return memory_budget;
 	case Capability::eMemoryPriority: return memory_priority;
+	case Capability::eUnifiedImageLayouts: return unified_image_layouts;
 	default: std::unreachable();
 	}
 }
