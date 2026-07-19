@@ -50,7 +50,15 @@ void cgpu::CommandContext::endSlot()
 {
 	ZoneScoped;
 
-	m_pending_slots.emplace_back(std::move(m_current_slot));
+	if (m_current_slot->getFinishedSignals().empty())
+	{
+		m_current_slot->reset();
+		m_available_slots.push(std::move(m_current_slot));
+	}
+	else
+	{
+		m_pending_slots.emplace_back(std::move(m_current_slot));
+	}
 }
 
 void cgpu::CommandContext::recycleFinishedSlots()
