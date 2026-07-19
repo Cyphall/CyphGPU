@@ -25,7 +25,7 @@ public:
 		struct ExistingHandle
 		{
 			vk::Buffer buffer;
-			/// Must be valid for host-visible memory
+			/// Must be set for host-visible memory
 			std::optional<std::byte*> host_ptr;
 		};
 

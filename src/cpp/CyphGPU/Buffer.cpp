@@ -114,7 +114,8 @@ void cgpu::Buffer::createBuffer()
 
 		if (m_device_session->getMemoryPool(m_desc.memory_type).is_host_visible)
 		{
-			m_host_ptr = *m_desc.existing_handle->host_ptr;
+			std::byte* host_ptr = m_desc.existing_handle->host_ptr.value();
+			m_host_ptr = host_ptr;
 		}
 	}
 	else
