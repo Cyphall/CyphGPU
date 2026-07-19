@@ -76,9 +76,9 @@ const uint32_t& cgpu::Swapchain::getLayers() const
 	return m_layers;
 }
 
-const uint32_t& cgpu::Swapchain::getImageCount() const
+uint32_t cgpu::Swapchain::getImageCount() const
 {
-	return m_image_count;
+	return static_cast<uint32_t>(m_image_data.size());
 }
 
 const vk::SwapchainKHR& cgpu::Swapchain::getHandle()
@@ -157,9 +157,10 @@ void cgpu::Swapchain::createSwapchain()
 		m_device_session->getDevice()->getContextSession()->getDispatcher()
 	);
 
+	uint32_t image_count{};
 	if (surface_caps.surfaceCapabilities.maxImageCount > 0)
 	{
-		m_image_count = glm::clamp(
+		image_count = glm::clamp(
 			m_desc.preferred_image_count,
 			surface_caps.surfaceCapabilities.minImageCount,
 			surface_caps.surfaceCapabilities.maxImageCount
@@ -167,7 +168,7 @@ void cgpu::Swapchain::createSwapchain()
 	}
 	else
 	{
-		m_image_count = glm::max(
+		image_count = glm::max(
 			m_desc.preferred_image_count,
 			surface_caps.surfaceCapabilities.minImageCount
 		);
@@ -203,7 +204,7 @@ void cgpu::Swapchain::createSwapchain()
 	                       vk::SwapchainCreateFlagBitsKHR::ePresentId2 |
 	                       vk::SwapchainCreateFlagBitsKHR::ePresentWait2;
 	swapchain_info.surface = m_surface->getHandle();
-	swapchain_info.minImageCount = m_image_count;
+	swapchain_info.minImageCount = image_count;
 	swapchain_info.imageFormat = m_desc.format.format;
 	swapchain_info.imageColorSpace = m_desc.format.colorSpace;
 	swapchain_info.imageExtent = std::bit_cast<vk::Extent2D>(m_extent);

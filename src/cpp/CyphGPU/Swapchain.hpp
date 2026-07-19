@@ -59,7 +59,7 @@ public:
 	const uint32_t& getLayers() const;
 
 	[[nodiscard]]
-	const uint32_t& getImageCount() const;
+	uint32_t getImageCount() const;
 
 	[[nodiscard]]
 	const vk::SwapchainKHR& getHandle();
@@ -91,7 +91,6 @@ private:
 
 	glm::uvec2 m_extent{};
 	uint32_t m_layers{};
-	uint32_t m_image_count{};
 
 	vk::SwapchainKHR m_handle{};
 	std::vector<ImageData> m_image_data{};
