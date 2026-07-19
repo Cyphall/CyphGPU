@@ -3,7 +3,6 @@
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContextSlot.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
-#include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
 #include <CyphGPU/Image.hpp>
@@ -991,7 +990,6 @@ cgpu::CommandRecorder::CommandRecorder(
 ):
 	m_slot{std::move(slot)},
 	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
-	m_min_uniform_buffer_alignment{m_slot->getDeviceSession()->getDevice()->getProperties<vk::PhysicalDeviceProperties2>().properties.limits.minUniformBufferOffsetAlignment},
 	m_queue{queue},
 	m_cmdbuf{cmdbuf}
 {
@@ -1107,8 +1105,6 @@ void cgpu::CommandRecorder::pushParameters(
 )
 {
 	ZoneScoped;
-
-	alignment = std::max<size_t>(alignment, m_min_uniform_buffer_alignment);
 
 	auto param_mem = m_slot->allocParameterMemory(size, alignment);
 	std::memcpy(param_mem.cpu_ptr, data, size);

@@ -60,8 +60,10 @@ private:
 	size_t m_num_cmdrec{0};
 	bool m_high_cmdrecs_warning_emitted{false};
 
-	std::vector<BufferPtr> m_parameter_buffers{};
-	uint64_t m_parameter_offset{};
+	vk::DeviceSize m_min_parambuf_alloc_alignment;
+	std::vector<BufferPtr> m_free_parambufs{};
+	std::vector<BufferPtr> m_used_parambufs{};
+	vk::DeviceSize m_current_parambuf_offset{};
 
 	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals{};
 
