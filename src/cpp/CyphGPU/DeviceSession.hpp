@@ -75,6 +75,8 @@ public:
 	[[nodiscard]]
 	QueuePtr getAsyncTransferQueue() const;
 
+	/// Must be called when trying to destroy this DeviceSession due to
+	/// unavoidable device->queue->payload_objects->device cyclic dependencies.
 	void waitIdle();
 
 private:
