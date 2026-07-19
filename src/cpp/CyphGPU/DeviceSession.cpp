@@ -583,6 +583,9 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 	create_heap(m_sampler_heap, 4000, props.samplerDescriptorSize, props.minSamplerHeapReservedRange);
 	create_heap(m_resource_heap, 1015808, props.imageDescriptorSize, props.minResourceHeapReservedRange);
 
+	m_handle.setDebugUtilsObjectNameEXT(m_sampler_heap.buffer, "Sampler heap", m_dispatcher);
+	m_handle.setDebugUtilsObjectNameEXT(m_resource_heap.buffer, "Resource heap", m_dispatcher);
+
 	for (uint32_t i = 0; i < 4; i++)
 	{
 		auto& mapping = m_mappings.emplace_back();
