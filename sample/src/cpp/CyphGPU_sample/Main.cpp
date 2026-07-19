@@ -125,7 +125,7 @@ int main()
 	cgpu::ImagePtr image = cgpu::Image::create(
 		device_session,
 		{
-			.name = "Buffer",
+			.name = "Image",
 			.format = vk::Format::eR8G8B8A8Unorm,
 			.extent = {1024, 1024, 1},
 			.usages = vk::ImageUsageFlagBits::eSampled |
