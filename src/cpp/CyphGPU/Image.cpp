@@ -59,7 +59,7 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	SampledDescriptorInfo info;
 	info.type = overrides.type.value_or(m_default_view_type);
 	info.format = overrides.format.value_or(m_desc.format);
-	info.levels = overrides.levels.value_or(Range<uint32_t>{0, vk::RemainingMipLevels});
+	info.levels = overrides.levels.value_or(Range<uint32_t>{0, m_desc.levels});
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
 	info.aspect = overrides.aspect.or_else([&] { return m_default_view_aspect; }).value();
 	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
