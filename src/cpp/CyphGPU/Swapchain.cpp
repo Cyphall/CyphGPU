@@ -149,11 +149,19 @@ void cgpu::Swapchain::createSwapchain()
 
 	std::span<const uint32_t> queue_families = m_device_session->getActiveQueueFamilies();
 
-	vk::PhysicalDeviceSurfaceInfo2KHR surface_info;
+	vk::StructureChain<
+		vk::PhysicalDeviceSurfaceInfo2KHR,
+		vk::SurfacePresentModeKHR>
+		surface_info_chain;
+
+	auto& surface_info = surface_info_chain.get<vk::PhysicalDeviceSurfaceInfo2KHR>();
 	surface_info.surface = m_surface->getHandle();
 
+	auto& present_mode = surface_info_chain.get<vk::SurfacePresentModeKHR>();
+	present_mode.presentMode = m_desc.present_mode;
+
 	vk::SurfaceCapabilities2KHR surface_caps = m_device_session->getDevice()->getHandle().getSurfaceCapabilities2KHR(
-		surface_info,
+		surface_info_chain.get<vk::PhysicalDeviceSurfaceInfo2KHR>(),
 		m_device_session->getDevice()->getContextSession()->getDispatcher()
 	);
 
