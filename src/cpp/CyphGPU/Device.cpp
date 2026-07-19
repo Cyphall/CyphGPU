@@ -394,6 +394,7 @@ void cgpu::Device::checkCapabilitySupport()
 
 		// This will set some features to true but the driver should overwrite that so it's fine
 		detail::DynamicFeatureChain supported_structures;
+		supported_structures.get<vk::PhysicalDeviceFeatures2>(); // Ensure vk::PhysicalDeviceFeatures2 is first in the chain
 		capability_data->feature_callback(supported_structures);
 		m_handle.getFeatures2(&supported_structures.get<vk::PhysicalDeviceFeatures2>(), m_context_session->getDispatcher());
 
