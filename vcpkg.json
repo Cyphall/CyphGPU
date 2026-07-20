@@ -10,7 +10,8 @@
 		"tracy",
 		"cmakerc",
 		"half",
-		"slang"
+		"slang",
+		"unordered-dense"
 	],
 	"features": {
 		"sample": {

@@ -8,7 +8,6 @@
 #include <CyphGPU/Utils.hpp>
 
 #include <glm/glm.hpp>
-#include <map>
 #include <variant>
 
 namespace cgpu
@@ -352,8 +351,8 @@ private:
 	QueuePtr m_queue;
 	vk::CommandBuffer m_cmdbuf;
 
-	detail::BumpVector<std::shared_ptr<void>> m_referenced_objects;
-	detail::BumpMap<std::shared_ptr<Resource>, ResourceAccess> m_referenced_resources;
+	detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> m_referenced_objects;
+	detail::BumpSegmentedUnorderedMap<Resource*, ResourceAccess> m_referenced_resources;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};

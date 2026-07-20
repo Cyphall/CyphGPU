@@ -171,8 +171,16 @@ void cgpu::CommandRecorder::submit()
 		}
 	};
 
+	detail::BumpVector<std::pair<Resource*, ResourceAccess>> referenced_resources{
+		m_referenced_resources.begin(),
+		m_referenced_resources.end(),
+		*m_bump_memory
+	};
+
+	std::ranges::sort(referenced_resources, {}, &std::pair<Resource*, ResourceAccess>::first);
+
 	detail::BumpList<Image*> images_to_init{*m_bump_memory};
-	for (auto& [resource, access] : m_referenced_resources)
+	for (auto& [resource, access] : referenced_resources)
 	{
 		resource->lock();
 
@@ -198,7 +206,7 @@ void cgpu::CommandRecorder::submit()
 		default: std::unreachable();
 		}
 
-		auto* image = dynamic_cast<Image*>(resource.get());
+		auto* image = dynamic_cast<Image*>(resource);
 		if (image != nullptr && !image->isLayoutInitialized())
 		{
 			images_to_init.emplace_back(image);
@@ -287,7 +295,7 @@ void cgpu::CommandRecorder::submit()
 		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_objects)
 	);
 
-	for (auto& [resource, access] : m_referenced_resources)
+	for (auto& [resource, access] : referenced_resources)
 	{
 		switch (access)
 		{
@@ -1163,16 +1171,16 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object
 {
 	ZoneScoped;
 
-	m_referenced_objects.emplace_back(object);
+	m_referenced_objects.emplace(object);
 }
 
 void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access)
 {
 	ZoneScoped;
 
-	m_referenced_objects.emplace_back(resource);
+	m_referenced_objects.emplace(resource);
 
-	auto [it, inserted] = m_referenced_resources.try_emplace(resource, access);
+	auto [it, inserted] = m_referenced_resources.try_emplace(resource.get(), access);
 	if (!inserted && access == ResourceAccess::eReadWrite)
 	{
 		it->second = ResourceAccess::eReadWrite;

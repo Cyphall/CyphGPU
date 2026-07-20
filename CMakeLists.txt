@@ -66,6 +66,10 @@ find_package(CMakeRC CONFIG REQUIRED)
 
 find_path(HALF_INCLUDE_DIRS "half.hpp" REQUIRED)
 
+# ---- Dependency: martinus/unordered_dense ----
+
+find_package(unordered_dense CONFIG REQUIRED)
+
 # ---- Library ----
 
 add_library(CyphGPU)
@@ -255,6 +259,10 @@ target_link_libraries(CyphGPU PUBLIC $<BUILD_INTERFACE:cmrc::base>)
 # ---- Dependency: half ----
 
 target_include_directories(CyphGPU PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIRS}>)
+
+# ---- Dependency: martinus/unordered_dense ----
+
+target_link_libraries(CyphGPU PUBLIC unordered_dense::unordered_dense)
 
 # ---- Sample ----
 

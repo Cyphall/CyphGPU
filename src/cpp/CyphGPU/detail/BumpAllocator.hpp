@@ -2,6 +2,7 @@
 
 #include <CyphGPU/detail/BumpMemoryResource.hpp>
 
+#include <ankerl/unordered_dense.h>
 #include <cstddef>
 #include <flat_map>
 #include <flat_set>
@@ -75,4 +76,10 @@ using BumpFlatSet = std::flat_set<TKey, TCompare, BumpVector<TKey>>;
 
 template<class T>
 using BumpList = std::list<T, BumpAllocator<T>>;
+
+template<class TKey, class TValue, class THash = std::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
+using BumpSegmentedUnorderedMap = ankerl::unordered_dense::segmented_map<TKey, TValue, THash, TKeyEqual, BumpAllocator<std::pair<TKey, TValue>>>;
+
+template<class TKey, class THash = std::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
+using BumpSegmentedUnorderedSet = ankerl::unordered_dense::segmented_set<TKey, THash, TKeyEqual, BumpAllocator<TKey>>;
 }
