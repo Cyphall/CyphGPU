@@ -294,6 +294,7 @@ void cgpu::CommandRecorder::submit()
 	cmdbufs.emplace_back(m_cmdbuf);
 
 	Queue::Signal signal = m_queue->submit(
+		*m_bump_memory,
 		cmdbufs,
 		signals_to_wait.keys(),
 		signals_to_wait.values(),

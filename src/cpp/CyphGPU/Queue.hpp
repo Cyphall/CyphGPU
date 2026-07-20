@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CyphGPU/detail/BumpMemoryResource.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <flat_map>
@@ -101,6 +102,7 @@ private:
 	void waitAndClearPayloads();
 
 	Signal submit(
+		detail::BumpMemoryResource& bump_memory,
 		std::span<const vk::CommandBuffer> cmdbufs,
 		std::span<const vk::Semaphore> wait_semaphores,
 		std::span<const uint64_t> wait_values,

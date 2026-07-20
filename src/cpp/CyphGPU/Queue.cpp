@@ -1,5 +1,6 @@
 #include "Queue.hpp"
 
+#include <CyphGPU/detail/BumpAllocator.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Swapchain.hpp>
 
@@ -304,6 +305,7 @@ void cgpu::Queue::waitAndClearPayloads()
 }
 
 cgpu::Queue::Signal cgpu::Queue::submit(
+	detail::BumpMemoryResource& bump_memory,
 	std::span<const vk::CommandBuffer> cmdbufs,
 	std::span<const vk::Semaphore> wait_semaphores,
 	std::span<const uint64_t> wait_values,
@@ -316,7 +318,7 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 
 	clearCompletedPayloads();
 
-	std::vector<vk::SemaphoreSubmitInfo> wait_infos;
+	detail::BumpVector<vk::SemaphoreSubmitInfo> wait_infos{bump_memory};
 	wait_infos.resize(wait_semaphores.size());
 	for (size_t i = 0; i < wait_infos.size(); i++)
 	{
@@ -328,7 +330,7 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 		};
 	}
 
-	std::vector<vk::CommandBufferSubmitInfo> cmdbuf_infos;
+	detail::BumpVector<vk::CommandBufferSubmitInfo> cmdbuf_infos{bump_memory};
 	cmdbuf_infos.reserve(cmdbufs.size());
 	for (vk::CommandBuffer cmdbuf : cmdbufs)
 	{
