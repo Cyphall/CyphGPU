@@ -9,7 +9,7 @@ namespace cgpu
 {
 class CommandRecorder;
 
-class GraphicsPassContext : public PassContext
+class GraphicsPassContext final : public PassContext
 {
 public:
 	// ----- Commands -----

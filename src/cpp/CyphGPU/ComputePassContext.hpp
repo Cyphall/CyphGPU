@@ -10,7 +10,7 @@ namespace cgpu
 {
 class CommandRecorder;
 
-class ComputePassContext : public PassContext
+class ComputePassContext final : public PassContext
 {
 public:
 	// ----- Commands -----
