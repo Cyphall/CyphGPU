@@ -67,15 +67,11 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 
 const cgpu::DeviceSessionPtr& cgpu::CommandContextSlot::getDeviceSession() const
 {
-	ZoneScoped;
-
 	return m_device_session;
 }
 
 cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParameterMemory(vk::DeviceSize size, vk::DeviceSize alignment)
 {
-	ZoneScoped;
-
 	if (size > PARAMETER_BUFFER_SIZE)
 	{
 		throw std::logic_error(std::format("Cannot allocate parameter memory with size > {}", PARAMETER_BUFFER_SIZE));
@@ -127,8 +123,6 @@ cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParamet
 
 const std::flat_map<vk::Semaphore, uint64_t>& cgpu::CommandContextSlot::getFinishedSignals() const
 {
-	ZoneScoped;
-
 	return m_finished_signals;
 }
 
@@ -180,8 +174,6 @@ void cgpu::CommandContextSlot::reset()
 
 std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()
 {
-	ZoneScoped;
-
 	return m_used_parambufs;
 }
 

@@ -14,6 +14,9 @@
 #include <ranges>
 #include <tracy/Tracy.hpp>
 
+// #define PROFILE_VULKAN_CALLS
+// #define PROFILE_HOT_CALLS
+
 namespace
 {
 template<class... TOverloads>
@@ -52,8 +55,6 @@ std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	vk::ImageAspectFlags aspects
 )
 {
-	ZoneScoped;
-
 	vk::ImageSubresourceRange vk_range;
 	vk_range.aspectMask = aspects;
 	vk_range.baseMipLevel = range.levels ? range.levels->offset : 0;
@@ -76,8 +77,6 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 	const cgpu::CommandRecorder::ImageLevelLayersAspectsPixelsRange& range
 )
 {
-	ZoneScoped;
-
 	vk::ImageSubresourceLayers vk_range;
 	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
 	vk_range.mipLevel = range.level ? *range.level : 0;
@@ -103,8 +102,6 @@ std::tuple<cgpu::Range<vk::DeviceSize>, vk::DeviceSize> resolveRange(
 	const cgpu::CommandRecorder::BufferRange& range
 )
 {
-	ZoneScoped;
-
 	cgpu::Range<vk::DeviceSize> vk_range =
 		range.byte_range ?
 			*range.byte_range :
@@ -120,8 +117,6 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 	const cgpu::CommandRecorder::ImageLevelLayersAspectsRectRange& range
 )
 {
-	ZoneScoped;
-
 	vk::ImageSubresourceLayers vk_range;
 	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
 	vk_range.mipLevel = range.level ? *range.level : 0;
@@ -152,7 +147,9 @@ void cgpu::CommandRecorder::submit()
 #endif
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkEndCommandBuffer");
+#endif
 		m_cmdbuf.end(
 			*m_dispatcher
 		);
@@ -236,7 +233,9 @@ void cgpu::CommandRecorder::submit()
 		// begin_info.pInheritanceInfo;
 
 		{
+#if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkBeginCommandBuffer");
+#endif
 			cmdbuf.begin(
 				begin_info,
 				*m_dispatcher
@@ -274,7 +273,9 @@ void cgpu::CommandRecorder::submit()
 		dep_info.pImageMemoryBarriers = barriers.data();
 
 		{
+#if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkCmdPipelineBarrier2");
+#endif
 			cmdbuf.pipelineBarrier2(
 				dep_info,
 				*m_dispatcher
@@ -282,7 +283,9 @@ void cgpu::CommandRecorder::submit()
 		}
 
 		{
+#if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkEndCommandBuffer");
+#endif
 			cmdbuf.end(
 				*m_dispatcher
 			);
@@ -371,7 +374,9 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		);
 
 		{
+#if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkCmdClearColorImage");
+#endif
 			m_cmdbuf.clearColorImage(
 				(*params.image)->getHandle(),
 				vk::ImageLayout::eGeneral,
@@ -390,7 +395,9 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		};
 
 		{
+#if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkCmdClearDepthStencilImage");
+#endif
 			m_cmdbuf.clearDepthStencilImage(
 				(*params.image)->getHandle(),
 				vk::ImageLayout::eGeneral,
@@ -466,7 +473,9 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	info.pRegions = vk_regions.data();
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyImage2");
+#endif
 		m_cmdbuf.copyImage2(
 			info,
 			*m_dispatcher
@@ -527,7 +536,9 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	info.pRegions = vk_regions.data();
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyBufferToImage2");
+#endif
 		m_cmdbuf.copyBufferToImage2(
 			info,
 			*m_dispatcher
@@ -588,7 +599,9 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	info.pRegions = vk_regions.data();
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyImageToBuffer2");
+#endif
 		m_cmdbuf.copyImageToBuffer2(
 			info,
 			*m_dispatcher
@@ -641,7 +654,9 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	info.pRegions = vk_regions.data();
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyBuffer2");
+#endif
 		m_cmdbuf.copyBuffer2(
 			info,
 			*m_dispatcher
@@ -708,7 +723,9 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 	info.filter = params.filter.value_or(vk::Filter::eNearest);
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBlitImage2");
+#endif
 		m_cmdbuf.blitImage2(
 			info,
 			*m_dispatcher
@@ -741,7 +758,9 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 	// dep_info.pImageMemoryBarriers;
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdPipelineBarrier2");
+#endif
 		m_cmdbuf.pipelineBarrier2(
 			dep_info,
 			*m_dispatcher
@@ -1003,7 +1022,9 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	rendering_info.pStencilAttachment = vk_stencil_attachment ? &*vk_stencil_attachment : nullptr;
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBeginRendering");
+#endif
 		m_cmdbuf.beginRendering(
 			rendering_info,
 			*m_dispatcher
@@ -1019,7 +1040,9 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	viewport.maxDepth = 1.0f;
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetViewport");
+#endif
 		m_cmdbuf.setViewport(
 			0,
 			viewport,
@@ -1028,7 +1051,9 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	}
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetScissor");
+#endif
 		m_cmdbuf.setScissor(
 			0,
 			render_area,
@@ -1048,7 +1073,9 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	}
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdEndRendering");
+#endif
 		m_cmdbuf.endRendering(
 			*m_dispatcher
 		);
@@ -1106,7 +1133,9 @@ void cgpu::CommandRecorder::beginDebugRegion(const BeginDebugRegionParams& param
 	info.color[3] = color[3];
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBeginDebugUtilsLabelEXT");
+#endif
 		m_cmdbuf.beginDebugUtilsLabelEXT(
 			info,
 			*m_dispatcher
@@ -1121,7 +1150,9 @@ void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
 	assert(!m_submitted);
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdEndDebugUtilsLabelEXT");
+#endif
 		m_cmdbuf.endDebugUtilsLabelEXT(
 			*m_dispatcher
 		);
@@ -1152,7 +1183,9 @@ cgpu::CommandRecorder::CommandRecorder(
 	// info.pInheritanceInfo;
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkBeginCommandBuffer");
+#endif
 		m_cmdbuf.begin(
 			info,
 			*m_dispatcher
@@ -1160,7 +1193,9 @@ cgpu::CommandRecorder::CommandRecorder(
 	}
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindResourceHeapEXT");
+#endif
 		m_cmdbuf.bindResourceHeapEXT(
 			m_slot->getDeviceSession()->getResourceBindHeapInfo(),
 			*m_dispatcher
@@ -1168,7 +1203,9 @@ cgpu::CommandRecorder::CommandRecorder(
 	}
 
 	{
+#if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindSamplerHeapEXT");
+#endif
 		m_cmdbuf.bindSamplerHeapEXT(
 			m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
 			*m_dispatcher
@@ -1180,14 +1217,18 @@ template<class T>
 requires(!std::derived_from<T, cgpu::Resource>)
 void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object)
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	m_referenced_objects.emplace(object);
 }
 
 void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceAccess access)
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	m_referenced_objects.emplace(image);
 
@@ -1200,7 +1241,9 @@ void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceA
 
 void cgpu::CommandRecorder::addReferencedObject(const BufferPtr& buffer, ResourceAccess access)
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	m_referenced_objects.emplace(buffer);
 
@@ -1218,7 +1261,9 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	const FragmentOutputStatePtr& fragment_output_state
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	vk::Pipeline pipeline = m_slot->getDeviceSession()->getGraphicsPipeline(
 		vertex_input_state,
@@ -1228,7 +1273,9 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	);
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindPipeline");
+#endif
 		m_cmdbuf.bindPipeline(
 			vk::PipelineBindPoint::eGraphics,
 			pipeline,
@@ -1246,10 +1293,14 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	const ComputeShaderStatePtr& compute_shader_state
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindPipeline");
+#endif
 		m_cmdbuf.bindPipeline(
 			vk::PipelineBindPoint::eCompute,
 			compute_shader_state->getHandle(),
@@ -1267,7 +1318,9 @@ void cgpu::CommandRecorder::pushParameters(
 	size_t alignment
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	auto param_mem = m_slot->allocParameterMemory(size, alignment);
 	std::memcpy(param_mem.cpu_ptr, data, size);
@@ -1278,7 +1331,9 @@ void cgpu::CommandRecorder::pushParameters(
 	info.data.size = sizeof(vk::DeviceAddress);
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdPushDataEXT");
+#endif
 		m_cmdbuf.pushDataEXT(
 			info,
 			*m_dispatcher
@@ -1293,10 +1348,14 @@ void cgpu::CommandRecorder::draw(
 	uint32_t first_instance
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdDraw");
+#endif
 		m_cmdbuf.draw(
 			vertex_count,
 			instance_count,
@@ -1315,10 +1374,14 @@ void cgpu::CommandRecorder::drawIndexed(
 	uint32_t first_instance
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdDrawIndexed");
+#endif
 		m_cmdbuf.drawIndexed(
 			index_count,
 			instance_count,
@@ -1334,10 +1397,14 @@ void cgpu::CommandRecorder::setViewport(
 	const vk::Viewport& viewport
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetViewport");
+#endif
 		m_cmdbuf.setViewport(
 			0,
 			viewport,
@@ -1350,10 +1417,14 @@ void cgpu::CommandRecorder::setScissor(
 	const vk::Rect2D& scissor
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetScissor");
+#endif
 		m_cmdbuf.setScissor(
 			0,
 			scissor,
@@ -1366,10 +1437,14 @@ void cgpu::CommandRecorder::dispatch(
 	const glm::uvec3& group_count
 )
 {
+#if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
+#endif
 
 	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdDispatch");
+#endif
 		m_cmdbuf.dispatch(
 			group_count.x,
 			group_count.y,
