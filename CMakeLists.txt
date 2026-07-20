@@ -70,6 +70,10 @@ find_path(HALF_INCLUDE_DIRS "half.hpp" REQUIRED)
 
 find_package(unordered_dense CONFIG REQUIRED)
 
+# ---- Dependency: boostorg/container ----
+
+find_package(boost_container CONFIG REQUIRED)
+
 # ---- Library ----
 
 add_library(CyphGPU)
@@ -263,6 +267,10 @@ target_include_directories(CyphGPU PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIRS}
 # ---- Dependency: martinus/unordered_dense ----
 
 target_link_libraries(CyphGPU PUBLIC unordered_dense::unordered_dense)
+
+# ---- Dependency: boostorg/container ----
+
+target_link_libraries(CyphGPU PUBLIC Boost::container)
 
 # ---- Sample ----
 

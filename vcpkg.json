@@ -11,7 +11,8 @@
 		"cmakerc",
 		"half",
 		"slang",
-		"unordered-dense"
+		"unordered-dense",
+		"boost-container"
 	],
 	"features": {
 		"sample": {

@@ -2,6 +2,7 @@
 
 #include <CyphGPU/fwd.hpp>
 
+#include <boost/container/static_vector.hpp>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
@@ -64,7 +65,7 @@ public:
 		};
 
 		// Optional
-		std::vector<ColorAttachment> color_attachments{};
+		boost::container::static_vector<ColorAttachment, 8> color_attachments{};
 		std::optional<DepthStencilAttachment> depth_stencil_attachment{};
 		vk::SampleCountFlagBits samples{vk::SampleCountFlagBits::e1};
 		glm::vec4 blend_constants{0.0f, 0.0f, 0.0f, 0.0f};

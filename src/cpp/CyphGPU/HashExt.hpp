@@ -1,6 +1,8 @@
 #pragma once
 
+#include <boost/container/static_vector.hpp>
 #include <functional>
+#include <vector>
 
 namespace cgpu
 {
@@ -35,4 +37,8 @@ struct ContainerHash
 
 template<class T, class TAllocator>
 struct std::hash<std::vector<T, TAllocator>> : cgpu::ContainerHash<std::vector<T, TAllocator>>
+{};
+
+template<class T, size_t Capacity, class TOptions>
+struct std::hash<boost::container::static_vector<T, Capacity, TOptions>> : cgpu::ContainerHash<boost::container::static_vector<T, Capacity, TOptions>>
 {};

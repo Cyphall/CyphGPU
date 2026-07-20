@@ -9,6 +9,7 @@
 #include <CyphGPU/Queue.hpp>
 
 #include <bit>
+#include <boost/container/static_vector.hpp>
 #include <exception>
 #include <ranges>
 #include <tracy/Tracy.hpp>
@@ -219,8 +220,7 @@ void cgpu::CommandRecorder::submit()
 	lock_and_process_resources(referenced_images);
 	lock_and_process_resources(referenced_buffers);
 
-	detail::BumpVector<vk::CommandBuffer> cmdbufs{*m_bump_memory};
-	cmdbufs.reserve((!images_to_init.empty() ? 1 : 0) + 1);
+	boost::container::static_vector<vk::CommandBuffer, 2> cmdbufs{};
 
 	//TODO: Freshly created images are in the Undefined layout,
 	// and I couldn't find any easier way to transition them to General
@@ -788,8 +788,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	};
 
 	auto color_attachments = params.color_attachments ? *params.color_attachments : std::span<const GraphicsPassParams::ColorAttachment>{};
-	detail::BumpVector<vk::RenderingAttachmentInfo> vk_color_attachments{*m_bump_memory};
-	vk_color_attachments.reserve(color_attachments.size());
+	boost::container::static_vector<vk::RenderingAttachmentInfo, 8> vk_color_attachments{};
 	for (const auto& attachment : color_attachments)
 	{
 		uint32_t level = attachment.level ? *attachment.level : 0;
