@@ -261,6 +261,8 @@ void cgpu::Swapchain::createSwapchain()
 			),
 			createSemaphore()
 		);
+
+		m_image_data.back().image->setLayoutInitialized();
 	}
 }
 
