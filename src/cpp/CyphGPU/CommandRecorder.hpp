@@ -352,7 +352,8 @@ private:
 	vk::CommandBuffer m_cmdbuf;
 
 	detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> m_referenced_objects;
-	detail::BumpSegmentedUnorderedMap<Resource*, ResourceAccess> m_referenced_resources;
+	detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> m_referenced_images;
+	detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> m_referenced_buffers;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};
@@ -369,7 +370,8 @@ private:
 	requires(!std::derived_from<T, cgpu::Resource>)
 	void addReferencedObject(const std::shared_ptr<T>& object);
 
-	void addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access);
+	void addReferencedObject(const ImagePtr& image, ResourceAccess access);
+	void addReferencedObject(const BufferPtr& buffer, ResourceAccess access);
 
 	// ----- Pass sub-commands -----
 

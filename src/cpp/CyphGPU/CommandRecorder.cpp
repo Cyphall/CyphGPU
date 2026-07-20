@@ -171,48 +171,53 @@ void cgpu::CommandRecorder::submit()
 		}
 	};
 
-	detail::BumpVector<std::pair<Resource*, ResourceAccess>> referenced_resources{
-		m_referenced_resources.begin(),
-		m_referenced_resources.end(),
-		*m_bump_memory
-	};
+	detail::BumpVector<std::pair<Image*, ResourceAccess>> referenced_images{m_referenced_images.begin(), m_referenced_images.end(), *m_bump_memory};
+	detail::BumpVector<std::pair<Buffer*, ResourceAccess>> referenced_buffers{m_referenced_buffers.begin(), m_referenced_buffers.end(), *m_bump_memory};
 
-	std::ranges::sort(referenced_resources, {}, &std::pair<Resource*, ResourceAccess>::first);
+	std::ranges::sort(referenced_images, {}, &std::pair<Image*, ResourceAccess>::first);
+	std::ranges::sort(referenced_buffers, {}, &std::pair<Buffer*, ResourceAccess>::first);
 
 	detail::BumpList<Image*> images_to_init{*m_bump_memory};
-	for (auto& [resource, access] : referenced_resources)
-	{
-		resource->lock();
+	auto lock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, ResourceAccess>>& resources) {
+		for (auto& [resource, access] : resources)
+		{
+			resource->lock();
 
-		switch (access)
-		{
-		case ResourceAccess::eReadonly:
-		{
-			const auto& signal = resource->tryGetReadWriteSignal();
-			if (signal)
+			switch (access)
 			{
-				add_signal_to_wait(signal->semaphore, signal->value);
-			}
-			break;
-		}
-		case ResourceAccess::eReadWrite:
-		{
-			for (const auto& [semaphore, value] : resource->getReadSignals())
+			case ResourceAccess::eReadonly:
 			{
-				add_signal_to_wait(semaphore, value);
+				const auto& signal = resource->tryGetReadWriteSignal();
+				if (signal)
+				{
+					add_signal_to_wait(signal->semaphore, signal->value);
+				}
+				break;
 			}
-			break;
-		}
-		default: std::unreachable();
-		}
+			case ResourceAccess::eReadWrite:
+			{
+				for (const auto& [semaphore, value] : resource->getReadSignals())
+				{
+					add_signal_to_wait(semaphore, value);
+				}
+				break;
+			}
+			default: std::unreachable();
+			}
 
-		auto* image = dynamic_cast<Image*>(resource);
-		if (image != nullptr && !image->isLayoutInitialized())
-		{
-			images_to_init.emplace_back(image);
-			image->setLayoutInitialized();
+			if constexpr (std::is_same_v<T, Image>)
+			{
+				if (!resource->isLayoutInitialized())
+				{
+					images_to_init.emplace_back(resource);
+					resource->setLayoutInitialized();
+				}
+			}
 		}
-	}
+	};
+
+	lock_and_process_resources(referenced_images);
+	lock_and_process_resources(referenced_buffers);
 
 	detail::BumpVector<vk::CommandBuffer> cmdbufs{*m_bump_memory};
 	cmdbufs.reserve((!images_to_init.empty() ? 1 : 0) + 1);
@@ -295,17 +300,22 @@ void cgpu::CommandRecorder::submit()
 		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_objects)
 	);
 
-	for (auto& [resource, access] : referenced_resources)
-	{
-		switch (access)
+	auto unlock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, ResourceAccess>>& resources) {
+		for (auto& [resource, access] : resources)
 		{
-		case ResourceAccess::eReadonly: resource->addReadSignal(signal); break;
-		case ResourceAccess::eReadWrite: resource->setReadWriteSignal(signal); break;
-		default: std::unreachable();
-		}
+			switch (access)
+			{
+			case ResourceAccess::eReadonly: resource->addReadSignal(signal); break;
+			case ResourceAccess::eReadWrite: resource->setReadWriteSignal(signal); break;
+			default: std::unreachable();
+			}
 
-		resource->unlock();
-	}
+			resource->unlock();
+		}
+	};
+
+	unlock_and_process_resources(referenced_images);
+	unlock_and_process_resources(referenced_buffers);
 
 	m_slot->addFinishedSignal(signal);
 }
@@ -1130,7 +1140,8 @@ cgpu::CommandRecorder::CommandRecorder(
 	m_queue{queue},
 	m_cmdbuf{cmdbuf},
 	m_referenced_objects{*m_bump_memory},
-	m_referenced_resources{*m_bump_memory}
+	m_referenced_images{*m_bump_memory},
+	m_referenced_buffers{*m_bump_memory}
 {
 	ZoneScoped;
 
@@ -1174,13 +1185,26 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object
 	m_referenced_objects.emplace(object);
 }
 
-void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<Resource>& resource, ResourceAccess access)
+void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceAccess access)
 {
 	ZoneScoped;
 
-	m_referenced_objects.emplace(resource);
+	m_referenced_objects.emplace(image);
 
-	auto [it, inserted] = m_referenced_resources.try_emplace(resource.get(), access);
+	auto [it, inserted] = m_referenced_images.try_emplace(image.get(), access);
+	if (!inserted && access == ResourceAccess::eReadWrite)
+	{
+		it->second = ResourceAccess::eReadWrite;
+	}
+}
+
+void cgpu::CommandRecorder::addReferencedObject(const BufferPtr& buffer, ResourceAccess access)
+{
+	ZoneScoped;
+
+	m_referenced_objects.emplace(buffer);
+
+	auto [it, inserted] = m_referenced_buffers.try_emplace(buffer.get(), access);
 	if (!inserted && access == ResourceAccess::eReadWrite)
 	{
 		it->second = ResourceAccess::eReadWrite;
