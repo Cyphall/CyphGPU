@@ -215,7 +215,7 @@ void cgpu::CommandRecorder::submit()
 	}
 
 	detail::BumpVector<vk::CommandBuffer> cmdbufs{*m_bump_memory};
-	cmdbufs.reserve(2);
+	cmdbufs.reserve((!images_to_init.empty() ? 1 : 0) + 1);
 
 	//TODO: Freshly created images are in the Undefined layout,
 	// and I couldn't find any easier way to transition them to General
