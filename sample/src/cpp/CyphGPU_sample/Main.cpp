@@ -66,7 +66,7 @@ void uploadTexture(
 {
 	int width{};
 	int height{};
-	stbi_uc* data = stbi_load_from_memory(TEXTURE_DATA.data(), TEXTURE_DATA.size(), &width, &height, nullptr, STBI_rgb_alpha);
+	stbi_uc* data = stbi_load_from_memory(TEXTURE_DATA.data(), static_cast<int>(TEXTURE_DATA.size()), &width, &height, nullptr, STBI_rgb_alpha);
 
 	texture = cgpu::Image::create(
 		device_session,
