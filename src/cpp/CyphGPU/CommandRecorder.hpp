@@ -344,6 +344,19 @@ private:
 	friend class GraphicsPassContext;
 	friend class ComputePassContext;
 
+	struct ReferencedContainers
+	{
+		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
+		detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> images;
+		detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> buffers;
+
+		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
+			objects{bump_memory},
+			images{bump_memory},
+			buffers{bump_memory}
+		{}
+	};
+
 	std::shared_ptr<CommandContextSlot> m_slot;
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
 	detail::BumpMemoryResource* m_bump_memory;
@@ -351,9 +364,7 @@ private:
 	QueuePtr m_queue;
 	vk::CommandBuffer m_cmdbuf;
 
-	detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> m_referenced_objects;
-	detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> m_referenced_images;
-	detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> m_referenced_buffers;
+	std::optional<ReferencedContainers> m_referenced_containers;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};

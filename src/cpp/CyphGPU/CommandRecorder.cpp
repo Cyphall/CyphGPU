@@ -2,6 +2,7 @@
 
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContextSlot.hpp>
+#include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
@@ -169,8 +170,16 @@ void cgpu::CommandRecorder::submit()
 		}
 	};
 
-	detail::BumpVector<std::pair<Image*, ResourceAccess>> referenced_images{m_referenced_images.begin(), m_referenced_images.end(), *m_bump_memory};
-	detail::BumpVector<std::pair<Buffer*, ResourceAccess>> referenced_buffers{m_referenced_buffers.begin(), m_referenced_buffers.end(), *m_bump_memory};
+	detail::BumpVector<std::pair<Image*, ResourceAccess>> referenced_images{
+		m_referenced_containers->images.begin(),
+		m_referenced_containers->images.end(),
+		*m_bump_memory,
+	};
+	detail::BumpVector<std::pair<Buffer*, ResourceAccess>> referenced_buffers{
+		m_referenced_containers->buffers.begin(),
+		m_referenced_containers->buffers.end(),
+		*m_bump_memory,
+	};
 
 	std::ranges::sort(referenced_images, {}, &std::pair<Image*, ResourceAccess>::first);
 	std::ranges::sort(referenced_buffers, {}, &std::pair<Buffer*, ResourceAccess>::first);
@@ -301,7 +310,7 @@ void cgpu::CommandRecorder::submit()
 		cmdbufs,
 		signals_to_wait.keys(),
 		signals_to_wait.values(),
-		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_objects)
+		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_containers->objects)
 	);
 
 	auto unlock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, ResourceAccess>>& resources) {
@@ -322,6 +331,8 @@ void cgpu::CommandRecorder::submit()
 	unlock_and_process_resources(referenced_buffers);
 
 	m_slot->addFinishedSignal(signal);
+
+	m_referenced_containers.reset();
 }
 
 void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
@@ -1170,9 +1181,7 @@ cgpu::CommandRecorder::CommandRecorder(
 	m_bump_memory{&bump_memory},
 	m_queue{queue},
 	m_cmdbuf{cmdbuf},
-	m_referenced_objects{*m_bump_memory},
-	m_referenced_images{*m_bump_memory},
-	m_referenced_buffers{*m_bump_memory}
+	m_referenced_containers{bump_memory}
 {
 	ZoneScoped;
 
@@ -1221,7 +1230,7 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object
 	ZoneScoped;
 #endif
 
-	m_referenced_objects.emplace(object);
+	m_referenced_containers->objects.emplace(object);
 }
 
 void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceAccess access)
@@ -1230,9 +1239,9 @@ void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceA
 	ZoneScoped;
 #endif
 
-	m_referenced_objects.emplace(image);
+	m_referenced_containers->objects.emplace(image);
 
-	auto [it, inserted] = m_referenced_images.try_emplace(image.get(), access);
+	auto [it, inserted] = m_referenced_containers->images.try_emplace(image.get(), access);
 	if (!inserted && access == ResourceAccess::eReadWrite)
 	{
 		it->second = ResourceAccess::eReadWrite;
@@ -1245,9 +1254,9 @@ void cgpu::CommandRecorder::addReferencedObject(const BufferPtr& buffer, Resourc
 	ZoneScoped;
 #endif
 
-	m_referenced_objects.emplace(buffer);
+	m_referenced_containers->objects.emplace(buffer);
 
-	auto [it, inserted] = m_referenced_buffers.try_emplace(buffer.get(), access);
+	auto [it, inserted] = m_referenced_containers->buffers.try_emplace(buffer.get(), access);
 	if (!inserted && access == ResourceAccess::eReadWrite)
 	{
 		it->second = ResourceAccess::eReadWrite;
