@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <exception>
+#include <ranges>
 #include <tracy/Tracy.hpp>
 
 namespace
@@ -161,7 +162,7 @@ void cgpu::CommandRecorder::submit()
 		addReferencedObject(buffer, ResourceAccess::eReadonly);
 	}
 
-	std::flat_map<vk::Semaphore, uint64_t> signals_to_wait;
+	detail::BumpFlatMap<vk::Semaphore, uint64_t> signals_to_wait{detail::BumpAllocator{*m_bump_memory}};
 	auto add_signal_to_wait = [&](vk::Semaphore semaphore, uint64_t value) {
 		auto [it, inserted] = signals_to_wait.try_emplace(semaphore, value);
 		if (!inserted)
@@ -170,7 +171,7 @@ void cgpu::CommandRecorder::submit()
 		}
 	};
 
-	std::vector<Image*> images_to_init;
+	detail::BumpList<Image*> images_to_init{*m_bump_memory};
 	for (auto& [resource, access] : m_referenced_resources)
 	{
 		resource->lock();
@@ -205,7 +206,8 @@ void cgpu::CommandRecorder::submit()
 		}
 	}
 
-	std::vector<vk::CommandBuffer> cmdbufs;
+	detail::BumpVector<vk::CommandBuffer> cmdbufs{*m_bump_memory};
+	cmdbufs.reserve(2);
 
 	//TODO: Freshly created images are in the Undefined layout,
 	// and I couldn't find any easier way to transition them to General
@@ -228,7 +230,8 @@ void cgpu::CommandRecorder::submit()
 			);
 		}
 
-		std::vector<vk::ImageMemoryBarrier2> barriers;
+		detail::BumpVector<vk::ImageMemoryBarrier2> barriers{*m_bump_memory};
+		barriers.reserve(images_to_init.size());
 		for (auto* image : images_to_init)
 		{
 			auto& barrier = barriers.emplace_back();
@@ -281,7 +284,7 @@ void cgpu::CommandRecorder::submit()
 		cmdbufs,
 		signals_to_wait.keys(),
 		signals_to_wait.values(),
-		std::move(m_referenced_objects)
+		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_objects)
 	);
 
 	for (auto& [resource, access] : m_referenced_resources)
@@ -320,7 +323,8 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 	}
 
 	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{*params.ranges} : CLEAR_IMAGE_DEFAULT_RANGE;
-	std::vector<vk::ImageSubresourceRange> vk_ranges;
+	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{*m_bump_memory};
+	vk_ranges.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
 		auto [vk_range, byte_size] = resolveRange(*params.image, range, aspects);
@@ -388,7 +392,8 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	assert(!m_submitted);
 
 	std::span<const CopyImageToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
-	std::vector<vk::ImageCopy2> vk_regions;
+	detail::BumpVector<vk::ImageCopy2> vk_regions{*m_bump_memory};
+	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
 		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
@@ -460,7 +465,8 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	assert(!m_submitted);
 
 	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
-	std::vector<vk::BufferImageCopy2> vk_regions;
+	detail::BumpVector<vk::BufferImageCopy2> vk_regions{*m_bump_memory};
+	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
 		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
@@ -520,7 +526,8 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	assert(!m_submitted);
 
 	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
-	std::vector<vk::BufferImageCopy2> vk_regions;
+	detail::BumpVector<vk::BufferImageCopy2> vk_regions{*m_bump_memory};
+	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
 		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
@@ -580,7 +587,8 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	assert(!m_submitted);
 
 	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
-	std::vector<vk::BufferCopy2> vk_regions;
+	detail::BumpVector<vk::BufferCopy2> vk_regions{*m_bump_memory};
+	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
 		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
@@ -632,7 +640,8 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 	assert(!m_submitted);
 
 	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{*params.ranges} : BLIT_DEFAULT_RANGE;
-	std::vector<vk::ImageBlit2> vk_regions;
+	detail::BumpVector<vk::ImageBlit2> vk_regions{*m_bump_memory};
+	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
 		auto [src_vk_range, src_top_left, src_bottom_right, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsRectRange{}));
@@ -761,7 +770,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	};
 
 	auto color_attachments = params.color_attachments ? *params.color_attachments : std::span<const GraphicsPassParams::ColorAttachment>{};
-	std::vector<vk::RenderingAttachmentInfo> vk_color_attachments;
+	detail::BumpVector<vk::RenderingAttachmentInfo> vk_color_attachments{*m_bump_memory};
 	vk_color_attachments.reserve(color_attachments.size());
 	for (const auto& attachment : color_attachments)
 	{
@@ -1103,13 +1112,17 @@ void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
 
 cgpu::CommandRecorder::CommandRecorder(
 	std::shared_ptr<CommandContextSlot>&& slot,
+	detail::BumpMemoryResource& bump_memory,
 	const QueuePtr& queue,
 	vk::CommandBuffer cmdbuf
 ):
 	m_slot{std::move(slot)},
 	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
+	m_bump_memory{&bump_memory},
 	m_queue{queue},
-	m_cmdbuf{cmdbuf}
+	m_cmdbuf{cmdbuf},
+	m_referenced_objects{*m_bump_memory},
+	m_referenced_resources{*m_bump_memory}
 {
 	ZoneScoped;
 

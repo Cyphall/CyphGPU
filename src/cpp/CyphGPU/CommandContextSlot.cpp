@@ -62,7 +62,7 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 		m_high_cmdrecs_warning_emitted = true;
 	}
 
-	return CommandRecorder{shared_from_this(), queue, cmdbuf};
+	return CommandRecorder{shared_from_this(), m_bump_memory, queue, cmdbuf};
 }
 
 const cgpu::DeviceSessionPtr& cgpu::CommandContextSlot::getDeviceSession() const
@@ -174,6 +174,8 @@ void cgpu::CommandContextSlot::reset()
 	std::swap(m_free_parambufs, m_used_parambufs);
 
 	m_finished_signals.clear();
+
+	m_bump_memory.release();
 }
 
 std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/CommandRecorder.hpp>
+#include <CyphGPU/detail/BumpMemoryResource.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <flat_map>
@@ -53,6 +54,8 @@ private:
 	};
 
 	DeviceSessionPtr m_device_session;
+
+	detail::BumpMemoryResource m_bump_memory{};
 
 	// Indexed with queue family
 	std::unordered_map<uint32_t, CommandPoolData> m_pools{};

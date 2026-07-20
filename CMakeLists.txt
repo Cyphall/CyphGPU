@@ -130,6 +130,8 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/ShaderBundle.hpp"
 	"src/cpp/CyphGPU/ShaderTypes.hpp"
 	"src/cpp/CyphGPU/PassContext.hpp"
+	"src/cpp/CyphGPU/detail/BumpAllocator.hpp"
+	"src/cpp/CyphGPU/detail/BumpMemoryResource.hpp"
 )
 
 target_precompile_headers(CyphGPU PRIVATE <vulkan/vulkan.hpp>)

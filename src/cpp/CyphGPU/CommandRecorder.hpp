@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CyphGPU/detail/BumpAllocator.hpp>
+#include <CyphGPU/detail/BumpMemoryResource.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Resource.hpp>
@@ -345,12 +347,13 @@ private:
 
 	std::shared_ptr<CommandContextSlot> m_slot;
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
+	detail::BumpMemoryResource* m_bump_memory;
 
 	QueuePtr m_queue;
 	vk::CommandBuffer m_cmdbuf;
 
-	std::vector<std::shared_ptr<void>> m_referenced_objects;
-	std::map<std::shared_ptr<Resource>, ResourceAccess> m_referenced_resources;
+	detail::BumpVector<std::shared_ptr<void>> m_referenced_objects;
+	detail::BumpMap<std::shared_ptr<Resource>, ResourceAccess> m_referenced_resources;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};
@@ -358,6 +361,7 @@ private:
 
 	explicit CommandRecorder(
 		std::shared_ptr<CommandContextSlot>&& slot,
+		detail::BumpMemoryResource& bump_memory,
 		const QueuePtr& queue,
 		vk::CommandBuffer cmdbuf
 	);
