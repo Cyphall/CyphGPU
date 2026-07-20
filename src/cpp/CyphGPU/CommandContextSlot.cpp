@@ -185,6 +185,8 @@ std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()
 
 vk::CommandBuffer cgpu::CommandContextSlot::getCommandBufferFromPool(CommandPoolData& pool_data)
 {
+	ZoneScoped;
+
 	if (pool_data.available_cmdbufs.empty())
 	{
 		vk::CommandBufferAllocateInfo info;
@@ -208,5 +210,7 @@ vk::CommandBuffer cgpu::CommandContextSlot::getCommandBufferFromPool(CommandPool
 
 vk::CommandBuffer cgpu::CommandContextSlot::createImageInitCommandBuffer(const QueuePtr& queue)
 {
+	ZoneScoped;
+
 	return getCommandBufferFromPool(m_pools.at(queue->getFamily()));
 }
