@@ -330,7 +330,7 @@ public:
 	{
 		Req<std::string> name;
 		/// Default: No color.
-		Opt<glm::vec4> color;
+		Opt<glm::vec4> color{};
 	};
 
 	void beginDebugRegion(const BeginDebugRegionParams& params);
