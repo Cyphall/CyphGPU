@@ -17,6 +17,14 @@
 // #define PROFILE_VULKAN_CALLS
 // #define PROFILE_HOT_CALLS
 
+#define COMMAND_PROLOGUE \
+	ZoneScoped;          \
+	assert(!m_submitted);
+
+#define REGIONED_COMMAND_PROLOGUE \
+	COMMAND_PROLOGUE              \
+	ScopedDebugRegion _debug_region{*this, {__func__}};
+
 namespace
 {
 template<class... TOverloads>
@@ -336,9 +344,7 @@ void cgpu::CommandRecorder::submit()
 
 void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	vk::ImageAspectFlags aspects;
 	if (params.color_value)
@@ -423,9 +429,7 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 
 void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyImageToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageCopy2> vk_regions{*m_bump_memory};
@@ -498,9 +502,7 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 
 void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
 	detail::BumpVector<vk::BufferImageCopy2> vk_regions{*m_bump_memory};
@@ -561,9 +563,7 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 
 void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
 	detail::BumpVector<vk::BufferImageCopy2> vk_regions{*m_bump_memory};
@@ -624,9 +624,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 
 void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
 	detail::BumpVector<vk::BufferCopy2> vk_regions{*m_bump_memory};
@@ -679,9 +677,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 
 void cgpu::CommandRecorder::blit(const BlitParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{*params.ranges} : BLIT_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageBlit2> vk_regions{*m_bump_memory};
@@ -748,9 +744,7 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 
 void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	vk::MemoryBarrier2 barrier;
 	barrier.srcStageMask = *params.src_stages;
@@ -780,9 +774,7 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 
 void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	uint32_t layer_count = 1;
 	uint32_t view_mask = 0;
@@ -1117,9 +1109,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 
 void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	REGIONED_COMMAND_PROLOGUE
 
 	{
 		ComputePassContext ctx{*this};
@@ -1129,9 +1119,7 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 
 void cgpu::CommandRecorder::beginDebugRegion(const BeginDebugRegionParams& params)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	COMMAND_PROLOGUE
 
 	glm::vec4 color = params.color ? *params.color : glm::vec4{0.0f};
 
@@ -1155,9 +1143,7 @@ void cgpu::CommandRecorder::beginDebugRegion(const BeginDebugRegionParams& param
 
 void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
 {
-	ZoneScoped;
-
-	assert(!m_submitted);
+	COMMAND_PROLOGUE
 
 	{
 #if defined(PROFILE_VULKAN_CALLS)
