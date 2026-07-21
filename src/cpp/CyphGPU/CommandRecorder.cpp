@@ -2,7 +2,6 @@
 
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContextSlot.hpp>
-#include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
