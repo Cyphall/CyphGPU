@@ -25,6 +25,8 @@ public:
 	{
 		T value;
 
+		Req() = delete;
+
 		template<class... TArgs>
 		requires(std::constructible_from<T, TArgs...>)
 		Req(TArgs&&... args):
