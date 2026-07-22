@@ -94,6 +94,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRInternallySynchronizedQueuesExtensionName,
 			vk::KHRPipelineLibraryExtensionName,
 			vk::EXTGraphicsPipelineLibraryExtensionName,
+			vk::EXTCalibratedTimestampsExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,

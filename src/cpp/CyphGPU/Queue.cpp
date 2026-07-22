@@ -1,22 +1,32 @@
 #include "Queue.hpp"
 
 #include <CyphGPU/detail/BumpAllocator.hpp>
+#include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Swapchain.hpp>
 
 #include <tracy/Tracy.hpp>
 
-cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family):
+cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family, std::string_view name):
 	m_device_session{&device_session},
 	m_handle{queue},
 	m_family{family}
 {
+	m_device_session->getHandle().setDebugUtilsObjectNameEXT(queue, std::string{name}, m_device_session->getDispatcher());
+
 	createSemaphore();
+#if defined(TRACY_ENABLE)
+	createTracyContext(name);
+#endif
 }
 
 cgpu::Queue::~Queue()
 {
 	waitIdle();
+
+#if defined(TRACY_ENABLE)
+	TracyVkDestroy(m_tracy_context);
+#endif
 
 	while (!m_free_fences.empty())
 	{
@@ -68,6 +78,21 @@ void cgpu::Queue::createSemaphore()
 
 	m_semaphore = m_device_session->getHandle().createSemaphore(chain.get(), nullptr, m_device_session->getDispatcher());
 }
+
+#if defined(TRACY_ENABLE)
+void cgpu::Queue::createTracyContext(std::string_view name)
+{
+	m_tracy_context = TracyVkContextHostCalibrated(
+		m_device_session->getDevice()->getContextSession()->getHandle(),
+		m_device_session->getDevice()->getHandle(),
+		m_device_session->getHandle(),
+		m_device_session->getDevice()->getContextSession()->getDispatcher().vkGetInstanceProcAddr,
+		m_device_session->getDispatcher().vkGetDeviceProcAddr
+	);
+
+	TracyVkContextName(m_tracy_context, name.data(), name.size());
+}
+#endif
 
 cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 	const SwapchainPtr& swapchain,
@@ -370,3 +395,15 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 		.value = signal_infos[0].value,
 	};
 }
+
+#if defined(TRACY_ENABLE)
+TracyVkCtx cgpu::Queue::getTracyContext()
+{
+	return m_tracy_context;
+}
+
+void cgpu::Queue::tracyCollect()
+{
+	TracyVkCollectHost(m_tracy_context);
+}
+#endif

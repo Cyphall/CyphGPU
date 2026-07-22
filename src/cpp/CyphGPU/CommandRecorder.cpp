@@ -21,9 +21,10 @@
 	ZoneScoped;          \
 	assert(!m_submitted);
 
-#define REGIONED_COMMAND_PROLOGUE \
-	COMMAND_PROLOGUE              \
-	ScopedDebugRegion _debug_region{*this, {__func__}};
+#define REGIONED_COMMAND_PROLOGUE                       \
+	COMMAND_PROLOGUE                                    \
+	ScopedDebugRegion _debug_region{*this, {__func__}}; \
+	TracyVkZone(m_queue->getTracyContext(), m_cmdbuf, __func__);
 
 namespace
 {

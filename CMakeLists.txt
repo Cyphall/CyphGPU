@@ -256,6 +256,8 @@ else ()
 	target_include_directories(CyphGPU PUBLIC $<TARGET_PROPERTY:Tracy::TracyClient,INTERFACE_INCLUDE_DIRECTORIES>)
 endif ()
 
+target_compile_definitions(CyphGPU PUBLIC TRACY_VK_USE_SYMBOL_TABLE)
+
 # ---- Dependency: vector-of-bool/cmrc ----
 
 target_link_libraries(CyphGPU PUBLIC $<BUILD_INTERFACE:cmrc::base>)

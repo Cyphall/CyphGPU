@@ -9,6 +9,8 @@
 #include <stack>
 #include <vulkan/vulkan.hpp>
 
+#include <tracy/TracyVulkan.hpp>
+
 namespace cgpu
 {
 class CommandRecorder;
@@ -25,7 +27,7 @@ public:
 		uint64_t value;
 	};
 
-	explicit Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family);
+	explicit Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family, std::string_view name);
 
 	Queue(const Queue&) = delete;
 	Queue(Queue&&) = delete;
@@ -73,7 +75,14 @@ private:
 
 	std::recursive_mutex m_mutex{};
 
+#if defined(TRACY_ENABLE)
+	TracyVkCtx m_tracy_context{};
+#endif
+
 	void createSemaphore();
+#if defined(TRACY_ENABLE)
+	void createTracyContext(std::string_view name);
+#endif
 
 	[[nodiscard]]
 	Signal binaryToSignal(
@@ -108,5 +117,10 @@ private:
 		std::span<const uint64_t> wait_values,
 		std::vector<std::shared_ptr<void>>&& referenced_objects
 	);
+
+#if defined(TRACY_ENABLE)
+	TracyVkCtx getTracyContext();
+	void tracyCollect();
+#endif
 };
 }

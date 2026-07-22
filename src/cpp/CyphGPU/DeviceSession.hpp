@@ -191,11 +191,18 @@ private:
 	std::queue<std::pair<GraphicsPipelineKey, GraphicsPipelineValue*>> m_graphics_pipeline_opt_queue{};
 	std::jthread m_graphics_pipeline_opt_thread{};
 
+#if defined(TRACY_ENABLE)
+	std::jthread m_tracy_collect_thread{};
+#endif
+
 	void createDevice();
 	void createAllocator();
 	void createMemoryPools();
 	void createDescriptorHeaps();
 	void createGraphicsPipelineOptThread();
+#if defined(TRACY_ENABLE)
+	void createTracyCollectThread();
+#endif
 
 	[[nodiscard]]
 	const VmaAllocator& getAllocator() const;

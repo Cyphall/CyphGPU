@@ -98,10 +98,18 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 	createMemoryPools();
 	createDescriptorHeaps();
 	createGraphicsPipelineOptThread();
+#if defined(TRACY_ENABLE)
+	createTracyCollectThread();
+#endif
 }
 
 cgpu::DeviceSession::~DeviceSession()
 {
+#if defined(TRACY_ENABLE)
+	m_tracy_collect_thread.request_stop();
+	m_tracy_collect_thread.join();
+#endif
+
 	{
 		std::unique_lock opt_lock{m_graphics_pipeline_opt_mutex};
 		m_graphics_pipeline_opt_queue = {};
@@ -351,7 +359,7 @@ void cgpu::DeviceSession::createDevice()
 
 	// Create queues
 
-	auto try_create_queue = [&](const std::optional<uint32_t>& family, const std::optional<uint32_t>& index) -> std::shared_ptr<Queue> {
+	auto try_create_queue = [&](const std::optional<uint32_t>& family, const std::optional<uint32_t>& index, std::string_view name) -> std::shared_ptr<Queue> {
 		if (!family || !index)
 		{
 			return {};
@@ -369,13 +377,13 @@ void cgpu::DeviceSession::createDevice()
 
 		vk::Queue queue = m_handle.getQueue2(info, m_dispatcher);
 
-		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue, *family);
+		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue, *family, name);
 	};
 
-	m_main_queue = try_create_queue(main_queue_family, main_queue_index);
-	m_async_graphics_queue = try_create_queue(async_graphics_queue_family, async_graphics_queue_index);
-	m_async_compute_queue = try_create_queue(async_compute_queue_family, async_compute_queue_index);
-	m_async_transfer_queue = try_create_queue(async_transfer_queue_family, async_transfer_queue_index);
+	m_main_queue = try_create_queue(main_queue_family, main_queue_index, "Main");
+	m_async_graphics_queue = try_create_queue(async_graphics_queue_family, async_graphics_queue_index, "Async graphics");
+	m_async_compute_queue = try_create_queue(async_compute_queue_family, async_compute_queue_index, "Async compute");
+	m_async_transfer_queue = try_create_queue(async_transfer_queue_family, async_transfer_queue_index, "Async transfer");
 
 	// Some queue types may not have a dedicated queue.
 	// In this case, use the main queue.
@@ -623,6 +631,39 @@ void cgpu::DeviceSession::createGraphicsPipelineOptThread()
 		}
 	};
 }
+
+#if defined(TRACY_ENABLE)
+void cgpu::DeviceSession::createTracyCollectThread()
+{
+	m_tracy_collect_thread = std::jthread{
+		[&](std::stop_token token) {
+			tracy::SetThreadName("Tracy Vulkan collect");
+
+			std::mutex mutex{};
+			std::condition_variable_any cv{};
+			std::unique_lock lock{mutex};
+			while (!token.stop_requested())
+			{
+				cv.wait_for(lock, token, std::chrono::seconds{1}, [&token] { return token.stop_requested(); });
+
+				m_main_queue->tracyCollect();
+				if (m_async_graphics_queue != m_main_queue)
+				{
+					m_async_graphics_queue->tracyCollect();
+				}
+				if (m_async_compute_queue != m_main_queue)
+				{
+					m_async_compute_queue->tracyCollect();
+				}
+				if (m_async_transfer_queue != m_main_queue)
+				{
+					m_async_transfer_queue->tracyCollect();
+				}
+			}
+		}
+	};
+}
+#endif
 
 const VmaAllocator& cgpu::DeviceSession::getAllocator() const
 {
