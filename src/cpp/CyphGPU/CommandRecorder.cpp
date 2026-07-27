@@ -164,11 +164,6 @@ void cgpu::CommandRecorder::submit()
 		);
 	}
 
-	for (const auto& buffer : m_slot->getParameterBuffers())
-	{
-		addReferencedObject(buffer, ResourceAccess::eReadonly);
-	}
-
 	detail::BumpFlatMap<vk::Semaphore, uint64_t> signals_to_wait{detail::BumpAllocator{*m_bump_memory}};
 	auto add_signal_to_wait = [&](vk::Semaphore semaphore, uint64_t value) {
 		auto [it, inserted] = signals_to_wait.try_emplace(semaphore, value);

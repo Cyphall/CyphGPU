@@ -172,11 +172,6 @@ void cgpu::CommandContextSlot::reset()
 	m_bump_memory.release();
 }
 
-std::span<const cgpu::BufferPtr> cgpu::CommandContextSlot::getParameterBuffers()
-{
-	return m_used_parambufs;
-}
-
 vk::CommandBuffer cgpu::CommandContextSlot::getCommandBufferFromPool(CommandPoolData& pool_data)
 {
 	ZoneScoped;
