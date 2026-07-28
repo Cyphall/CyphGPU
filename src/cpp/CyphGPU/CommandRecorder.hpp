@@ -395,6 +395,12 @@ private:
 		const FragmentOutputStatePtr& fragment_output_state
 	);
 
+	void bindIndexBuffer(
+		const BufferPtr& buffer,
+		vk::IndexType index_type,
+		Range<vk::DeviceSize> range
+	);
+
 	void bindPipelineStates(
 		const ComputeShaderStatePtr& compute_shader_state
 	);

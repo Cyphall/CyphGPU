@@ -21,6 +21,12 @@ public:
 		const FragmentOutputStatePtr& fragment_output_state
 	);
 
+	void bindIndexBuffer(
+		const BufferPtr& buffer,
+		vk::IndexType index_type,
+		std::optional<Range<vk::DeviceSize>> range = {}
+	);
+
 	void draw(
 		uint32_t vertex_count,
 		uint32_t instance_count,

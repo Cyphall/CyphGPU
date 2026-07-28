@@ -30,6 +30,19 @@ void cgpu::GraphicsPassContext::bindPipelineStates(
 	m_current_fragment_output_state = fragment_output_state;
 }
 
+void cgpu::GraphicsPassContext::bindIndexBuffer(
+	const BufferPtr& buffer,
+	vk::IndexType index_type,
+	std::optional<Range<vk::DeviceSize>> range
+)
+{
+	m_rec->bindIndexBuffer(
+		buffer,
+		index_type,
+		range ? *range : Range<vk::DeviceSize>{0, buffer->getDesc().size}
+	);
+}
+
 void cgpu::GraphicsPassContext::draw(
 	uint32_t vertex_count,
 	uint32_t instance_count,

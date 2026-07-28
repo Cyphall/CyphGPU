@@ -1279,6 +1279,32 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	addReferencedObject(fragment_output_state);
 }
 
+void cgpu::CommandRecorder::bindIndexBuffer(
+	const BufferPtr& buffer,
+	vk::IndexType index_type,
+	Range<vk::DeviceSize> range
+)
+{
+#if defined(PROFILE_HOT_CALLS)
+	ZoneScoped;
+#endif
+
+	{
+#if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
+		ZoneScopedN("vkCmdBindIndexBuffer2");
+#endif
+		m_cmdbuf.bindIndexBuffer2(
+			buffer->getHandle(),
+			range.offset,
+			range.size,
+			index_type,
+			*m_dispatcher
+		);
+	}
+
+	addReferencedObject(buffer, ResourceAccess::eReadonly);
+}
+
 void cgpu::CommandRecorder::bindPipelineStates(
 	const ComputeShaderStatePtr& compute_shader_state
 )
