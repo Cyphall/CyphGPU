@@ -1,5 +1,10 @@
 {
 	"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+	"name": "cyphgpu",
+	"version": "1.0.0",
+	"description": "A rendering backend over modern Vulkan for my other projects.",
+	"homepage": "https://github.com/Cyphall/CyphGPU",
+	"license": "MIT",
 	"dependencies": [
 		"glm",
 		"vulkan-headers",
@@ -16,7 +21,7 @@
 	],
 	"features": {
 		"sample": {
-			"description": "Enable CyphGPU sample",
+			"description": "Enable sample",
 			"dependencies": [
 				"boost-scope",
 				"stb",
@@ -30,6 +35,9 @@
 					]
 				}
 			]
+		},
+		"tracy": {
+			"description": "Enable Tracy"
 		}
 	}
 }

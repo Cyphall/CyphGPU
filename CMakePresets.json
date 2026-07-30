@@ -118,6 +118,7 @@
 			"inherits": "Windows-MSVC-base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"VCPKG_MANIFEST_FEATURES": "sample;tracy",
 				"CYPHGPU_ENABLE_TRACY": "ON"
 			}
 		},
@@ -147,6 +148,7 @@
 			"inherits": "Windows-ClangCL-base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"VCPKG_MANIFEST_FEATURES": "sample;tracy",
 				"CYPHGPU_ENABLE_TRACY": "ON"
 			}
 		},
@@ -176,6 +178,7 @@
 			"inherits": "Linux-Clang-base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"VCPKG_MANIFEST_FEATURES": "sample;tracy",
 				"CYPHGPU_ENABLE_TRACY": "ON"
 			}
 		},
@@ -205,6 +208,7 @@
 			"inherits": "Linux-GCC-base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"VCPKG_MANIFEST_FEATURES": "sample;tracy",
 				"CYPHGPU_ENABLE_TRACY": "ON"
 			}
 		},
@@ -234,6 +238,7 @@
 			"inherits": "macOS-Clang-base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"VCPKG_MANIFEST_FEATURES": "sample;tracy",
 				"CYPHGPU_ENABLE_TRACY": "ON"
 			}
 		}

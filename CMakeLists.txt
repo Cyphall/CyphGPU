@@ -16,9 +16,9 @@ endif ()
 
 # ---- Options ----
 
-option(CYPHGPU_INSTALL "Install CyphGPU." OFF)
-option(CYPHGPU_ENABLE_SAMPLE "Enable CyphGPU sample." OFF)
-option(CYPHGPU_ENABLE_TRACY "Enable tracy." OFF)
+option(CYPHGPU_INSTALL "Install CyphGPU" OFF)
+option(CYPHGPU_ENABLE_SAMPLE "Enable sample" OFF)
+option(CYPHGPU_ENABLE_TRACY "Enable Tracy" OFF)
 
 string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Windows" CYPHGPU_IS_WINDOWS)
 string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Darwin" CYPHGPU_IS_MACOS)
