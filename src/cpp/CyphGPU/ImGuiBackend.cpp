@@ -89,24 +89,38 @@ void ImGui_ImplCyphGPU_CreateTexture(ImTextureData& texture)
 	texture.SetTexID(ImGui_ImplCyphGPU_ToTextureID(btd.image, btd.overrides));
 }
 
-//TODO: add support for upload subregion
 // NOLINTNEXTLINE(*-identifier-naming)
-void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmdrec, ImTextureData& texture)
+void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmdrec, ImTextureData& texture, cgpu::Range<glm::uvec2> upload_region)
 {
 	ImGui_ImplCyphGPU_BackendData& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
 	ImGui_ImplCyphGPU_BackendTextureData& btd = *static_cast<ImGui_ImplCyphGPU_BackendTextureData*>(texture.BackendUserData);
 
-	cgpu::BufferPtr buffer = cgpu::Buffer::create(
+	vk::DeviceSize row_size = static_cast<size_t>(upload_region.size.x) * texture.BytesPerPixel;
+
+	cgpu::BufferPtr staging_buffer = cgpu::Buffer::create(
 		bd.device_session,
 		{
 			.name = "ImGui texture staging buffer",
-			.size = static_cast<vk::DeviceSize>(texture.GetSizeInBytes()),
+			.size = upload_region.size.y * row_size,
 			.usages = vk::BufferUsageFlagBits2::eTransferSrc,
 			.memory_type = cgpu::MemoryType::eCPUUncached,
 		}
 	);
 
-	std::memcpy(buffer->getHostPtr(), texture.GetPixels(), texture.GetSizeInBytes());
+	std::byte* ptr = staging_buffer->getHostPtr();
+	for (uint32_t i = 0; i < upload_region.size.y; i++)
+	{
+		std::memcpy(
+			ptr,
+			texture.GetPixelsAt(
+				static_cast<int>(upload_region.offset.x),
+				static_cast<int>(upload_region.offset.y + i)
+			),
+			row_size
+		);
+
+		ptr += row_size;
+	}
 
 	cmdrec.barrier({
 		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
@@ -116,8 +130,15 @@ void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmdrec, ImTextureDat
 	});
 
 	cmdrec.copyBufferToImage({
-		.src_buffer = buffer,
+		.src_buffer = staging_buffer,
 		.dst_image = btd.image,
+		.ranges = {{
+			{
+				.dst = {{
+					.pixels = {{{upload_region.offset, 0}, {upload_region.size, 1}}},
+				}},
+			},
+		}},
 	});
 
 	cmdrec.barrier({
@@ -144,11 +165,11 @@ void ImGui_ImplCyphGPU_UpdateTexture(cgpu::CommandRecorder& cmdrec, ImTextureDat
 	{
 	case ImTextureStatus_WantCreate:
 		ImGui_ImplCyphGPU_CreateTexture(texture);
-		ImGui_ImplCyphGPU_UploadTexture(cmdrec, texture);
+		ImGui_ImplCyphGPU_UploadTexture(cmdrec, texture, {{0, 0}, {texture.Width, texture.Height}});
 		texture.SetStatus(ImTextureStatus_OK);
 		break;
 	case ImTextureStatus_WantUpdates:
-		ImGui_ImplCyphGPU_UploadTexture(cmdrec, texture);
+		ImGui_ImplCyphGPU_UploadTexture(cmdrec, texture, {{texture.UpdateRect.x, texture.UpdateRect.y}, {texture.UpdateRect.w, texture.UpdateRect.h}});
 		texture.SetStatus(ImTextureStatus_OK);
 		break;
 	case ImTextureStatus_WantDestroy:
