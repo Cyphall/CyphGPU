@@ -267,8 +267,10 @@ public:
 			struct Resolve
 			{
 				Req<ImagePtr> image;
-				/// Default: SampleZero.
-				Opt<vk::ResolveModeFlagBits> mode{};
+				/// Default: SampleZero. Only used when depth is enabled.
+				Opt<vk::ResolveModeFlagBits> depth_mode{};
+				/// Default: SampleZero. Only used when stencil is enabled.
+				Opt<vk::ResolveModeFlagBits> stencil_mode{};
 				/// Default: Level 0.
 				Opt<uint32_t> level{};
 				/// Default: Layer 0.

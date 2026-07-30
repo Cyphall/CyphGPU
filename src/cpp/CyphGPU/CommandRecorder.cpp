@@ -914,14 +914,25 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 			);
 			// clang-format on
 
-			vk::ResolveModeFlagBits resolve_mode = vk::ResolveModeFlagBits::eNone;
+			vk::ResolveModeFlagBits depth_resolve_mode = vk::ResolveModeFlagBits::eNone;
+			vk::ResolveModeFlagBits stencil_resolve_mode = vk::ResolveModeFlagBits::eNone;
 			vk::ImageView resolve_view = nullptr;
 			if (params.depth_stencil_attachment->resolve)
 			{
-				resolve_mode =
-					params.depth_stencil_attachment->resolve->mode ?
-						*params.depth_stencil_attachment->resolve->mode :
-						vk::ResolveModeFlagBits::eSampleZero;
+				if (enable_depth)
+				{
+					depth_resolve_mode =
+						params.depth_stencil_attachment->resolve->depth_mode ?
+							*params.depth_stencil_attachment->resolve->depth_mode :
+							vk::ResolveModeFlagBits::eSampleZero;
+				}
+				if (enable_stencil)
+				{
+					stencil_resolve_mode =
+						params.depth_stencil_attachment->resolve->stencil_mode ?
+							*params.depth_stencil_attachment->resolve->stencil_mode :
+							vk::ResolveModeFlagBits::eSampleZero;
+				}
 
 				uint32_t resolve_level = params.depth_stencil_attachment->resolve->level ? *params.depth_stencil_attachment->resolve->level : 0;
 
@@ -951,7 +962,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 				auto& vk_attachment = vk_depth_attachment.emplace();
 				vk_attachment.imageView = view;
 				vk_attachment.imageLayout = vk::ImageLayout::eGeneral;
-				vk_attachment.resolveMode = resolve_mode;
+				vk_attachment.resolveMode = depth_resolve_mode;
 				vk_attachment.resolveImageView = resolve_view;
 				vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
 				vk_attachment.loadOp = *params.depth_stencil_attachment->load_op;
@@ -969,7 +980,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 				auto& vk_attachment = vk_stencil_attachment.emplace();
 				vk_attachment.imageView = view;
 				vk_attachment.imageLayout = vk::ImageLayout::eGeneral;
-				vk_attachment.resolveMode = resolve_mode;
+				vk_attachment.resolveMode = stencil_resolve_mode;
 				vk_attachment.resolveImageView = resolve_view;
 				vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
 				vk_attachment.loadOp = *params.depth_stencil_attachment->load_op;
