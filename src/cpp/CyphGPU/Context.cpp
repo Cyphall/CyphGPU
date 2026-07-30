@@ -6,6 +6,10 @@
 #include <unordered_set>
 #include <utility>
 
+#if defined(CYPHGPU_ENABLE_IMGUI_BACKEND)
+CGPU_DECLARE_SHADER_BUNDLE(ImGui_shader)
+#endif
+
 cgpu::ContextPtr cgpu::Context::create(Desc&& desc)
 {
 	return std::make_shared<Context>(PrivateKey{}, std::move(desc));
@@ -14,6 +18,10 @@ cgpu::ContextPtr cgpu::Context::create(Desc&& desc)
 cgpu::Context::Context(PrivateKey, Desc&& desc):
 	m_desc{std::move(desc)}
 {
+#if defined(CYPHGPU_ENABLE_IMGUI_BACKEND)
+	m_desc.shader_bundles.emplace_back(&ImGui_shader);
+#endif
+
 	if (!m_dynamic_loader.success())
 	{
 		throw std::runtime_error("Failed to load Vulkan loader.");

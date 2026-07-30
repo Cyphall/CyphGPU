@@ -38,6 +38,12 @@
 		},
 		"tracy": {
 			"description": "Enable Tracy"
+		},
+		"imgui-backend": {
+			"description": "Enable ImGui backend",
+			"dependencies": [
+				"imgui"
+			]
 		}
 	}
 }

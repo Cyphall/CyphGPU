@@ -19,6 +19,7 @@ endif ()
 option(CYPHGPU_INSTALL "Install CyphGPU" OFF)
 option(CYPHGPU_ENABLE_SAMPLE "Enable sample" OFF)
 option(CYPHGPU_ENABLE_TRACY "Enable Tracy" OFF)
+option(CYPHGPU_ENABLE_IMGUI_BACKEND "Enable ImGui backend" OFF)
 
 string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Windows" CYPHGPU_IS_WINDOWS)
 string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Darwin" CYPHGPU_IS_MACOS)
@@ -141,6 +142,26 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/detail/BumpAllocator.hpp"
 	"src/cpp/CyphGPU/detail/BumpMemoryResource.hpp"
 )
+
+if (CYPHGPU_ENABLE_IMGUI_BACKEND)
+	find_package(imgui CONFIG REQUIRED)
+	target_link_libraries(CyphGPU PUBLIC imgui)
+
+	target_sources(CyphGPU PRIVATE
+		"src/cpp/CyphGPU/ImGuiBackend.cpp"
+	)
+
+	target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
+		"src/cpp/CyphGPU/ImGuiBackend.hpp"
+	)
+
+	include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils/shader.cmake")
+	cgpu_target_shader_pipelines(CyphGPU ImGui_shader "src/slang"
+		"src/slang/CyphGPU/ImGui.slang"
+	)
+
+	target_compile_definitions(CyphGPU PRIVATE CYPHGPU_ENABLE_IMGUI_BACKEND)
+endif ()
 
 target_precompile_headers(CyphGPU PRIVATE <vulkan/vulkan.hpp>)
 

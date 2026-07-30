@@ -12,6 +12,9 @@ find_dependency(CMakeRC)
 find_path(HALF_INCLUDE_DIRS "half.hpp" REQUIRED)
 find_dependency(unordered_dense)
 find_dependency(boost_container)
+if (@CYPHGPU_ENABLE_IMGUI_BACKEND@)
+	find_dependency(imgui)
+endif ()
 
 include("${CMAKE_CURRENT_LIST_DIR}/CyphGPUTargets.cmake")
 
