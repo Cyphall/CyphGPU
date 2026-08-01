@@ -1,9 +1,9 @@
 vcpkg_from_github(
 	OUT_SOURCE_PATH SOURCE_PATH
 	REPO ocornut/imgui
-	REF "v${VERSION}-docking"
-	SHA512 1a5ede24f8358c93a6a012a8961776eccca32dfefe0ea3b88cbbb562a76e6ef6418ab353ed0ec7d59069e5e51918cf2b38b041243cb6edaee0ffd040ccee21c6
-	HEAD_REF docking
+	REF "v${VERSION}"
+	SHA512 1a8fc7e4d7fe8926289ed9598f39dd5b601baffa3b2a7a0889ed0f9a8f252c85710f4ba65b2a6801bb5b46a17d1fd30b5542e11f67b8989c6640b498ef68bb2d
+	HEAD_REF master
 )
 
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/config.cmake.in" DESTINATION "${SOURCE_PATH}")
