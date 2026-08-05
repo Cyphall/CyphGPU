@@ -2,49 +2,31 @@ static const float3 LIGHT_DIR = {0.424, 0.566, 0.707};
 
 cbuffer Parameters
 {
-	float4x4 u_mvp_matrix;
-	float3* u_positions;
-	float2* u_tex_coords;
-	Texture2D.Handle u_texture;
-	SamplerState.Handle u_sampler;
+    uint2 u_size;
+    RWTexture2D::Handle u_image;
+    uint32_t u_loop_count;
 };
 
-struct VIn
+struct CIn
 {
-	uint vertex_index : SV_VulkanVertexID;
+	uint3 tid : SV_DispatchThreadID;
 };
 
-struct V2F
+[[shader("compute")]]
+[[numthreads(8, 8, 1)]]
+void main(CIn input)
 {
-	float4 raster_position : SV_Position;
-	float3 position;
-	float2 tex_coord;
-};
+	if (any(input.tid.xy >= u_size))
+		return;
 
-struct FOut
-{
-	float4 color : SV_Target0;
-};
+	for (uint32_t i = 0; i < u_loop_count; i++)
+	{
+		float4 value = u_image.Load(input.tid.xy);
 
-[[shader("vertex")]]
-V2F main(VIn input)
-{
-	V2F output;
-	output.raster_position = mul(u_mvp_matrix, float4(u_positions[input.vertex_index], 1.0));
-	output.position = output.raster_position.xyz;
-	output.tex_coord = u_tex_coords[input.vertex_index];
-	return output;
-}
+		value.r += 1.0;
+		value.g += 2.0;
+		value.b += 3.0;
 
-[[shader("fragment")]]
-FOut main(V2F input)
-{
-	float3 d_x = ddx(input.position);
-	float3 d_y = ddy(input.position);
-	float3 normal = normalize(cross(d_x, d_y));
-	float light = max(dot(LIGHT_DIR, normal), 0.0);
-
-	FOut output;
-	output.color = u_texture.Sample(u_sampler, input.tex_coord) * float4(float3(light), 1.0);
-	return output;
+		u_image.Store(input.tid.xy, value);
+	}
 }
