@@ -49,8 +49,8 @@ private:
 	struct CommandPoolData
 	{
 		vk::CommandPool pool;
-		std::vector<vk::CommandBuffer> available_cmdbufs;
-		std::vector<vk::CommandBuffer> in_use_cmdbufs;
+		std::array<std::vector<vk::CommandBuffer>, 2> available_cmdbufs;
+		std::array<std::vector<vk::CommandBuffer>, 2> in_use_cmdbufs;
 	};
 
 	DeviceSessionPtr m_device_session;
@@ -70,8 +70,6 @@ private:
 
 	std::flat_map<vk::Semaphore, uint64_t> m_finished_signals{};
 
-	vk::CommandBuffer getCommandBufferFromPool(CommandPoolData& pool_data);
-
-	vk::CommandBuffer createImageInitCommandBuffer(const QueuePtr& queue);
+	vk::CommandBuffer createCommandBuffer(const QueuePtr& queue, vk::CommandBufferLevel level);
 };
 }

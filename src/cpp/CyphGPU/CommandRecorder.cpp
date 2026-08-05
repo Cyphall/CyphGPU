@@ -238,7 +238,7 @@ void cgpu::CommandRecorder::submit()
 	// without compromising on perf or support (so no host_image_copy).
 	if (!images_to_init.empty())
 	{
-		auto cmdbuf = m_slot->createImageInitCommandBuffer(m_queue);
+		auto cmdbuf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::ePrimary);
 
 		vk::CommandBufferBeginInfo begin_info;
 		begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
