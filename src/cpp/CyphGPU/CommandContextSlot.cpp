@@ -166,6 +166,7 @@ void cgpu::CommandContextSlot::reset()
 
 	m_free_parambufs.clear();
 	std::swap(m_free_parambufs, m_used_parambufs);
+	m_current_parambuf_offset = 0;
 
 	m_finished_signals.clear();
 
