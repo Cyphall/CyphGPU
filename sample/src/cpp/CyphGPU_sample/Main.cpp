@@ -102,6 +102,7 @@ void uploadTexture(
 void recreateSwapchain(
 	const cgpu::DeviceSessionPtr& device_session,
 	const cgpu::SurfacePtr& surface,
+	const vk::SurfaceFormatKHR& format,
 	const glm::uvec2& extent,
 	cgpu::SwapchainPtr& swapchain,
 	cgpu::ImagePtr& depth_image,
@@ -112,7 +113,7 @@ void recreateSwapchain(
 		device_session,
 		surface,
 		{
-			.format = {vk::Format::eB8G8R8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear},
+			.format = format,
 			.preferred_extent = extent,
 			.usages = vk::ImageUsageFlagBits::eColorAttachment,
 			.old_swapchain = old_swapchain,
@@ -191,6 +192,19 @@ int main()
 		}
 	);
 
+	std::optional<vk::SurfaceFormatKHR> surface_format = selected_device.value()->selectBestSurfaceFormat(
+		surface,
+		{{
+			{vk::Format::eB8G8R8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear},
+		}}
+	);
+
+	if (!surface_format)
+	{
+		spdlog::error("Could not find a suitable surface format.");
+		return 1;
+	}
+
 	// Create device session
 	cgpu::DeviceSessionPtr device_session = cgpu::DeviceSession::create(
 		*selected_device,
@@ -243,7 +257,7 @@ int main()
 		{
 			.color_attachments = {
 				{
-					.format = vk::Format::eB8G8R8A8Srgb,
+					.format = surface_format->format,
 				},
 			},
 			.depth_stencil_attachment = {{
@@ -258,7 +272,7 @@ int main()
 
 	cgpu::SwapchainPtr swapchain;
 	cgpu::ImagePtr depth_image;
-	recreateSwapchain(device_session, surface, extent, swapchain, depth_image, std::nullopt);
+	recreateSwapchain(device_session, surface, *surface_format, extent, swapchain, depth_image, std::nullopt);
 
 	cgpu::CommandContext cmd_ctx{device_session};
 
@@ -278,7 +292,7 @@ int main()
 				continue;
 			}
 
-			recreateSwapchain(device_session, surface, extent, swapchain, depth_image, swapchain);
+			recreateSwapchain(device_session, surface, *surface_format, extent, swapchain, depth_image, swapchain);
 		}
 
 		rotation += 4.0f;
