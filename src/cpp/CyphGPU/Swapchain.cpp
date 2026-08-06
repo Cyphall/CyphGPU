@@ -204,7 +204,8 @@ void cgpu::Swapchain::createSwapchain()
 
 	vk::StructureChain<
 		vk::SwapchainCreateInfoKHR,
-		vk::ImageFormatListCreateInfo>
+		vk::ImageFormatListCreateInfo,
+		vk::SwapchainPresentModesCreateInfoKHR>
 		chain;
 
 	auto& swapchain_info = chain.get<vk::SwapchainCreateInfoKHR>();
@@ -233,6 +234,10 @@ void cgpu::Swapchain::createSwapchain()
 	auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();
 	image_format_list_info.viewFormatCount = static_cast<uint32_t>(view_formats.size());
 	image_format_list_info.pViewFormats = view_formats.data();
+
+	auto& present_modes_info = chain.get<vk::SwapchainPresentModesCreateInfoKHR>();
+	present_modes_info.presentModeCount = 1;
+	present_modes_info.pPresentModes = &m_desc.present_mode;
 
 	m_handle = m_device_session->getHandle().createSwapchainKHR(swapchain_info, nullptr, m_device_session->getDispatcher());
 
