@@ -353,6 +353,23 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
+	static CapabilityData pageable_device_local_memory{
+		{
+			vk::EXTMemoryPriorityExtensionName,
+			vk::EXTPageableDeviceLocalMemoryExtensionName,
+		},
+		[](detail::DynamicFeatureChain& chain) {
+			{
+				auto& features = chain.get<vk::PhysicalDeviceMemoryPriorityFeaturesEXT>();
+				features.memoryPriority = vk::True;
+			}
+			{
+				auto& features = chain.get<vk::PhysicalDevicePageableDeviceLocalMemoryFeaturesEXT>();
+				features.pageableDeviceLocalMemory = vk::True;
+			}
+		}
+	};
+
 	static CapabilityData unified_image_layouts{
 		{
 			vk::KHRUnifiedImageLayoutsExtensionName,
@@ -371,6 +388,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 	case Capability::eSwapchain: return swapchain;
 	case Capability::eMemoryBudget: return memory_budget;
 	case Capability::eMemoryPriority: return memory_priority;
+	case Capability::ePageableDeviceLocalMemory: return pageable_device_local_memory;
 	case Capability::eUnifiedImageLayouts: return unified_image_layouts;
 	default: std::unreachable();
 	}

@@ -22,7 +22,8 @@ public:
 		eSwapchain = 1 << 1,
 		eMemoryBudget = 1 << 2,
 		eMemoryPriority = 1 << 3,
-		eUnifiedImageLayouts = 1 << 4,
+		ePageableDeviceLocalMemory = 1 << 4,
+		eUnifiedImageLayouts = 1 << 5,
 	};
 
 	using Capabilities = vk::Flags<Capability>;
@@ -120,6 +121,7 @@ struct vk::FlagTraits<cgpu::Device::Capability>
 		cgpu::Device::Capability::eSwapchain |
 		cgpu::Device::Capability::eMemoryBudget |
 		cgpu::Device::Capability::eMemoryPriority |
+		cgpu::Device::Capability::ePageableDeviceLocalMemory |
 		cgpu::Device::Capability::eUnifiedImageLayouts;
 };
 
