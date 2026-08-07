@@ -18,7 +18,7 @@ constexpr vk::DeviceSize PARAMETER_BUFFER_ALIGNMENT = 256;
 
 cgpu::CommandContextSlot::CommandContextSlot(PrivateKey, const DeviceSessionPtr& device_session):
 	m_device_session{device_session},
-	m_min_parambuf_alloc_alignment{m_device_session->getDevice()->getProperties<vk::PhysicalDeviceProperties2>().properties.limits.minUniformBufferOffsetAlignment}
+	m_min_param_buf_alloc_alignment{m_device_session->getDevice()->getProperties<vk::PhysicalDeviceProperties2>().properties.limits.minUniformBufferOffsetAlignment}
 {
 	ZoneScoped;
 }
@@ -69,14 +69,14 @@ cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParamet
 		throw std::logic_error(std::format("Cannot allocate parameter memory with alignment > {}", PARAMETER_BUFFER_ALIGNMENT));
 	}
 
-	alignment = std::max(alignment, m_min_parambuf_alloc_alignment);
-	m_current_parambuf_offset = alignUp(m_current_parambuf_offset, alignment);
-	if (m_current_parambuf_offset + size > PARAMETER_BUFFER_SIZE || m_used_parambufs.empty())
+	alignment = std::max(alignment, m_min_param_buf_alloc_alignment);
+	m_current_param_buf_offset = alignUp(m_current_param_buf_offset, alignment);
+	if (m_current_param_buf_offset + size > PARAMETER_BUFFER_SIZE || m_used_param_bufs.empty())
 	{
-		BufferPtr parambuf{};
-		if (m_free_parambufs.empty())
+		BufferPtr param_buf{};
+		if (m_free_param_bufs.empty())
 		{
-			parambuf = Buffer::create(
+			param_buf = Buffer::create(
 				m_device_session,
 				{
 					.name = "Parameter buffer",
@@ -89,22 +89,22 @@ cgpu::CommandContextSlot::ParameterMemory cgpu::CommandContextSlot::allocParamet
 		}
 		else
 		{
-			parambuf = std::move(m_free_parambufs.back());
-			m_free_parambufs.pop_back();
+			param_buf = std::move(m_free_param_bufs.back());
+			m_free_param_bufs.pop_back();
 		}
 
-		m_used_parambufs.emplace_back(std::move(parambuf));
+		m_used_param_bufs.emplace_back(std::move(param_buf));
 
-		m_current_parambuf_offset = 0;
+		m_current_param_buf_offset = 0;
 	}
 
-	vk::DeviceSize alloc_offset = m_current_parambuf_offset;
+	vk::DeviceSize alloc_offset = m_current_param_buf_offset;
 
-	m_current_parambuf_offset += size;
+	m_current_param_buf_offset += size;
 
 	return {
-		.cpu_ptr = m_used_parambufs.back()->getHostPtr(alloc_offset),
-		.gpu_ptr = m_used_parambufs.back()->getDevicePtr(alloc_offset),
+		.cpu_ptr = m_used_param_bufs.back()->getHostPtr(alloc_offset),
+		.gpu_ptr = m_used_param_bufs.back()->getDevicePtr(alloc_offset),
 	};
 }
 
@@ -154,9 +154,9 @@ void cgpu::CommandContextSlot::reset()
 
 	m_num_cmd_rec = 0;
 
-	m_free_parambufs.clear();
-	std::swap(m_free_parambufs, m_used_parambufs);
-	m_current_parambuf_offset = 0;
+	m_free_param_bufs.clear();
+	std::swap(m_free_param_bufs, m_used_param_bufs);
+	m_current_param_buf_offset = 0;
 
 	m_finished_signals.clear();
 
