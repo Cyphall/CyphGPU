@@ -88,14 +88,14 @@ private:
 	Signal binaryToSignal(
 		const SwapchainPtr& swapchain,
 		vk::Semaphore semaphore,
-		vk::CommandBuffer cmdbuf
+		vk::CommandBuffer cmd_buf
 	);
 
 	[[nodiscard]]
 	Signal signalToBinary(
 		const SwapchainPtr& swapchain,
 		vk::Semaphore semaphore,
-		vk::CommandBuffer cmdbuf,
+		vk::CommandBuffer cmd_buf,
 		std::span<const vk::Semaphore> wait_semaphores,
 		std::span<const uint64_t> wait_values
 	);
@@ -112,7 +112,7 @@ private:
 
 	Signal submit(
 		detail::BumpMemoryResource& bump_memory,
-		std::span<const vk::CommandBuffer> cmdbufs,
+		std::span<const vk::CommandBuffer> cmd_bufs,
 		std::span<const vk::Semaphore> wait_semaphores,
 		std::span<const uint64_t> wait_values,
 		std::vector<std::shared_ptr<void>>&& referenced_objects

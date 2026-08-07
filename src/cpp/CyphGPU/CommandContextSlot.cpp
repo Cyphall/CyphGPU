@@ -40,7 +40,7 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 {
 	ZoneScoped;
 
-	vk::CommandBuffer cmdbuf = createCommandBuffer(queue, vk::CommandBufferLevel::ePrimary);
+	vk::CommandBuffer cmd_buf = createCommandBuffer(queue, vk::CommandBufferLevel::ePrimary);
 
 	m_num_cmd_rec++;
 	if (m_num_cmd_rec == 500 && !m_high_cmd_recs_warning_emitted)
@@ -49,7 +49,7 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 		m_high_cmd_recs_warning_emitted = true;
 	}
 
-	return CommandRecorder{shared_from_this(), m_bump_memory, queue, cmdbuf};
+	return CommandRecorder{shared_from_this(), m_bump_memory, queue, cmd_buf};
 }
 
 const cgpu::DeviceSessionPtr& cgpu::CommandContextSlot::getDeviceSession() const
@@ -137,18 +137,18 @@ void cgpu::CommandContextSlot::reset()
 
 		for (size_t i = 0; i < 2; i++)
 		{
-			// Free cmdbufs that were not used last run
-			if (!pool_data.available_cmdbufs[i].empty())
+			// Free cmd_bufs that were not used last run
+			if (!pool_data.available_cmd_bufs[i].empty())
 			{
 				{
 					ZoneScopedN("vkFreeCommandBuffers");
-					m_device_session->getHandle().freeCommandBuffers(pool_data.pool, pool_data.available_cmdbufs[i], m_device_session->getDispatcher());
+					m_device_session->getHandle().freeCommandBuffers(pool_data.pool, pool_data.available_cmd_bufs[i], m_device_session->getDispatcher());
 				}
-				pool_data.available_cmdbufs[i].clear();
+				pool_data.available_cmd_bufs[i].clear();
 			}
 
 			// Recycle last run command buffers
-			std::swap(pool_data.in_use_cmdbufs[i], pool_data.available_cmdbufs[i]);
+			std::swap(pool_data.in_use_cmd_bufs[i], pool_data.available_cmd_bufs[i]);
 		}
 	}
 
@@ -182,7 +182,7 @@ vk::CommandBuffer cgpu::CommandContextSlot::createCommandBuffer(const QueuePtr& 
 
 	size_t level_index = static_cast<size_t>(level);
 
-	if (it->second.available_cmdbufs[level_index].empty())
+	if (it->second.available_cmd_bufs[level_index].empty())
 	{
 		vk::CommandBufferAllocateInfo info;
 		info.commandPool = it->second.pool;
@@ -191,14 +191,14 @@ vk::CommandBuffer cgpu::CommandContextSlot::createCommandBuffer(const QueuePtr& 
 
 		{
 			ZoneScopedN("vkAllocateCommandBuffers");
-			it->second.available_cmdbufs[level_index].push_back(m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0]);
+			it->second.available_cmd_bufs[level_index].push_back(m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher())[0]);
 		}
 	}
 
-	vk::CommandBuffer cmdbuf = it->second.available_cmdbufs[level_index].back();
-	it->second.available_cmdbufs[level_index].pop_back();
+	vk::CommandBuffer cmd_buf = it->second.available_cmd_bufs[level_index].back();
+	it->second.available_cmd_bufs[level_index].pop_back();
 
-	it->second.in_use_cmdbufs[level_index].push_back(cmdbuf);
+	it->second.in_use_cmd_bufs[level_index].push_back(cmd_buf);
 
-	return cmdbuf;
+	return cmd_buf;
 }

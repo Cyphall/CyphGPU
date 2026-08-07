@@ -366,7 +366,7 @@ private:
 	detail::BumpMemoryResource* m_bump_memory;
 
 	QueuePtr m_queue;
-	vk::CommandBuffer m_cmdbuf;
+	vk::CommandBuffer m_cmd_buf;
 
 	std::optional<ReferencedContainers> m_referenced_containers;
 
@@ -378,7 +378,7 @@ private:
 		std::shared_ptr<CommandContextSlot>&& slot,
 		detail::BumpMemoryResource& bump_memory,
 		const QueuePtr& queue,
-		vk::CommandBuffer cmdbuf
+		vk::CommandBuffer cmd_buf
 	);
 
 	template<class T>

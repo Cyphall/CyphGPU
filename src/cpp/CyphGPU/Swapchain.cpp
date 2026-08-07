@@ -300,11 +300,11 @@ void cgpu::Swapchain::createLayoutChangeObjects()
 		info.level = vk::CommandBufferLevel::ePrimary;
 		info.commandBufferCount = static_cast<uint32_t>(m_image_data.size());
 
-		m_acquire_layout_change_cmdbufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
-		m_present_layout_change_cmdbufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
+		m_acquire_layout_change_cmd_bufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
+		m_present_layout_change_cmd_bufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
 	}
 
-	auto record_cmdbufs = [&](const std::vector<vk::CommandBuffer>& cmdbufs, vk::ImageLayout src_layout, vk::ImageLayout dst_layout) {
+	auto record_cmd_bufs = [&](const std::vector<vk::CommandBuffer>& cmd_bufs, vk::ImageLayout src_layout, vk::ImageLayout dst_layout) {
 		for (size_t i = 0; i < m_image_data.size(); i++)
 		{
 			{
@@ -312,7 +312,7 @@ void cgpu::Swapchain::createLayoutChangeObjects()
 				info.flags = {};
 				// info.pInheritanceInfo;
 
-				cmdbufs[i].begin(info, m_device_session->getDispatcher());
+				cmd_bufs[i].begin(info, m_device_session->getDispatcher());
 			}
 
 			{
@@ -341,17 +341,17 @@ void cgpu::Swapchain::createLayoutChangeObjects()
 				info.imageMemoryBarrierCount = 1;
 				info.pImageMemoryBarriers = &barrier;
 
-				cmdbufs[i].pipelineBarrier2(info, m_device_session->getDispatcher());
+				cmd_bufs[i].pipelineBarrier2(info, m_device_session->getDispatcher());
 			}
 
 			{
-				cmdbufs[i].end(m_device_session->getDispatcher());
+				cmd_bufs[i].end(m_device_session->getDispatcher());
 			}
 		}
 	};
 
-	record_cmdbufs(m_acquire_layout_change_cmdbufs, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-	record_cmdbufs(m_present_layout_change_cmdbufs, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
+	record_cmd_bufs(m_acquire_layout_change_cmd_bufs, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+	record_cmd_bufs(m_present_layout_change_cmd_bufs, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
 }
 
 void cgpu::Swapchain::performAcquire()
@@ -407,7 +407,7 @@ void cgpu::Swapchain::performAcquire()
 			m_device_session->getMainQueue()->binaryToSignal(
 				shared_from_this(),
 				acquire_sync_data.semaphore,
-				m_acquire_layout_change_cmdbufs[m_acquired_image]
+				m_acquire_layout_change_cmd_bufs[m_acquired_image]
 			)
 		);
 
@@ -474,7 +474,7 @@ void cgpu::Swapchain::performPresent()
 			m_device_session->getMainQueue()->signalToBinary(
 				shared_from_this(),
 				image_data.semaphore,
-				m_present_layout_change_cmdbufs[m_acquired_image],
+				m_present_layout_change_cmd_bufs[m_acquired_image],
 				image_data.image->getReadSignals().keys(),
 				image_data.image->getReadSignals().values()
 			)

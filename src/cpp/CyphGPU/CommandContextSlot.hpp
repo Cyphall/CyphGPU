@@ -49,8 +49,8 @@ private:
 	struct CommandPoolData
 	{
 		vk::CommandPool pool;
-		std::array<std::vector<vk::CommandBuffer>, 2> available_cmdbufs;
-		std::array<std::vector<vk::CommandBuffer>, 2> in_use_cmdbufs;
+		std::array<std::vector<vk::CommandBuffer>, 2> available_cmd_bufs;
+		std::array<std::vector<vk::CommandBuffer>, 2> in_use_cmd_bufs;
 	};
 
 	DeviceSessionPtr m_device_session;

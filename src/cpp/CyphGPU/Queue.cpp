@@ -97,7 +97,7 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 	const SwapchainPtr& swapchain,
 	vk::Semaphore semaphore,
-	vk::CommandBuffer cmdbuf
+	vk::CommandBuffer cmd_buf
 )
 {
 	std::unique_lock lock{m_mutex};
@@ -113,9 +113,9 @@ cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 		},
 	};
 
-	std::array cmdbuf_infos{
+	std::array cmd_buf_infos{
 		vk::CommandBufferSubmitInfo{
-			.commandBuffer = cmdbuf,
+			.commandBuffer = cmd_buf,
 			.deviceMask = 1,
 		},
 	};
@@ -133,8 +133,8 @@ cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 	info.flags = {};
 	info.waitSemaphoreInfoCount = static_cast<uint32_t>(wait_infos.size());
 	info.pWaitSemaphoreInfos = wait_infos.data();
-	info.commandBufferInfoCount = static_cast<uint32_t>(cmdbuf_infos.size());
-	info.pCommandBufferInfos = cmdbuf_infos.data();
+	info.commandBufferInfoCount = static_cast<uint32_t>(cmd_buf_infos.size());
+	info.pCommandBufferInfos = cmd_buf_infos.data();
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 
@@ -155,7 +155,7 @@ cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 cgpu::Queue::Signal cgpu::Queue::signalToBinary(
 	const SwapchainPtr& swapchain,
 	vk::Semaphore semaphore,
-	vk::CommandBuffer cmdbuf,
+	vk::CommandBuffer cmd_buf,
 	std::span<const vk::Semaphore> wait_semaphores,
 	std::span<const uint64_t> wait_values
 )
@@ -176,9 +176,9 @@ cgpu::Queue::Signal cgpu::Queue::signalToBinary(
 		};
 	}
 
-	std::array cmdbuf_infos{
+	std::array cmd_buf_infos{
 		vk::CommandBufferSubmitInfo{
-			.commandBuffer = cmdbuf,
+			.commandBuffer = cmd_buf,
 			.deviceMask = 1,
 		},
 	};
@@ -202,8 +202,8 @@ cgpu::Queue::Signal cgpu::Queue::signalToBinary(
 	info.flags = {};
 	info.waitSemaphoreInfoCount = static_cast<uint32_t>(wait_infos.size());
 	info.pWaitSemaphoreInfos = wait_infos.data();
-	info.commandBufferInfoCount = static_cast<uint32_t>(cmdbuf_infos.size());
-	info.pCommandBufferInfos = cmdbuf_infos.data();
+	info.commandBufferInfoCount = static_cast<uint32_t>(cmd_buf_infos.size());
+	info.pCommandBufferInfos = cmd_buf_infos.data();
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 
@@ -331,7 +331,7 @@ void cgpu::Queue::waitAndClearPayloads()
 
 cgpu::Queue::Signal cgpu::Queue::submit(
 	detail::BumpMemoryResource& bump_memory,
-	std::span<const vk::CommandBuffer> cmdbufs,
+	std::span<const vk::CommandBuffer> cmd_bufs,
 	std::span<const vk::Semaphore> wait_semaphores,
 	std::span<const uint64_t> wait_values,
 	std::vector<std::shared_ptr<void>>&& referenced_objects
@@ -355,13 +355,13 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 		};
 	}
 
-	detail::BumpVector<vk::CommandBufferSubmitInfo> cmdbuf_infos{bump_memory};
-	cmdbuf_infos.reserve(cmdbufs.size());
-	for (vk::CommandBuffer cmdbuf : cmdbufs)
+	detail::BumpVector<vk::CommandBufferSubmitInfo> cmd_buf_infos{bump_memory};
+	cmd_buf_infos.reserve(cmd_bufs.size());
+	for (vk::CommandBuffer cmd_buf : cmd_bufs)
 	{
-		auto& cmdbuf_info = cmdbuf_infos.emplace_back();
-		cmdbuf_info.commandBuffer = cmdbuf;
-		cmdbuf_info.deviceMask = 1;
+		auto& cmd_buf_info = cmd_buf_infos.emplace_back();
+		cmd_buf_info.commandBuffer = cmd_buf;
+		cmd_buf_info.deviceMask = 1;
 	}
 
 	std::array signal_infos{
@@ -377,8 +377,8 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 	info.flags = {};
 	info.waitSemaphoreInfoCount = static_cast<uint32_t>(wait_infos.size());
 	info.pWaitSemaphoreInfos = wait_infos.data();
-	info.commandBufferInfoCount = static_cast<uint32_t>(cmdbuf_infos.size());
-	info.pCommandBufferInfos = cmdbuf_infos.data();
+	info.commandBufferInfoCount = static_cast<uint32_t>(cmd_buf_infos.size());
+	info.pCommandBufferInfos = cmd_buf_infos.data();
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 

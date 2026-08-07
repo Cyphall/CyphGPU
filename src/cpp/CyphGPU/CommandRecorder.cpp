@@ -24,7 +24,7 @@
 #define REGIONED_COMMAND_PROLOGUE                       \
 	COMMAND_PROLOGUE                                    \
 	ScopedDebugRegion _debug_region{*this, {__func__}}; \
-	TracyVkZone(m_queue->getTracyContext(), m_cmdbuf, __func__);
+	TracyVkZone(m_queue->getTracyContext(), m_cmd_buf, __func__);
 
 namespace
 {
@@ -159,7 +159,7 @@ void cgpu::CommandRecorder::submit()
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkEndCommandBuffer");
 #endif
-		m_cmdbuf.end(
+		m_cmd_buf.end(
 			*m_dispatcher
 		);
 	}
@@ -229,7 +229,7 @@ void cgpu::CommandRecorder::submit()
 	lock_and_process_resources(referenced_images);
 	lock_and_process_resources(referenced_buffers);
 
-	boost::container::static_vector<vk::CommandBuffer, 2> cmdbufs{};
+	boost::container::static_vector<vk::CommandBuffer, 2> cmd_bufs{};
 
 	//TODO: Freshly created images are in the Undefined layout,
 	// and I couldn't find any easier way to transition them to General
@@ -238,7 +238,7 @@ void cgpu::CommandRecorder::submit()
 	// without compromising on perf or support (so no host_image_copy).
 	if (!images_to_init.empty())
 	{
-		auto cmdbuf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::ePrimary);
+		auto cmd_buf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::ePrimary);
 
 		vk::CommandBufferBeginInfo begin_info;
 		begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
@@ -248,7 +248,7 @@ void cgpu::CommandRecorder::submit()
 #if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkBeginCommandBuffer");
 #endif
-			cmdbuf.begin(
+			cmd_buf.begin(
 				begin_info,
 				*m_dispatcher
 			);
@@ -288,7 +288,7 @@ void cgpu::CommandRecorder::submit()
 #if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkCmdPipelineBarrier2");
 #endif
-			cmdbuf.pipelineBarrier2(
+			cmd_buf.pipelineBarrier2(
 				dep_info,
 				*m_dispatcher
 			);
@@ -298,19 +298,19 @@ void cgpu::CommandRecorder::submit()
 #if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkEndCommandBuffer");
 #endif
-			cmdbuf.end(
+			cmd_buf.end(
 				*m_dispatcher
 			);
 		}
 
-		cmdbufs.emplace_back(cmdbuf);
+		cmd_bufs.emplace_back(cmd_buf);
 	}
 
-	cmdbufs.emplace_back(m_cmdbuf);
+	cmd_bufs.emplace_back(m_cmd_buf);
 
 	Queue::Signal signal = m_queue->submit(
 		*m_bump_memory,
-		cmdbufs,
+		cmd_bufs,
 		signals_to_wait.keys(),
 		signals_to_wait.values(),
 		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_containers->objects)
@@ -389,7 +389,7 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkCmdClearColorImage");
 #endif
-			m_cmdbuf.clearColorImage(
+			m_cmd_buf.clearColorImage(
 				(*params.image)->getHandle(),
 				vk::ImageLayout::eGeneral,
 				clear_value,
@@ -410,7 +410,7 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 			ZoneScopedN("vkCmdClearDepthStencilImage");
 #endif
-			m_cmdbuf.clearDepthStencilImage(
+			m_cmd_buf.clearDepthStencilImage(
 				(*params.image)->getHandle(),
 				vk::ImageLayout::eGeneral,
 				clear_value,
@@ -486,7 +486,7 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyImage2");
 #endif
-		m_cmdbuf.copyImage2(
+		m_cmd_buf.copyImage2(
 			info,
 			*m_dispatcher
 		);
@@ -547,7 +547,7 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyBufferToImage2");
 #endif
-		m_cmdbuf.copyBufferToImage2(
+		m_cmd_buf.copyBufferToImage2(
 			info,
 			*m_dispatcher
 		);
@@ -608,7 +608,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyImageToBuffer2");
 #endif
-		m_cmdbuf.copyImageToBuffer2(
+		m_cmd_buf.copyImageToBuffer2(
 			info,
 			*m_dispatcher
 		);
@@ -661,7 +661,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdCopyBuffer2");
 #endif
-		m_cmdbuf.copyBuffer2(
+		m_cmd_buf.copyBuffer2(
 			info,
 			*m_dispatcher
 		);
@@ -728,7 +728,7 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBlitImage2");
 #endif
-		m_cmdbuf.blitImage2(
+		m_cmd_buf.blitImage2(
 			info,
 			*m_dispatcher
 		);
@@ -761,7 +761,7 @@ void cgpu::CommandRecorder::barrier(const BarrierParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdPipelineBarrier2");
 #endif
-		m_cmdbuf.pipelineBarrier2(
+		m_cmd_buf.pipelineBarrier2(
 			dep_info,
 			*m_dispatcher
 		);
@@ -1034,7 +1034,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBeginRendering");
 #endif
-		m_cmdbuf.beginRendering(
+		m_cmd_buf.beginRendering(
 			rendering_info,
 			*m_dispatcher
 		);
@@ -1052,7 +1052,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetViewport");
 #endif
-		m_cmdbuf.setViewport(
+		m_cmd_buf.setViewport(
 			0,
 			viewport,
 			*m_dispatcher
@@ -1063,7 +1063,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetScissor");
 #endif
-		m_cmdbuf.setScissor(
+		m_cmd_buf.setScissor(
 			0,
 			render_area,
 			*m_dispatcher
@@ -1085,7 +1085,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdEndRendering");
 #endif
-		m_cmdbuf.endRendering(
+		m_cmd_buf.endRendering(
 			*m_dispatcher
 		);
 	}
@@ -1141,7 +1141,7 @@ void cgpu::CommandRecorder::beginDebugRegion(const BeginDebugRegionParams& param
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBeginDebugUtilsLabelEXT");
 #endif
-		m_cmdbuf.beginDebugUtilsLabelEXT(
+		m_cmd_buf.beginDebugUtilsLabelEXT(
 			info,
 			*m_dispatcher
 		);
@@ -1156,7 +1156,7 @@ void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdEndDebugUtilsLabelEXT");
 #endif
-		m_cmdbuf.endDebugUtilsLabelEXT(
+		m_cmd_buf.endDebugUtilsLabelEXT(
 			*m_dispatcher
 		);
 	}
@@ -1166,13 +1166,13 @@ cgpu::CommandRecorder::CommandRecorder(
 	std::shared_ptr<CommandContextSlot>&& slot,
 	detail::BumpMemoryResource& bump_memory,
 	const QueuePtr& queue,
-	vk::CommandBuffer cmdbuf
+	vk::CommandBuffer cmd_buf
 ):
 	m_slot{std::move(slot)},
 	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
 	m_bump_memory{&bump_memory},
 	m_queue{queue},
-	m_cmdbuf{cmdbuf},
+	m_cmd_buf{cmd_buf},
 	m_referenced_containers{bump_memory}
 {
 	ZoneScoped;
@@ -1187,7 +1187,7 @@ cgpu::CommandRecorder::CommandRecorder(
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkBeginCommandBuffer");
 #endif
-		m_cmdbuf.begin(
+		m_cmd_buf.begin(
 			info,
 			*m_dispatcher
 		);
@@ -1197,7 +1197,7 @@ cgpu::CommandRecorder::CommandRecorder(
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindResourceHeapEXT");
 #endif
-		m_cmdbuf.bindResourceHeapEXT(
+		m_cmd_buf.bindResourceHeapEXT(
 			m_slot->getDeviceSession()->getResourceBindHeapInfo(),
 			*m_dispatcher
 		);
@@ -1207,7 +1207,7 @@ cgpu::CommandRecorder::CommandRecorder(
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindSamplerHeapEXT");
 #endif
-		m_cmdbuf.bindSamplerHeapEXT(
+		m_cmd_buf.bindSamplerHeapEXT(
 			m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
 			*m_dispatcher
 		);
@@ -1277,7 +1277,7 @@ void cgpu::CommandRecorder::bindPipelineStates(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindPipeline");
 #endif
-		m_cmdbuf.bindPipeline(
+		m_cmd_buf.bindPipeline(
 			vk::PipelineBindPoint::eGraphics,
 			pipeline,
 			*m_dispatcher
@@ -1304,7 +1304,7 @@ void cgpu::CommandRecorder::bindIndexBuffer(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindIndexBuffer2");
 #endif
-		m_cmdbuf.bindIndexBuffer2(
+		m_cmd_buf.bindIndexBuffer2(
 			buffer->getHandle(),
 			range.offset,
 			range.size,
@@ -1328,7 +1328,7 @@ void cgpu::CommandRecorder::bindPipelineStates(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdBindPipeline");
 #endif
-		m_cmdbuf.bindPipeline(
+		m_cmd_buf.bindPipeline(
 			vk::PipelineBindPoint::eCompute,
 			compute_shader_state->getHandle(),
 			*m_dispatcher
@@ -1361,7 +1361,7 @@ void cgpu::CommandRecorder::pushParameters(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdPushDataEXT");
 #endif
-		m_cmdbuf.pushDataEXT(
+		m_cmd_buf.pushDataEXT(
 			info,
 			*m_dispatcher
 		);
@@ -1383,7 +1383,7 @@ void cgpu::CommandRecorder::draw(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdDraw");
 #endif
-		m_cmdbuf.draw(
+		m_cmd_buf.draw(
 			vertex_count,
 			instance_count,
 			first_vertex,
@@ -1409,7 +1409,7 @@ void cgpu::CommandRecorder::drawIndexed(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdDrawIndexed");
 #endif
-		m_cmdbuf.drawIndexed(
+		m_cmd_buf.drawIndexed(
 			index_count,
 			instance_count,
 			first_index,
@@ -1432,7 +1432,7 @@ void cgpu::CommandRecorder::setViewport(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetViewport");
 #endif
-		m_cmdbuf.setViewport(
+		m_cmd_buf.setViewport(
 			0,
 			viewport,
 			*m_dispatcher
@@ -1452,7 +1452,7 @@ void cgpu::CommandRecorder::setScissor(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdSetScissor");
 #endif
-		m_cmdbuf.setScissor(
+		m_cmd_buf.setScissor(
 			0,
 			scissor,
 			*m_dispatcher
@@ -1472,7 +1472,7 @@ void cgpu::CommandRecorder::dispatch(
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdDispatch");
 #endif
-		m_cmdbuf.dispatch(
+		m_cmd_buf.dispatch(
 			group_count.x,
 			group_count.y,
 			group_count.z,
