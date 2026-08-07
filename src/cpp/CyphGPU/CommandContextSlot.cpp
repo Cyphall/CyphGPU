@@ -42,11 +42,11 @@ cgpu::CommandRecorder cgpu::CommandContextSlot::createRecorder(const QueuePtr& q
 
 	vk::CommandBuffer cmdbuf = createCommandBuffer(queue, vk::CommandBufferLevel::ePrimary);
 
-	m_num_cmdrec++;
-	if (m_num_cmdrec == 500 && !m_high_cmdrecs_warning_emitted)
+	m_num_cmd_rec++;
+	if (m_num_cmd_rec == 500 && !m_high_cmd_recs_warning_emitted)
 	{
 		spdlog::warn("500 command recorders were created in this slot. Did you forget to call finish() on the command context?");
-		m_high_cmdrecs_warning_emitted = true;
+		m_high_cmd_recs_warning_emitted = true;
 	}
 
 	return CommandRecorder{shared_from_this(), m_bump_memory, queue, cmdbuf};
@@ -152,7 +152,7 @@ void cgpu::CommandContextSlot::reset()
 		}
 	}
 
-	m_num_cmdrec = 0;
+	m_num_cmd_rec = 0;
 
 	m_free_parambufs.clear();
 	std::swap(m_free_parambufs, m_used_parambufs);

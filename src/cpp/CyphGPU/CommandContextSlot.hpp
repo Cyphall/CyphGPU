@@ -60,8 +60,8 @@ private:
 	// Indexed with queue family
 	std::unordered_map<uint32_t, CommandPoolData> m_pools{};
 
-	size_t m_num_cmdrec{0};
-	bool m_high_cmdrecs_warning_emitted{false};
+	size_t m_num_cmd_rec{0};
+	bool m_high_cmd_recs_warning_emitted{false};
 
 	vk::DeviceSize m_min_parambuf_alloc_alignment;
 	std::vector<BufferPtr> m_free_parambufs{};

@@ -90,7 +90,7 @@ void ImGui_ImplCyphGPU_CreateTexture(ImTextureData& texture)
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
-void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmdrec, ImTextureData& texture, cgpu::Range<glm::uvec2> upload_region)
+void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmd_rec, ImTextureData& texture, cgpu::Range<glm::uvec2> upload_region)
 {
 	ImGui_ImplCyphGPU_BackendData& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
 	ImGui_ImplCyphGPU_BackendTextureData& btd = *static_cast<ImGui_ImplCyphGPU_BackendTextureData*>(texture.BackendUserData);
@@ -122,14 +122,14 @@ void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmdrec, ImTextureDat
 		ptr += row_size;
 	}
 
-	cmdrec.barrier({
+	cmd_rec.barrier({
 		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
 		.src_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
 		.dst_stages = vk::PipelineStageFlagBits2::eCopy,
 		.dst_accesses = vk::AccessFlagBits2::eTransferWrite,
 	});
 
-	cmdrec.copyBufferToImage({
+	cmd_rec.copyBufferToImage({
 		.src_buffer = staging_buffer,
 		.dst_image = btd.image,
 		.ranges = {{
@@ -141,7 +141,7 @@ void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmdrec, ImTextureDat
 		}},
 	});
 
-	cmdrec.barrier({
+	cmd_rec.barrier({
 		.src_stages = vk::PipelineStageFlagBits2::eCopy,
 		.src_accesses = vk::AccessFlagBits2::eTransferWrite,
 		.dst_stages = vk::PipelineStageFlagBits2::eAllCommands,
@@ -159,17 +159,17 @@ void ImGui_ImplCyphGPU_DestroyTexture(ImTextureData& texture)
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
-void ImGui_ImplCyphGPU_UpdateTexture(cgpu::CommandRecorder& cmdrec, ImTextureData& texture)
+void ImGui_ImplCyphGPU_UpdateTexture(cgpu::CommandRecorder& cmd_rec, ImTextureData& texture)
 {
 	switch (texture.Status)
 	{
 	case ImTextureStatus_WantCreate:
 		ImGui_ImplCyphGPU_CreateTexture(texture);
-		ImGui_ImplCyphGPU_UploadTexture(cmdrec, texture, {{0, 0}, {texture.Width, texture.Height}});
+		ImGui_ImplCyphGPU_UploadTexture(cmd_rec, texture, {{0, 0}, {texture.Width, texture.Height}});
 		texture.SetStatus(ImTextureStatus_OK);
 		break;
 	case ImTextureStatus_WantUpdates:
-		ImGui_ImplCyphGPU_UploadTexture(cmdrec, texture, {{texture.UpdateRect.x, texture.UpdateRect.y}, {texture.UpdateRect.w, texture.UpdateRect.h}});
+		ImGui_ImplCyphGPU_UploadTexture(cmd_rec, texture, {{texture.UpdateRect.x, texture.UpdateRect.y}, {texture.UpdateRect.w, texture.UpdateRect.h}});
 		texture.SetStatus(ImTextureStatus_OK);
 		break;
 	case ImTextureStatus_WantDestroy:
@@ -362,7 +362,7 @@ void ImGui_ImplCyphGPU_NewFrame()
 	}
 }
 
-void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::CommandRecorder& cmdrec, const cgpu::ImagePtr& output_image)
+void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::CommandRecorder& cmd_rec, const cgpu::ImagePtr& output_image)
 {
 	ImGui_ImplCyphGPU_BackendData& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
 
@@ -372,7 +372,7 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		{
 			if (texture->Status != ImTextureStatus_OK)
 			{
-				ImGui_ImplCyphGPU_UpdateTexture(cmdrec, *texture);
+				ImGui_ImplCyphGPU_UpdateTexture(cmd_rec, *texture);
 			}
 		}
 	}
@@ -426,14 +426,14 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		}
 	}
 
-	cmdrec.barrier({
+	cmd_rec.barrier({
 		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
 		.src_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
 		.dst_stages = vk::PipelineStageFlagBits2::eAllCommands,
 		.dst_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
 	});
 
-	cmdrec.graphicsPass({
+	cmd_rec.graphicsPass({
 		.color_attachments = {{{
 			.image = output_image,
 			.format = cgpu::getLinearEquivalent(output_image->getDesc().format),
@@ -514,7 +514,7 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		},
 	});
 
-	cmdrec.barrier({
+	cmd_rec.barrier({
 		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
 		.src_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
 		.dst_stages = vk::PipelineStageFlagBits2::eAllCommands,
