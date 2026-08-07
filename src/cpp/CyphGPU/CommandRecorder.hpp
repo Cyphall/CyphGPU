@@ -366,7 +366,8 @@ private:
 	detail::BumpMemoryResource* m_bump_memory;
 
 	QueuePtr m_queue;
-	vk::CommandBuffer m_cmd_buf;
+	vk::CommandBuffer m_main_cmd_buf;
+	vk::CommandBuffer m_curr_cmd_buf;
 
 	std::optional<ReferencedContainers> m_referenced_containers;
 
