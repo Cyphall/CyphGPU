@@ -367,9 +367,7 @@ int main()
 					parameters.u_texture = ctx.getSampledImageDescriptor(*texture);
 					parameters.u_sampler = sampler->getDescriptor();
 
-					ctx.pushParameters(parameters);
-
-					ctx.draw(12 * 3, 1, 0, 0);
+					ctx.draw(12 * 3, 1, 0, 0, parameters);
 				},
 			});
 

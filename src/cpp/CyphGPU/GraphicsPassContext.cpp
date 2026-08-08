@@ -47,9 +47,18 @@ void cgpu::GraphicsPassContext::draw(
 	uint32_t vertex_count,
 	uint32_t instance_count,
 	uint32_t first_vertex,
-	uint32_t first_instance
+	uint32_t first_instance,
+	const void* data,
+	size_t size,
+	size_t alignment
 )
 {
+	m_rec->pushParameters(
+		data,
+		size,
+		alignment
+	);
+
 	m_rec->draw(
 		vertex_count,
 		instance_count,
@@ -63,9 +72,18 @@ void cgpu::GraphicsPassContext::drawIndexed(
 	uint32_t instance_count,
 	uint32_t first_index,
 	int32_t vertex_offset,
-	uint32_t first_instance
+	uint32_t first_instance,
+	const void* data,
+	size_t size,
+	size_t alignment
 )
 {
+	m_rec->pushParameters(
+		data,
+		size,
+		alignment
+	);
+
 	m_rec->drawIndexed(
 		index_count,
 		instance_count,

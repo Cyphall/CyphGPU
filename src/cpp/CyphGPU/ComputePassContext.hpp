@@ -20,8 +20,25 @@ public:
 	);
 
 	void dispatch(
-		const glm::uvec3& group_count
+		const glm::uvec3& group_count,
+		const void* data,
+		size_t size,
+		size_t alignment
 	);
+
+	template<class T>
+	void dispatch(
+		const glm::uvec3& group_count,
+		const T& data
+	)
+	{
+		dispatch(
+			group_count,
+			&data,
+			sizeof(T),
+			alignof(T)
+		);
+	}
 
 private:
 	friend class CommandRecorder;

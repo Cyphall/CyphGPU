@@ -31,16 +31,64 @@ public:
 		uint32_t vertex_count,
 		uint32_t instance_count,
 		uint32_t first_vertex,
-		uint32_t first_instance
+		uint32_t first_instance,
+		const void* data,
+		size_t size,
+		size_t alignment
 	);
+
+	template<class T>
+	void draw(
+		uint32_t vertex_count,
+		uint32_t instance_count,
+		uint32_t first_vertex,
+		uint32_t first_instance,
+		const T& data
+	)
+	{
+		draw(
+			vertex_count,
+			instance_count,
+			first_vertex,
+			first_instance,
+			&data,
+			sizeof(T),
+			alignof(T)
+		);
+	}
 
 	void drawIndexed(
 		uint32_t index_count,
 		uint32_t instance_count,
 		uint32_t first_index,
 		int32_t vertex_offset,
-		uint32_t first_instance
+		uint32_t first_instance,
+		const void* data,
+		size_t size,
+		size_t alignment
 	);
+
+	template<class T>
+	void drawIndexed(
+		uint32_t index_count,
+		uint32_t instance_count,
+		uint32_t first_index,
+		int32_t vertex_offset,
+		uint32_t first_instance,
+		const T& data
+	)
+	{
+		drawIndexed(
+			index_count,
+			instance_count,
+			first_index,
+			vertex_offset,
+			first_instance,
+			&data,
+			sizeof(T),
+			alignof(T)
+		);
+	}
 
 	void setViewport(
 		const vk::Viewport& viewport

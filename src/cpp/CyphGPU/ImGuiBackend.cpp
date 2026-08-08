@@ -438,45 +438,42 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 							.extent = std::bit_cast<vk::Extent2D>(static_cast<glm::uvec2>(clip_max - clip_min)),
 						});
 
-						{
-							struct
-							{
-								ImDrawVert* vertices{};
-								float2 scale{};
-								float2 offset{};
-								Texture2D<>::Handle image{};
-								SamplerState::Handle sampler{};
-							} parameters{};
-
-							parameters.vertices = ctx.getBufferDevicePtr<ImDrawVert>(*vertex_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
-
-							parameters.scale = glm::vec2{
-								2.0f / draw_data.DisplaySize.x,
-								2.0f / draw_data.DisplaySize.y,
-							};
-
-							parameters.offset = glm::vec2{
-								-1.0f - draw_data.DisplayPos.x * (2.0f / draw_data.DisplaySize.x),
-								-1.0f - draw_data.DisplayPos.y * (2.0f / draw_data.DisplaySize.y),
-							};
-
-							auto [image, overrides] = bd.referenced_images[cmd.GetTexID() - 1];
-							overrides.format = cgpu::getLinearEquivalent(overrides.format ? *overrides.format : image->getDesc().format);
-							parameters.image = ctx.getSampledImageDescriptor(image, overrides);
-
-							parameters.sampler = render_state.sampler->getDescriptor();
-
-							ctx.pushParameters(parameters);
-						}
-
 						ctx.bindIndexBuffer(*index_buffer, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+
+						struct
+						{
+							ImDrawVert* vertices{};
+							float2 scale{};
+							float2 offset{};
+							Texture2D<>::Handle image{};
+							SamplerState::Handle sampler{};
+						} parameters{};
+
+						parameters.vertices = ctx.getBufferDevicePtr<ImDrawVert>(*vertex_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
+
+						parameters.scale = glm::vec2{
+							2.0f / draw_data.DisplaySize.x,
+							2.0f / draw_data.DisplaySize.y,
+						};
+
+						parameters.offset = glm::vec2{
+							-1.0f - draw_data.DisplayPos.x * (2.0f / draw_data.DisplaySize.x),
+							-1.0f - draw_data.DisplayPos.y * (2.0f / draw_data.DisplaySize.y),
+						};
+
+						auto [image, overrides] = bd.referenced_images[cmd.GetTexID() - 1];
+						overrides.format = cgpu::getLinearEquivalent(overrides.format ? *overrides.format : image->getDesc().format);
+						parameters.image = ctx.getSampledImageDescriptor(image, overrides);
+
+						parameters.sampler = render_state.sampler->getDescriptor();
 
 						ctx.drawIndexed(
 							cmd.ElemCount,
 							1,
 							cmd.IdxOffset + global_index_offset,
 							static_cast<int>(cmd.VtxOffset + global_vertex_offset),
-							0
+							0,
+							parameters
 						);
 					}
 				}

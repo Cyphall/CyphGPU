@@ -2,15 +2,6 @@
 
 #include <CyphGPU/CommandRecorder.hpp>
 
-void cgpu::PassContext::pushParameters(const void* data, size_t size, size_t alignment)
-{
-	m_rec->pushParameters(
-		data,
-		size,
-		alignment
-	);
-}
-
 cgpu::SampledImageHandle cgpu::PassContext::getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides)
 {
 	registerIndirectAccess(image, CommandRecorder::ResourceAccess::eReadonly);

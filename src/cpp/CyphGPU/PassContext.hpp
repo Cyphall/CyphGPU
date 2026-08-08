@@ -16,20 +16,6 @@ class PassContext
 public:
 	// ----- Commands -----
 
-	void pushParameters(
-		const void* data,
-		size_t size,
-		size_t alignment
-	);
-
-	template<class T>
-	void pushParameters(
-		const T& data
-	)
-	{
-		pushParameters(&data, sizeof(T), alignof(T));
-	}
-
 	[[nodiscard]]
 	SampledImageHandle getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides = {});
 
