@@ -409,7 +409,6 @@ private:
 	);
 
 	void pushParameters(
-		uint32_t slot,
 		const void* data,
 		size_t size,
 		size_t alignment

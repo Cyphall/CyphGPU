@@ -1403,7 +1403,6 @@ void cgpu::CommandRecorder::bindPipelineStates(
 }
 
 void cgpu::CommandRecorder::pushParameters(
-	uint32_t slot,
 	const void* data,
 	size_t size,
 	size_t alignment
@@ -1417,7 +1416,7 @@ void cgpu::CommandRecorder::pushParameters(
 	std::memcpy(param_mem.cpu_ptr, data, size);
 
 	vk::PushDataInfoEXT info;
-	info.offset = slot * sizeof(vk::DeviceAddress);
+	info.offset = 0;
 	info.data.address = &param_mem.gpu_ptr;
 	info.data.size = sizeof(vk::DeviceAddress);
 

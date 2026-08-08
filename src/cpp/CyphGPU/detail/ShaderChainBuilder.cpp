@@ -13,6 +13,19 @@ struct Overloaded : TOverloads...
 {
 	using TOverloads::operator()...;
 };
+
+constexpr std::array PUSH_PARAMETER_MAPPINGS{
+	vk::DescriptorSetAndBindingMappingEXT{
+		.descriptorSet = 0,
+		.firstBinding = 0,
+		.bindingCount = 1,
+		.resourceMask = vk::SpirvResourceTypeFlagBitsEXT::eUniformBuffer,
+		.source = vk::DescriptorMappingSourceEXT::ePushAddress,
+		.sourceData = {
+			.pushAddressOffset = 0,
+		},
+	},
+};
 }
 
 cgpu::detail::ShaderChainBuilder::ShaderChainBuilder(DeviceSession& device_session):
@@ -77,8 +90,8 @@ void cgpu::detail::ShaderChainBuilder::addShader(
 	module_info.pCode = blob.data();
 
 	auto& mapping_info = chain.get<vk::ShaderDescriptorSetAndBindingMappingInfoEXT>();
-	mapping_info.mappingCount = static_cast<uint32_t>(m_device_session->getMappings().size());
-	mapping_info.pMappings = m_device_session->getMappings().data();
+	mapping_info.mappingCount = static_cast<uint32_t>(PUSH_PARAMETER_MAPPINGS.size());
+	mapping_info.pMappings = PUSH_PARAMETER_MAPPINGS.data();
 }
 
 std::vector<vk::PipelineShaderStageCreateInfo> cgpu::detail::ShaderChainBuilder::finalize() const

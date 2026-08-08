@@ -593,17 +593,6 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 
 	m_handle.setDebugUtilsObjectNameEXT(m_sampler_heap.buffer, "Sampler heap", m_dispatcher);
 	m_handle.setDebugUtilsObjectNameEXT(m_resource_heap.buffer, "Resource heap", m_dispatcher);
-
-	for (uint32_t i = 0; i < 4; i++)
-	{
-		auto& mapping = m_mappings.emplace_back();
-		mapping.descriptorSet = 0;
-		mapping.firstBinding = i;
-		mapping.bindingCount = 1;
-		mapping.resourceMask = vk::SpirvResourceTypeFlagBitsEXT::eUniformBuffer;
-		mapping.source = vk::DescriptorMappingSourceEXT::ePushAddress;
-		mapping.sourceData.pushAddressOffset = i * sizeof(vk::DeviceAddress);
-	}
 }
 
 void cgpu::DeviceSession::createGraphicsPipelineOptThread()
@@ -721,11 +710,6 @@ const vk::BindHeapInfoEXT& cgpu::DeviceSession::getSamplerBindHeapInfo() const
 cgpu::Sampler& cgpu::DeviceSession::getSampler(Sampler::Desc&& desc)
 {
 	return m_sampler_cache.get(*this, std::move(desc));
-}
-
-std::span<const vk::DescriptorSetAndBindingMappingEXT> cgpu::DeviceSession::getMappings() const
-{
-	return m_mappings;
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)

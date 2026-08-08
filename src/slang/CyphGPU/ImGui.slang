@@ -5,21 +5,13 @@ struct ImDrawVert
     uint32_t col;
 };
 
-cbuffer Parameters0
+cbuffer Parameters
 {
     ImDrawVert* u_vertices;
     float2 u_scale;
     float2 u_offset;
-};
-
-cbuffer Parameters1
-{
-	SamplerState.Handle u_sampler;
-};
-
-cbuffer Parameters2
-{
 	Texture2D.Handle u_image;
+	SamplerState.Handle u_sampler;
 };
 
 struct VIn

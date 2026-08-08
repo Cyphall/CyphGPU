@@ -2,10 +2,9 @@
 
 #include <CyphGPU/CommandRecorder.hpp>
 
-void cgpu::PassContext::pushParameters(uint32_t slot, const void* data, size_t size, size_t alignment)
+void cgpu::PassContext::pushParameters(const void* data, size_t size, size_t alignment)
 {
 	m_rec->pushParameters(
-		slot,
 		data,
 		size,
 		alignment

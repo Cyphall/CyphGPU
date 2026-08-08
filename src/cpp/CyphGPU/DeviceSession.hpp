@@ -170,7 +170,6 @@ private:
 
 	Heap m_sampler_heap{};
 	Heap m_resource_heap{};
-	std::vector<vk::DescriptorSetAndBindingMappingEXT> m_mappings{};
 
 	MetaObjectCache<Sampler> m_sampler_cache{};
 	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
@@ -230,9 +229,6 @@ private:
 
 	[[nodiscard]]
 	Sampler& getSampler(Sampler::Desc&& desc);
-
-	[[nodiscard]]
-	std::span<const vk::DescriptorSetAndBindingMappingEXT> getMappings() const;
 
 	[[nodiscard]]
 	VertexInputState& getVertexInputState(VertexInputState::Desc&& desc);

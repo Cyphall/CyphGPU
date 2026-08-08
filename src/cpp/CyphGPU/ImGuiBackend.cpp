@@ -41,11 +41,9 @@ struct ImGui_ImplCyphGPU_BackendTextureData
 // NOLINTNEXTLINE(*-identifier-naming)
 struct ImGui_ImplCyphGPU_RenderState
 {
-	const ImDrawData* draw_data{};
 	cgpu::GraphicsPassContext* ctx{};
 	glm::uvec2 render_extent{};
-	std::optional<cgpu::BufferPtr> vertex_buffer;
-	std::optional<cgpu::BufferPtr> index_buffer;
+	cgpu::SamplerPtr sampler{};
 };
 
 // NOLINTNEXTLINE(*-identifier-naming)
@@ -182,21 +180,6 @@ void ImGui_ImplCyphGPU_UpdateTexture(cgpu::CommandRecorder& cmd_rec, ImTextureDa
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
-void ImGui_ImplCyphGPU_DrawCallback_SetSampler(const cgpu::SamplerPtr& sampler)
-{
-	auto& rs = *static_cast<ImGui_ImplCyphGPU_RenderState*>(ImGui::GetPlatformIO().Renderer_RenderState);
-
-	struct
-	{
-		SamplerState::Handle sampler{};
-	} parameters1{};
-
-	parameters1.sampler = sampler->getDescriptor();
-
-	rs.ctx->pushParameters(1, parameters1);
-}
-
-// NOLINTNEXTLINE(*-identifier-naming)
 void ImGui_ImplCyphGPU_DrawCallback_ResetRenderState(const ImDrawList*, const ImDrawCmd*)
 {
 	auto& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
@@ -218,52 +201,25 @@ void ImGui_ImplCyphGPU_DrawCallback_ResetRenderState(const ImDrawList*, const Im
 		.maxDepth = 1.0f,
 	});
 
-	struct
-	{
-		ImDrawVert* vertices{};
-		float2 scale{};
-		float2 offset{};
-	} parameters0{};
-
-	if (rs.vertex_buffer)
-	{
-		parameters0.vertices = rs.ctx->getBufferDevicePtr<ImDrawVert>(*rs.vertex_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
-	}
-
-	parameters0.scale = glm::vec2{
-		2.0f / rs.draw_data->DisplaySize.x,
-		2.0f / rs.draw_data->DisplaySize.y,
-	};
-
-	parameters0.offset = glm::vec2{
-		-1.0f - rs.draw_data->DisplayPos.x * (2.0f / rs.draw_data->DisplaySize.x),
-		-1.0f - rs.draw_data->DisplayPos.y * (2.0f / rs.draw_data->DisplaySize.y),
-	};
-
-	rs.ctx->pushParameters(0, parameters0);
-
-	if (rs.index_buffer)
-	{
-		rs.ctx->bindIndexBuffer(*rs.index_buffer, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
-	}
-
-	ImGui_ImplCyphGPU_DrawCallback_SetSampler(bd.sampler_linear);
+	rs.sampler = bd.sampler_linear;
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
 void ImGui_ImplCyphGPU_DrawCallback_SetSamplerLinear(const ImDrawList*, const ImDrawCmd*)
 {
 	auto& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
+	auto& rs = *static_cast<ImGui_ImplCyphGPU_RenderState*>(ImGui::GetPlatformIO().Renderer_RenderState);
 
-	ImGui_ImplCyphGPU_DrawCallback_SetSampler(bd.sampler_linear);
+	rs.sampler = bd.sampler_linear;
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
 void ImGui_ImplCyphGPU_DrawCallback_SetSamplerNearest(const ImDrawList*, const ImDrawCmd*)
 {
 	auto& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
+	auto& rs = *static_cast<ImGui_ImplCyphGPU_RenderState*>(ImGui::GetPlatformIO().Renderer_RenderState);
 
-	ImGui_ImplCyphGPU_DrawCallback_SetSampler(bd.sampler_nearest);
+	rs.sampler = bd.sampler_nearest;
 }
 }
 
@@ -443,11 +399,9 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		}}},
 		.callback = [&](cgpu::GraphicsPassContext& ctx) {
 			ImGui_ImplCyphGPU_RenderState render_state{
-				.draw_data = &draw_data,
 				.ctx = &ctx,
 				.render_extent = render_extent,
-				.vertex_buffer = vertex_buffer,
-				.index_buffer = index_buffer,
+				.sampler = bd.sampler_linear,
 			};
 
 			ImGui::GetPlatformIO().Renderer_RenderState = &render_state;
@@ -487,15 +441,35 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 						{
 							struct
 							{
+								ImDrawVert* vertices{};
+								float2 scale{};
+								float2 offset{};
 								Texture2D<>::Handle image{};
-							} parameters2{};
+								SamplerState::Handle sampler{};
+							} parameters{};
+
+							parameters.vertices = ctx.getBufferDevicePtr<ImDrawVert>(*vertex_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
+
+							parameters.scale = glm::vec2{
+								2.0f / draw_data.DisplaySize.x,
+								2.0f / draw_data.DisplaySize.y,
+							};
+
+							parameters.offset = glm::vec2{
+								-1.0f - draw_data.DisplayPos.x * (2.0f / draw_data.DisplaySize.x),
+								-1.0f - draw_data.DisplayPos.y * (2.0f / draw_data.DisplaySize.y),
+							};
 
 							auto [image, overrides] = bd.referenced_images[cmd.GetTexID() - 1];
 							overrides.format = cgpu::getLinearEquivalent(overrides.format ? *overrides.format : image->getDesc().format);
-							parameters2.image = ctx.getSampledImageDescriptor(image, overrides);
+							parameters.image = ctx.getSampledImageDescriptor(image, overrides);
 
-							ctx.pushParameters(2, parameters2);
+							parameters.sampler = render_state.sampler->getDescriptor();
+
+							ctx.pushParameters(parameters);
 						}
+
+						ctx.bindIndexBuffer(*index_buffer, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
 
 						ctx.drawIndexed(
 							cmd.ElemCount,

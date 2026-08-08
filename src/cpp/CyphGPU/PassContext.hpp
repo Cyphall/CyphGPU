@@ -17,7 +17,6 @@ public:
 	// ----- Commands -----
 
 	void pushParameters(
-		uint32_t slot,
 		const void* data,
 		size_t size,
 		size_t alignment
@@ -25,11 +24,10 @@ public:
 
 	template<class T>
 	void pushParameters(
-		uint32_t slot,
 		const T& data
 	)
 	{
-		pushParameters(slot, &data, sizeof(T), alignof(T));
+		pushParameters(&data, sizeof(T), alignof(T));
 	}
 
 	[[nodiscard]]
