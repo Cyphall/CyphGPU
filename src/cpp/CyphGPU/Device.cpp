@@ -91,7 +91,6 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		{
 			vk::KHRShaderUntypedPointersExtensionName,
 			vk::EXTDescriptorHeapExtensionName,
-			vk::KHRInternallySynchronizedQueuesExtensionName,
 			vk::KHRPipelineLibraryExtensionName,
 			vk::EXTGraphicsPipelineLibraryExtensionName,
 			vk::EXTCalibratedTimestampsExtensionName,
@@ -279,11 +278,6 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			{
 				auto& features = chain.get<vk::PhysicalDeviceShaderUntypedPointersFeaturesKHR>();
 				features.shaderUntypedPointers = vk::True;
-			}
-
-			{
-				auto& features = chain.get<vk::PhysicalDeviceInternallySynchronizedQueuesFeaturesKHR>();
-				features.internallySynchronizedQueues = vk::True;
 			}
 
 			{

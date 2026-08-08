@@ -305,7 +305,7 @@ void cgpu::DeviceSession::createDevice()
 		if (!index)
 		{
 			vk::DeviceQueueCreateInfo& info = queue_create_infos.emplace_back();
-			info.flags = vk::DeviceQueueCreateFlagBits::eInternallySynchronizedKHR;
+			info.flags = {};
 			info.queueFamilyIndex = *family;
 
 			queue_priorities.emplace_back();
@@ -371,7 +371,7 @@ void cgpu::DeviceSession::createDevice()
 		}
 
 		vk::DeviceQueueInfo2 info;
-		info.flags = vk::DeviceQueueCreateFlagBits::eInternallySynchronizedKHR;
+		info.flags = {};
 		info.queueFamilyIndex = *family;
 		info.queueIndex = *index;
 
