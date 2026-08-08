@@ -379,8 +379,10 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 	if (params.color_value)
 	{
 		vk::ClearColorValue clear_value = std::visit(
-			[](auto&& value) {
-				return vk::ClearColorValue{value.r, value.g, value.b, value.a};
+			Overloaded{
+				[&](const glm::vec4& value) { return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}}; },
+				[&](const glm::ivec4& value) { return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}}; },
+				[&](const glm::uvec4& value) { return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}}; },
 			},
 			*params.color_value
 		);
@@ -853,12 +855,14 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 			// clang-format on
 		}
 
-		vk::ClearColorValue clear_value;
+		vk::ClearColorValue clear_value{};
 		if (*attachment.load_op == vk::AttachmentLoadOp::eClear)
 		{
 			clear_value = std::visit(
-				[](auto&& value) {
-					return vk::ClearColorValue{value.r, value.g, value.b, value.a};
+				Overloaded{
+					[&](const glm::vec4& value) { return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}}; },
+					[&](const glm::ivec4& value) { return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}}; },
+					[&](const glm::uvec4& value) { return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}}; },
 				},
 				attachment.clear_color_value.value()
 			);
@@ -872,7 +876,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 		vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
 		vk_attachment.loadOp = *attachment.load_op;
 		vk_attachment.storeOp = *attachment.store_op;
-		vk_attachment.clearValue = clear_value;
+		vk_attachment.clearValue.color = clear_value;
 	}
 
 	std::optional<vk::RenderingAttachmentInfo> vk_depth_attachment;
@@ -967,7 +971,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 				vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
 				vk_attachment.loadOp = *params.depth_stencil_attachment->load_op;
 				vk_attachment.storeOp = *params.depth_stencil_attachment->store_op;
-				vk_attachment.clearValue = clear_value;
+				vk_attachment.clearValue.depthStencil = clear_value;
 			}
 			if (enable_stencil)
 			{
@@ -985,7 +989,7 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 				vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
 				vk_attachment.loadOp = *params.depth_stencil_attachment->load_op;
 				vk_attachment.storeOp = *params.depth_stencil_attachment->store_op;
-				vk_attachment.clearValue = clear_value;
+				vk_attachment.clearValue.depthStencil = clear_value;
 			}
 		}
 	}
