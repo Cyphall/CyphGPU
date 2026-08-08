@@ -1,8 +1,7 @@
 #pragma once
 
-#include <boost/optional/optional.hpp>
 #include <memory>
-#include <unordered_map>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu::detail
@@ -10,40 +9,63 @@ namespace cgpu::detail
 class DynamicFeatureChain final
 {
 public:
-	struct Structure
+	DynamicFeatureChain()
 	{
-		size_t feature_count;
-		std::shared_ptr<void> data;
-	};
+		// Ensure vk::PhysicalDeviceFeatures2 is first in the chain
+		get<vk::PhysicalDeviceFeatures2>();
+	}
 
 	template<class T>
 	T& get()
 	{
-		auto [it, inserted] = m_structures.try_emplace(T::structureType);
-		if (inserted)
+		auto it = std::ranges::find_if(m_structures, [&](const auto& structure) { return structure.type == T::structureType; });
+		if (it == m_structures.end())
 		{
-			it->second.feature_count = (sizeof(T) - sizeof(vk::BaseOutStructure)) / sizeof(vk::Bool32);
-			it->second.data = std::make_shared<T>();
-			vk::BaseOutStructure& structure = *reinterpret_cast<vk::BaseOutStructure*>(it->second.data.get());
-			if (m_tail)
-			{
-				m_tail->pNext = &structure;
-			}
-
-			m_tail = structure;
+			m_structures.push_back({
+				.type = T::structureType,
+				.feature_count = (sizeof(T) - sizeof(vk::BaseOutStructure)) / sizeof(vk::Bool32),
+				.data = std::make_shared<T>(),
+			});
+			it = m_structures.end() - 1;
 		}
 
-		return *static_cast<T*>(it->second.data.get());
+		return *static_cast<T*>(it->data.get());
 	}
 
 	[[nodiscard]]
-	const std::unordered_map<vk::StructureType, Structure>& getStructures() const
+	size_t getCount() const
 	{
-		return m_structures;
+		return m_structures.size();
+	}
+
+	[[nodiscard]]
+	std::span<const vk::Bool32> getBoolArray(size_t i) const
+	{
+		const std::byte* ptr = reinterpret_cast<const std::byte*>(m_structures[i].data.get());
+		ptr += sizeof(vk::BaseOutStructure);
+		return {reinterpret_cast<const vk::Bool32*>(ptr), m_structures[i].feature_count};
+	}
+
+	[[nodiscard]]
+	vk::PhysicalDeviceFeatures2& getHead() const
+	{
+		for (size_t i = 0; i < m_structures.size() - 1; i++)
+		{
+			vk::BaseOutStructure& structure = *reinterpret_cast<vk::BaseOutStructure*>(m_structures[i].data.get());
+			structure.pNext = reinterpret_cast<vk::BaseOutStructure*>(m_structures[i + 1].data.get());
+		}
+
+		return *static_cast<vk::PhysicalDeviceFeatures2*>(m_structures[0].data.get());
 	}
 
 private:
-	std::unordered_map<vk::StructureType, Structure> m_structures{};
-	boost::optional<vk::BaseOutStructure&> m_tail{};
+	struct Structure
+	{
+		vk::StructureType type;
+		size_t feature_count;
+		std::shared_ptr<void> data;
+	};
+
+	std::vector<Structure> m_structures{};
 };
 }

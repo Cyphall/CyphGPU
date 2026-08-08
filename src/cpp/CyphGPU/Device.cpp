@@ -9,16 +9,6 @@
 #include <unordered_set>
 #include <utility>
 
-namespace
-{
-std::span<const vk::Bool32> featureStructToBoolSpan(const cgpu::detail::DynamicFeatureChain::Structure& structure)
-{
-	const std::byte* ptr = reinterpret_cast<const std::byte*>(structure.data.get());
-	ptr += sizeof(vk::BaseOutStructure);
-	return {reinterpret_cast<const vk::Bool32*>(ptr), structure.feature_count};
-}
-}
-
 cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDevice physical_device):
 	m_context_session{&context_session},
 	m_handle{physical_device}
@@ -419,21 +409,20 @@ void cgpu::Device::checkCapabilitySupport()
 		}
 
 		// This will set some features to true but the driver should overwrite that so it's fine
-		detail::DynamicFeatureChain supported_structures;
-		supported_structures.get<vk::PhysicalDeviceFeatures2>(); // Ensure vk::PhysicalDeviceFeatures2 is first in the chain
-		capability_data->feature_callback(supported_structures);
-		m_handle.getFeatures2(&supported_structures.get<vk::PhysicalDeviceFeatures2>(), m_context_session->getDispatcher());
+		detail::DynamicFeatureChain supported_chain;
+		capability_data->feature_callback(supported_chain);
+		m_handle.getFeatures2(&supported_chain.getHead(), m_context_session->getDispatcher());
 
-		detail::DynamicFeatureChain required_structures;
-		capability_data->feature_callback(required_structures);
+		detail::DynamicFeatureChain required_chain;
+		capability_data->feature_callback(required_chain);
 
-		for (const auto& [type, required_structure] : required_structures.getStructures())
+		for (size_t i = 0; i < required_chain.getCount(); i++)
 		{
-			std::span<const vk::Bool32> required_features = featureStructToBoolSpan(required_structure);
-			std::span<const vk::Bool32> supported_features = featureStructToBoolSpan(supported_structures.getStructures().at(type));
-			for (size_t i = 0; i < required_features.size(); i++)
+			std::span<const vk::Bool32> required_features = required_chain.getBoolArray(i);
+			std::span<const vk::Bool32> supported_features = supported_chain.getBoolArray(i);
+			for (size_t j = 0; j < required_features.size(); j++)
 			{
-				if (required_features[i] && !supported_features[i])
+				if (required_features[j] && !supported_features[j])
 				{
 					return false;
 				}
