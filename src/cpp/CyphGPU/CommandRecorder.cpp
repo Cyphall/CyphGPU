@@ -257,7 +257,7 @@ void cgpu::CommandRecorder::submit()
 			barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
 			barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
 			barrier.dstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
-			barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryWrite;
+			barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
 			barrier.oldLayout = vk::ImageLayout::eUndefined;
 			barrier.newLayout = vk::ImageLayout::eGeneral;
 			barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
