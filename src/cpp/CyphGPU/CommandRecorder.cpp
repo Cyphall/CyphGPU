@@ -194,7 +194,7 @@ void cgpu::CommandRecorder::submit()
 		{
 			resource->lock();
 
-			if (access.last_write_stages == vk::PipelineStageFlagBits2::eNone)
+			if (access.last_write_accesses == vk::AccessFlagBits2::eNone)
 			{
 				const auto& signal = resource->tryGetReadWriteSignal();
 				if (signal)
@@ -314,7 +314,7 @@ void cgpu::CommandRecorder::submit()
 	auto unlock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, GlobalResourceSync>>& resources) {
 		for (auto& [resource, access] : resources)
 		{
-			access.last_write_stages == vk::PipelineStageFlagBits2::eNone ?
+			access.last_write_accesses == vk::AccessFlagBits2::eNone ?
 				resource->addReadSignal(signal) :
 				resource->setReadWriteSignal(signal);
 
