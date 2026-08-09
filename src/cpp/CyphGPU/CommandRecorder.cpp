@@ -1424,7 +1424,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 	barrier.dstStageMask = {};
 	barrier.dstAccessMask = {};
 
-	auto process_resources =
+	auto sync_resources =
 		[&]<class T>(
 			detail::BumpSegmentedUnorderedMap<T*, GlobalResourceSync>& global_map,
 			detail::BumpSegmentedUnorderedMap<T*, CmdResourceSync>& cmd_map
@@ -1455,8 +1455,8 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 			}
 		};
 
-	process_resources(m_referenced_containers->images, m_referenced_containers->cmd_images);
-	process_resources(m_referenced_containers->buffers, m_referenced_containers->cmd_buffers);
+	sync_resources(m_referenced_containers->images, m_referenced_containers->cmd_images);
+	sync_resources(m_referenced_containers->buffers, m_referenced_containers->cmd_buffers);
 
 	m_referenced_containers->cmd_images.clear();
 	m_referenced_containers->cmd_buffers.clear();
