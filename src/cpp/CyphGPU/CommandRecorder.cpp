@@ -1181,9 +1181,24 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 {
 	REGIONED_COMMAND_PROLOGUE
 
+	ComputePassContext ctx{*this, *m_bump_memory};
+	(*params.callback)(ctx);
+
+	std::optional<ComputeShaderStatePtr> current_compute_shader_state;
+	for (const auto& dispatch_cmd : ctx.getDispatchCmds())
 	{
-		ComputePassContext ctx{*this};
-		(*params.callback)(ctx);
+		if (dispatch_cmd.compute_shader_state != current_compute_shader_state)
+		{
+			bindPipelineStates(
+				dispatch_cmd.compute_shader_state
+			);
+
+			current_compute_shader_state = dispatch_cmd.compute_shader_state;
+		}
+
+		pushParameterPtr(dispatch_cmd.params_gpu_ptr);
+
+		dispatch(dispatch_cmd.group_count);
 	}
 }
 
@@ -1402,22 +1417,29 @@ void cgpu::CommandRecorder::bindPipelineStates(
 	addReferencedObject(compute_shader_state);
 }
 
-void cgpu::CommandRecorder::pushParameters(
+vk::DeviceAddress cgpu::CommandRecorder::writeParameters(
 	const void* data,
 	size_t size,
 	size_t alignment
+)
+{
+	auto param_mem = m_slot->allocParameterMemory(size, alignment);
+	std::memcpy(param_mem.cpu_ptr, data, size);
+
+	return param_mem.gpu_ptr;
+}
+
+void cgpu::CommandRecorder::pushParameterPtr(
+	vk::DeviceAddress ptr
 )
 {
 #if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
 #endif
 
-	auto param_mem = m_slot->allocParameterMemory(size, alignment);
-	std::memcpy(param_mem.cpu_ptr, data, size);
-
 	vk::PushDataInfoEXT info;
 	info.offset = 0;
-	info.data.address = &param_mem.gpu_ptr;
+	info.data.address = &ptr;
 	info.data.size = sizeof(vk::DeviceAddress);
 
 	{

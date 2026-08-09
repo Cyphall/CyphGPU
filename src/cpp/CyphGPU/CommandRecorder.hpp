@@ -408,10 +408,14 @@ private:
 		const ComputeShaderStatePtr& compute_shader_state
 	);
 
-	void pushParameters(
+	vk::DeviceAddress writeParameters(
 		const void* data,
 		size_t size,
 		size_t alignment
+	);
+
+	void pushParameterPtr(
+		vk::DeviceAddress ptr
 	);
 
 	void draw(

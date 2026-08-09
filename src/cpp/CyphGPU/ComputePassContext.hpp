@@ -15,11 +15,8 @@ class ComputePassContext final : public PassContext
 public:
 	// ----- Commands -----
 
-	void bindPipelineStates(
-		const ComputeShaderStatePtr& compute_shader_state
-	);
-
 	void dispatch(
+		const ComputeShaderStatePtr& compute_shader_state,
 		const glm::uvec3& group_count,
 		const void* data,
 		size_t size,
@@ -28,11 +25,13 @@ public:
 
 	template<class T>
 	void dispatch(
+		const ComputeShaderStatePtr& compute_shader_state,
 		const glm::uvec3& group_count,
 		const T& data
 	)
 	{
 		dispatch(
+			compute_shader_state,
 			group_count,
 			&data,
 			sizeof(T),
@@ -43,8 +42,18 @@ public:
 private:
 	friend class CommandRecorder;
 
-	std::optional<ComputeShaderStatePtr> m_current_compute_shader_state;
+	struct DispatchCmd
+	{
+		ComputeShaderStatePtr compute_shader_state;
+		glm::uvec3 group_count;
+		vk::DeviceAddress params_gpu_ptr;
+	};
 
-	using PassContext::PassContext;
+	detail::BumpList<DispatchCmd> m_dispatch_cmds;
+
+	explicit ComputePassContext(CommandRecorder& rec, detail::BumpMemoryResource& bump_memory);
+
+	[[nodiscard]]
+	const detail::BumpList<DispatchCmd>& getDispatchCmds() const;
 };
 }

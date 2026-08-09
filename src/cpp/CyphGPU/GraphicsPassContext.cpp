@@ -53,11 +53,13 @@ void cgpu::GraphicsPassContext::draw(
 	size_t alignment
 )
 {
-	m_rec->pushParameters(
+	vk::DeviceAddress gpu_ptr = m_rec->writeParameters(
 		data,
 		size,
 		alignment
 	);
+
+	m_rec->pushParameterPtr(gpu_ptr);
 
 	m_rec->draw(
 		vertex_count,
@@ -78,11 +80,13 @@ void cgpu::GraphicsPassContext::drawIndexed(
 	size_t alignment
 )
 {
-	m_rec->pushParameters(
+	vk::DeviceAddress gpu_ptr = m_rec->writeParameters(
 		data,
 		size,
 		alignment
 	);
+
+	m_rec->pushParameterPtr(gpu_ptr);
 
 	m_rec->drawIndexed(
 		index_count,
