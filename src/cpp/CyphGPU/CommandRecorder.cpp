@@ -17,9 +17,10 @@
 // #define PROFILE_VULKAN_CALLS
 // #define PROFILE_HOT_CALLS
 
-#define COMMAND_PROLOGUE \
-	ZoneScoped;          \
-	assert(!m_submitted);
+#define COMMAND_PROLOGUE  \
+	ZoneScoped;           \
+	assert(!m_submitted); \
+	assert(m_referenced_containers->cmd_buffers.empty() && m_referenced_containers->cmd_images.empty());
 
 #define REGIONED_COMMAND_PROLOGUE                       \
 	COMMAND_PROLOGUE                                    \
@@ -173,46 +174,40 @@ void cgpu::CommandRecorder::submit()
 		}
 	};
 
-	detail::BumpVector<std::pair<Image*, ResourceAccess>> referenced_images{
+	detail::BumpVector<std::pair<Image*, GlobalResourceSync>> referenced_images{
 		m_referenced_containers->images.begin(),
 		m_referenced_containers->images.end(),
 		*m_bump_memory,
 	};
-	detail::BumpVector<std::pair<Buffer*, ResourceAccess>> referenced_buffers{
+	detail::BumpVector<std::pair<Buffer*, GlobalResourceSync>> referenced_buffers{
 		m_referenced_containers->buffers.begin(),
 		m_referenced_containers->buffers.end(),
 		*m_bump_memory,
 	};
 
-	std::ranges::sort(referenced_images, {}, &std::pair<Image*, ResourceAccess>::first);
-	std::ranges::sort(referenced_buffers, {}, &std::pair<Buffer*, ResourceAccess>::first);
+	std::ranges::sort(referenced_images, {}, &std::pair<Image*, GlobalResourceSync>::first);
+	std::ranges::sort(referenced_buffers, {}, &std::pair<Buffer*, GlobalResourceSync>::first);
 
 	detail::BumpList<Image*> images_to_init{*m_bump_memory};
-	auto lock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, ResourceAccess>>& resources) {
+	auto lock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, GlobalResourceSync>>& resources) {
 		for (auto& [resource, access] : resources)
 		{
 			resource->lock();
 
-			switch (access)
-			{
-			case ResourceAccess::eReadonly:
+			if (access.last_write_stages == vk::PipelineStageFlagBits2::eNone)
 			{
 				const auto& signal = resource->tryGetReadWriteSignal();
 				if (signal)
 				{
 					add_signal_to_wait(signal->semaphore, signal->value);
 				}
-				break;
 			}
-			case ResourceAccess::eReadWrite:
+			else
 			{
 				for (const auto& [semaphore, value] : resource->getReadSignals())
 				{
 					add_signal_to_wait(semaphore, value);
 				}
-				break;
-			}
-			default: std::unreachable();
 			}
 
 			if constexpr (std::is_same_v<T, Image>)
@@ -316,15 +311,12 @@ void cgpu::CommandRecorder::submit()
 		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_containers->objects)
 	);
 
-	auto unlock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, ResourceAccess>>& resources) {
+	auto unlock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, GlobalResourceSync>>& resources) {
 		for (auto& [resource, access] : resources)
 		{
-			switch (access)
-			{
-			case ResourceAccess::eReadonly: resource->addReadSignal(signal); break;
-			case ResourceAccess::eReadWrite: resource->setReadWriteSignal(signal); break;
-			default: std::unreachable();
-			}
+			access.last_write_stages == vk::PipelineStageFlagBits2::eNone ?
+				resource->addReadSignal(signal) :
+				resource->setReadWriteSignal(signal);
 
 			resource->unlock();
 		}
@@ -376,6 +368,14 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		return;
 	}
 
+	addCmdResource(
+		*params.image,
+		vk::PipelineStageFlagBits2::eClear,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
 	if (params.color_value)
 	{
 		vk::ClearColorValue clear_value = std::visit(
@@ -421,8 +421,6 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 			);
 		}
 	}
-
-	addReferencedObject(*params.image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& params)
@@ -476,6 +474,19 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 		return;
 	}
 
+	addCmdResource(
+		*params.src_image,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferRead
+	);
+	addCmdResource(
+		*params.dst_image,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
 	vk::CopyImageInfo2 info;
 	info.srcImage = (*params.src_image)->getHandle();
 	info.srcImageLayout = vk::ImageLayout::eGeneral;
@@ -493,9 +504,6 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 			*m_dispatcher
 		);
 	}
-
-	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& params)
@@ -538,6 +546,19 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 		return;
 	}
 
+	addCmdResource(
+		*params.src_buffer,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferRead
+	);
+	addCmdResource(
+		*params.dst_image,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
 	vk::CopyBufferToImageInfo2 info;
 	info.srcBuffer = (*params.src_buffer)->getHandle();
 	info.dstImage = (*params.dst_image)->getHandle();
@@ -554,9 +575,6 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 			*m_dispatcher
 		);
 	}
-
-	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& params)
@@ -599,6 +617,19 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 		return;
 	}
 
+	addCmdResource(
+		*params.src_image,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferRead
+	);
+	addCmdResource(
+		*params.dst_buffer,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
 	vk::CopyImageToBufferInfo2 info;
 	info.srcImage = (*params.src_image)->getHandle();
 	info.srcImageLayout = vk::ImageLayout::eGeneral;
@@ -615,9 +646,6 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 			*m_dispatcher
 		);
 	}
-
-	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& params)
@@ -653,6 +681,19 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 		return;
 	}
 
+	addCmdResource(
+		*params.src_buffer,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferRead
+	);
+	addCmdResource(
+		*params.dst_buffer,
+		vk::PipelineStageFlagBits2::eCopy,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
 	vk::CopyBufferInfo2 info;
 	info.srcBuffer = (*params.src_buffer)->getHandle();
 	info.dstBuffer = (*params.dst_buffer)->getHandle();
@@ -668,9 +709,6 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 			*m_dispatcher
 		);
 	}
-
-	addReferencedObject(*params.src_buffer, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dst_buffer, ResourceAccess::eReadWrite);
 }
 
 void cgpu::CommandRecorder::blit(const BlitParams& params)
@@ -717,6 +755,19 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 		return;
 	}
 
+	addCmdResource(
+		*params.src_image,
+		vk::PipelineStageFlagBits2::eBlit,
+		vk::AccessFlagBits2::eTransferRead
+	);
+	addCmdResource(
+		*params.dst_image,
+		vk::PipelineStageFlagBits2::eBlit,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
 	vk::BlitImageInfo2 info;
 	info.srcImage = (*params.src_image)->getHandle();
 	info.srcImageLayout = vk::ImageLayout::eGeneral;
@@ -732,39 +783,6 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 #endif
 		m_curr_cmd_buf.blitImage2(
 			info,
-			*m_dispatcher
-		);
-	}
-
-	addReferencedObject(*params.src_image, ResourceAccess::eReadonly);
-	addReferencedObject(*params.dst_image, ResourceAccess::eReadWrite);
-}
-
-void cgpu::CommandRecorder::barrier(const BarrierParams& params)
-{
-	REGIONED_COMMAND_PROLOGUE
-
-	vk::MemoryBarrier2 barrier;
-	barrier.srcStageMask = *params.src_stages;
-	barrier.srcAccessMask = *params.src_accesses;
-	barrier.dstStageMask = *params.dst_stages;
-	barrier.dstAccessMask = *params.dst_accesses;
-
-	vk::DependencyInfo dep_info;
-	dep_info.dependencyFlags = {};
-	dep_info.memoryBarrierCount = 1;
-	dep_info.pMemoryBarriers = &barrier;
-	dep_info.bufferMemoryBarrierCount = 0;
-	// dep_info.pBufferMemoryBarriers;
-	dep_info.imageMemoryBarrierCount = 0;
-	// dep_info.pImageMemoryBarriers;
-
-	{
-#if defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdPipelineBarrier2");
-#endif
-		m_curr_cmd_buf.pipelineBarrier2(
-			dep_info,
 			*m_dispatcher
 		);
 	}
@@ -1024,11 +1042,75 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 		return;
 	}
 
-	// When we eventually switch to automatic synchronization,
-	// we will need to record which resources are used during the
-	// pass callback and then inject a barrier before the pass is executed.
+	auto load_store_ops_to_accesses = [&](vk::AttachmentLoadOp load_op, vk::AttachmentStoreOp store_op, bool is_color) {
+		vk::AccessFlags2 accesses;
+
+		switch (load_op)
+		{
+		case vk::AttachmentLoadOp::eLoad:
+			accesses |= is_color ? vk::AccessFlagBits2::eColorAttachmentRead : vk::AccessFlagBits2::eDepthStencilAttachmentRead;
+			break;
+		case vk::AttachmentLoadOp::eClear:
+		case vk::AttachmentLoadOp::eDontCare:
+			accesses |= is_color ? vk::AccessFlagBits2::eColorAttachmentWrite : vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+			break;
+		case vk::AttachmentLoadOp::eNone:
+			break;
+		}
+
+		switch (store_op)
+		{
+		case vk::AttachmentStoreOp::eStore:
+		case vk::AttachmentStoreOp::eDontCare:
+			accesses |= is_color ? vk::AccessFlagBits2::eColorAttachmentWrite : vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+			break;
+		case vk::AttachmentStoreOp::eNone:
+			break;
+		}
+
+		return accesses;
+	};
+
+	for (const auto& attachment : color_attachments)
+	{
+		addCmdResource(
+			*attachment.image,
+			vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+			load_store_ops_to_accesses(*attachment.load_op, *attachment.store_op, true)
+		);
+
+		if (attachment.resolve)
+		{
+			addCmdResource(
+				*attachment.resolve->image,
+				vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+				vk::AccessFlagBits2::eColorAttachmentWrite
+			);
+		}
+	}
+
+	if (vk_depth_attachment || vk_stencil_attachment)
+	{
+		addCmdResource(
+			*params.depth_stencil_attachment->image,
+			vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+			load_store_ops_to_accesses(*params.depth_stencil_attachment->load_op, *params.depth_stencil_attachment->store_op, false)
+		);
+
+		if (params.depth_stencil_attachment->resolve)
+		{
+			addCmdResource(
+				*params.depth_stencil_attachment->resolve->image,
+				vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+				vk::AccessFlagBits2::eColorAttachmentWrite
+			);
+		}
+	}
+
+	// With auto sync, we need to record which resources are used during the
+	// pass callback and then inject the barrier before the pass is executed.
 	// Using a secondary cmd buf is the only way to do that without switching
-	// to a meta cmd buf + deferred command recording.
+	// to slower deferred command recording.
 	vk::CommandBuffer pass_cmd_buf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::eSecondary);
 
 	vk::StructureChain<
@@ -1143,6 +1225,8 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 		);
 	}
 
+	emitCmdBarrier();
+
 	{
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdExecuteCommands");
@@ -1151,24 +1235,6 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 			pass_cmd_buf,
 			*m_dispatcher
 		);
-	}
-
-	for (const auto& attachment : color_attachments)
-	{
-		addReferencedObject(*attachment.image, ResourceAccess::eReadWrite);
-		if (attachment.resolve)
-		{
-			addReferencedObject(*attachment.resolve->image, ResourceAccess::eReadWrite);
-		}
-	}
-
-	if (params.depth_stencil_attachment && (vk_depth_attachment || vk_stencil_attachment))
-	{
-		addReferencedObject(*params.depth_stencil_attachment->image, ResourceAccess::eReadWrite);
-		if (params.depth_stencil_attachment->resolve)
-		{
-			addReferencedObject(*params.depth_stencil_attachment->resolve->image, ResourceAccess::eReadWrite);
-		}
 	}
 
 	if (exception_ptr)
@@ -1304,7 +1370,7 @@ void cgpu::CommandRecorder::addReferencedObject(const std::shared_ptr<T>& object
 	m_referenced_containers->objects.emplace(object);
 }
 
-void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceAccess access)
+void cgpu::CommandRecorder::addCmdResource(const ImagePtr& image, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses)
 {
 #if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
@@ -1312,14 +1378,12 @@ void cgpu::CommandRecorder::addReferencedObject(const ImagePtr& image, ResourceA
 
 	m_referenced_containers->objects.emplace(image);
 
-	auto [it, inserted] = m_referenced_containers->images.try_emplace(image.get(), access);
-	if (!inserted && access == ResourceAccess::eReadWrite)
-	{
-		it->second = ResourceAccess::eReadWrite;
-	}
+	auto [it, inserted] = m_referenced_containers->cmd_images.try_emplace(image.get());
+	it->second.stages |= stages;
+	it->second.accesses |= accesses;
 }
 
-void cgpu::CommandRecorder::addReferencedObject(const BufferPtr& buffer, ResourceAccess access)
+void cgpu::CommandRecorder::addCmdResource(const BufferPtr& buffer, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses)
 {
 #if defined(PROFILE_HOT_CALLS)
 	ZoneScoped;
@@ -1327,10 +1391,79 @@ void cgpu::CommandRecorder::addReferencedObject(const BufferPtr& buffer, Resourc
 
 	m_referenced_containers->objects.emplace(buffer);
 
-	auto [it, inserted] = m_referenced_containers->buffers.try_emplace(buffer.get(), access);
-	if (!inserted && access == ResourceAccess::eReadWrite)
+	auto [it, inserted] = m_referenced_containers->cmd_buffers.try_emplace(buffer.get());
+	it->second.stages |= stages;
+	it->second.accesses |= accesses;
+}
+
+void cgpu::CommandRecorder::emitCmdBarrier()
+{
+	if (m_referenced_containers->cmd_images.empty() && m_referenced_containers->cmd_buffers.empty())
 	{
-		it->second = ResourceAccess::eReadWrite;
+		return;
+	}
+
+	vk::MemoryBarrier2 barrier;
+	barrier.srcStageMask = {};
+	barrier.srcAccessMask = {};
+	barrier.dstStageMask = {};
+	barrier.dstAccessMask = {};
+
+	auto process_resources =
+		[&]<class T>(
+			detail::BumpSegmentedUnorderedMap<T*, GlobalResourceSync>& global_map,
+			detail::BumpSegmentedUnorderedMap<T*, CmdResourceSync>& cmd_map
+		) {
+			for (const auto& [resource, cmd_sync] : cmd_map)
+			{
+				GlobalResourceSync& global_sync = global_map[resource];
+
+				vk::AccessFlags2 cmd_write_accesses = getWriteAccesses(cmd_sync.accesses);
+				if (cmd_write_accesses != vk::AccessFlagBits2::eNone)
+				{
+					barrier.srcStageMask |= global_sync.stages_since_last_write;
+					barrier.srcAccessMask |= global_sync.accesses_since_last_write;
+
+					global_sync.last_write_stages = global_sync.stages_since_last_write = cmd_sync.stages;
+					global_sync.last_write_accesses = global_sync.accesses_since_last_write = cmd_write_accesses;
+				}
+				else
+				{
+					barrier.srcStageMask |= global_sync.last_write_stages;
+					barrier.srcAccessMask |= global_sync.last_write_accesses;
+
+					global_sync.stages_since_last_write |= cmd_sync.stages;
+					global_sync.accesses_since_last_write |= cmd_sync.accesses;
+				}
+
+				barrier.dstStageMask |= cmd_sync.stages;
+				barrier.dstAccessMask |= cmd_sync.accesses;
+			}
+		};
+
+	process_resources(m_referenced_containers->images, m_referenced_containers->cmd_images);
+	process_resources(m_referenced_containers->buffers, m_referenced_containers->cmd_buffers);
+
+	m_referenced_containers->cmd_images.clear();
+	m_referenced_containers->cmd_buffers.clear();
+
+	vk::DependencyInfo dep_info;
+	dep_info.dependencyFlags = {};
+	dep_info.memoryBarrierCount = 1;
+	dep_info.pMemoryBarriers = &barrier;
+	dep_info.bufferMemoryBarrierCount = 0;
+	// dep_info.pBufferMemoryBarriers;
+	dep_info.imageMemoryBarrierCount = 0;
+	// dep_info.pImageMemoryBarriers;
+
+	{
+#if defined(PROFILE_VULKAN_CALLS)
+		ZoneScopedN("vkCmdPipelineBarrier2");
+#endif
+		m_curr_cmd_buf.pipelineBarrier2(
+			dep_info,
+			*m_dispatcher
+		);
 	}
 }
 
@@ -1392,7 +1525,7 @@ void cgpu::CommandRecorder::bindIndexBuffer(
 		);
 	}
 
-	addReferencedObject(buffer, ResourceAccess::eReadonly);
+	addCmdResource(buffer, vk::PipelineStageFlagBits2::eIndexInput, vk::AccessFlagBits2::eIndexRead);
 }
 
 void cgpu::CommandRecorder::bindPipelineStates(

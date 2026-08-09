@@ -4,7 +4,6 @@
 #include <CyphGPU/PassContext.hpp>
 
 #include <glm/glm.hpp>
-#include <optional>
 
 namespace cgpu
 {
@@ -13,6 +12,31 @@ class CommandRecorder;
 class ComputePassContext final : public PassContext
 {
 public:
+	[[nodiscard]]
+	SampledImageHandle getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides = {});
+
+	[[nodiscard]]
+	StorageImageHandle getStorageImageDescriptor(const ImagePtr& image, StorageAccess access, const Image::StorageDescriptorOverrides& overrides = {});
+
+	template<class T>
+	[[nodiscard]]
+	T* getBufferDevicePtr(const BufferPtr& buffer, StorageAccess access, vk::DeviceSize offset = 0)
+	{
+		registerStorageBufferIndirectAccess(buffer, access);
+		return buffer->getDevicePtrIndirect<T>(offset);
+	}
+
+	[[nodiscard]]
+	UniformTexelBufferHandle getUniformTexelBufferDescriptor(const BufferPtr& buffer, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides = {});
+
+	[[nodiscard]]
+	StorageTexelBufferHandle getStorageTexelBufferDescriptor(const BufferPtr& buffer, StorageAccess access, vk::Format format, const Buffer::StorageTexelDescriptorOverrides& overrides = {});
+
+	void registerSampledImageIndirectAccess(const ImagePtr& image);
+	void registerStorageImageIndirectAccess(const ImagePtr& image, StorageAccess access);
+	void registerSampledBufferIndirectAccess(const BufferPtr& buffer);
+	void registerStorageBufferIndirectAccess(const BufferPtr& buffer, StorageAccess access);
+
 	// ----- Commands -----
 
 	void dispatch(

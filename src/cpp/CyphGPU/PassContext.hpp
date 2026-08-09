@@ -11,37 +11,20 @@ namespace cgpu
 {
 class CommandRecorder;
 
+enum class StorageAccess : uint8_t
+{
+	eReadonly,
+	eWriteonly,
+	eReadWrite,
+};
+
 class PassContext
 {
-public:
-	// ----- Commands -----
-
-	[[nodiscard]]
-	SampledImageHandle getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides = {});
-
-	[[nodiscard]]
-	StorageImageHandle getStorageImageDescriptor(const ImagePtr& image, CommandRecorder::ResourceAccess access, const Image::StorageDescriptorOverrides& overrides = {});
-
-	template<class T>
-	[[nodiscard]]
-	T* getBufferDevicePtr(const BufferPtr& buffer, CommandRecorder::ResourceAccess access, vk::DeviceSize offset = 0)
-	{
-		registerIndirectAccess(buffer, access);
-		return buffer->getDevicePtrIndirect<T>(offset);
-	}
-
-	[[nodiscard]]
-	UniformTexelBufferHandle getUniformTexelBufferDescriptor(const BufferPtr& buffer, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides = {});
-
-	[[nodiscard]]
-	StorageTexelBufferHandle getStorageTexelBufferDescriptor(const BufferPtr& buffer, vk::Format format, CommandRecorder::ResourceAccess access, const Buffer::StorageTexelDescriptorOverrides& overrides = {});
-
-	void registerIndirectAccess(const ImagePtr& image, CommandRecorder::ResourceAccess access);
-	void registerIndirectAccess(const BufferPtr& buffer, CommandRecorder::ResourceAccess access);
-
 protected:
 	CommandRecorder* m_rec;
 
 	explicit PassContext(CommandRecorder& rec);
+
+	static vk::AccessFlags2 toVk(StorageAccess access);
 };
 }

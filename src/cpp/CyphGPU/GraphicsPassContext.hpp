@@ -9,9 +9,43 @@ namespace cgpu
 {
 class CommandRecorder;
 
+enum class GraphicsStage : uint8_t
+{
+	eVertex = 1 << 0,
+	eGeometry = 1 << 1,
+	eFragment = 1 << 2,
+};
+
+using GraphicsStages = vk::Flags<GraphicsStage>;
+
 class GraphicsPassContext final : public PassContext
 {
 public:
+	[[nodiscard]]
+	SampledImageHandle getSampledImageDescriptor(const ImagePtr& image, GraphicsStages stages, const Image::SampledDescriptorOverrides& overrides = {});
+
+	[[nodiscard]]
+	StorageImageHandle getStorageImageDescriptor(const ImagePtr& image, GraphicsStages stages, StorageAccess access, const Image::StorageDescriptorOverrides& overrides = {});
+
+	template<class T>
+	[[nodiscard]]
+	T* getBufferDevicePtr(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::DeviceSize offset = 0)
+	{
+		registerStorageBufferIndirectAccess(buffer, stages, access);
+		return buffer->getDevicePtrIndirect<T>(offset);
+	}
+
+	[[nodiscard]]
+	UniformTexelBufferHandle getUniformTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides = {});
+
+	[[nodiscard]]
+	StorageTexelBufferHandle getStorageTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::Format format, const Buffer::StorageTexelDescriptorOverrides& overrides = {});
+
+	void registerSampledImageIndirectAccess(const ImagePtr& image, GraphicsStages stages);
+	void registerStorageImageIndirectAccess(const ImagePtr& image, GraphicsStages stages, StorageAccess access);
+	void registerSampledBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages);
+	void registerStorageBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access);
+
 	// ----- Commands -----
 
 	void bindPipelineStates(
@@ -107,5 +141,19 @@ private:
 	std::optional<FragmentOutputStatePtr> m_current_fragment_output_state;
 
 	using PassContext::PassContext;
+
+	static vk::PipelineStageFlags2 toVk(GraphicsStages stages);
 };
 }
+
+// NOLINTBEGIN(readability-identifier-naming)
+template<>
+struct vk::FlagTraits<cgpu::GraphicsStage>
+{
+	static VULKAN_HPP_CONST_OR_CONSTEXPR bool isBitmask = true;
+	static VULKAN_HPP_CONST_OR_CONSTEXPR cgpu::GraphicsStages allFlags =
+		cgpu::GraphicsStage::eVertex |
+		cgpu::GraphicsStage::eGeometry |
+		cgpu::GraphicsStage::eFragment;
+};
+// NOLINTEND(readability-identifier-naming)

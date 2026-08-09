@@ -50,4 +50,10 @@ glm::uvec3 calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t level);
 vk::DeviceSize calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers);
 
 vk::DeviceSize calcImageByteSize(vk::Format format, const glm::uvec3& base_extent, Range<uint32_t> levels, uint32_t layers);
+
+[[nodiscard]]
+vk::AccessFlags2 getReadAccesses(vk::AccessFlags2 accesses);
+
+[[nodiscard]]
+vk::AccessFlags2 getWriteAccesses(vk::AccessFlags2 accesses);
 }

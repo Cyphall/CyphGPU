@@ -13,7 +13,6 @@
 namespace cgpu
 {
 class CommandContextSlot;
-class PassContext;
 class GraphicsPassContext;
 class ComputePassContext;
 
@@ -56,12 +55,6 @@ public:
 
 	template<class T>
 	using Opt = std::optional<T>;
-
-	enum class ResourceAccess : uint8_t
-	{
-		eReadonly,
-		eReadWrite,
-	};
 
 	CommandRecorder(const CommandRecorder&) = delete;
 	CommandRecorder(CommandRecorder&&) = delete;
@@ -222,16 +215,6 @@ public:
 
 	void blit(const BlitParams& params);
 
-	struct BarrierParams
-	{
-		Req<vk::PipelineStageFlags2> src_stages;
-		Req<vk::AccessFlags2> src_accesses;
-		Req<vk::PipelineStageFlags2> dst_stages;
-		Req<vk::AccessFlags2> dst_accesses;
-	};
-
-	void barrier(const BarrierParams& params);
-
 	struct GraphicsPassParams
 	{
 		struct ColorAttachment
@@ -344,20 +327,44 @@ public:
 
 private:
 	friend class CommandContextSlot;
-	friend class PassContext;
 	friend class GraphicsPassContext;
 	friend class ComputePassContext;
+
+	struct GlobalResourceSync
+	{
+		// Stages that performed the last write
+		vk::PipelineStageFlags2 last_write_stages{};
+		// Accesses that happened during the last write
+		vk::AccessFlags2 last_write_accesses{};
+
+		// Which stages accessed the resource since the last write
+		vk::PipelineStageFlags2 stages_since_last_write{};
+		// Which accesses accessed the resource since the last write
+		vk::AccessFlags2 accesses_since_last_write{};
+	};
+
+	struct CmdResourceSync
+	{
+		vk::PipelineStageFlags2 stages{};
+		vk::AccessFlags2 accesses{};
+	};
 
 	struct ReferencedContainers
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
-		detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> images;
-		detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> buffers;
+		detail::BumpSegmentedUnorderedMap<Image*, GlobalResourceSync> images;
+		detail::BumpSegmentedUnorderedMap<Buffer*, GlobalResourceSync> buffers;
+
+		// Resource accesses in the current command
+		detail::BumpSegmentedUnorderedMap<Image*, CmdResourceSync> cmd_images;
+		detail::BumpSegmentedUnorderedMap<Buffer*, CmdResourceSync> cmd_buffers;
 
 		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
 			objects{bump_memory},
 			images{bump_memory},
-			buffers{bump_memory}
+			buffers{bump_memory},
+			cmd_images{bump_memory},
+			cmd_buffers{bump_memory}
 		{}
 	};
 
@@ -386,8 +393,9 @@ private:
 	requires(!std::derived_from<T, cgpu::Resource>)
 	void addReferencedObject(const std::shared_ptr<T>& object);
 
-	void addReferencedObject(const ImagePtr& image, ResourceAccess access);
-	void addReferencedObject(const BufferPtr& buffer, ResourceAccess access);
+	void addCmdResource(const ImagePtr& image, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
+	void addCmdResource(const BufferPtr& buffer, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
+	void emitCmdBarrier();
 
 	// ----- Pass sub-commands -----
 

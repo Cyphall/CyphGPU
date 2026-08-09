@@ -2,41 +2,19 @@
 
 #include <CyphGPU/CommandRecorder.hpp>
 
-cgpu::SampledImageHandle cgpu::PassContext::getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides)
-{
-	registerIndirectAccess(image, CommandRecorder::ResourceAccess::eReadonly);
-	return image->getSampledDescriptorIndirect(overrides);
-}
-
-cgpu::StorageImageHandle cgpu::PassContext::getStorageImageDescriptor(const ImagePtr& image, CommandRecorder::ResourceAccess access, const Image::StorageDescriptorOverrides& overrides)
-{
-	registerIndirectAccess(image, access);
-	return image->getStorageDescriptorIndirect(overrides);
-}
-
-cgpu::UniformTexelBufferHandle cgpu::PassContext::getUniformTexelBufferDescriptor(const BufferPtr& buffer, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides)
-{
-	registerIndirectAccess(buffer, CommandRecorder::ResourceAccess::eReadonly);
-	return buffer->getUniformTexelDescriptorIndirect(format, overrides);
-}
-
-cgpu::StorageTexelBufferHandle cgpu::PassContext::getStorageTexelBufferDescriptor(const BufferPtr& buffer, vk::Format format, CommandRecorder::ResourceAccess access, const Buffer::StorageTexelDescriptorOverrides& overrides)
-{
-	registerIndirectAccess(buffer, access);
-	return buffer->getStorageTexelDescriptorIndirect(format, overrides);
-}
-
-void cgpu::PassContext::registerIndirectAccess(const ImagePtr& image, CommandRecorder::ResourceAccess access)
-{
-	m_rec->addReferencedObject(image, access);
-}
-
-void cgpu::PassContext::registerIndirectAccess(const BufferPtr& buffer, CommandRecorder::ResourceAccess access)
-{
-	m_rec->addReferencedObject(buffer, access);
-}
-
 cgpu::PassContext::PassContext(CommandRecorder& rec):
 	m_rec(&rec)
 {
+}
+
+vk::AccessFlags2 cgpu::PassContext::toVk(StorageAccess access)
+{
+	switch (access)
+	{
+	case StorageAccess::eReadonly: return vk::AccessFlagBits2::eShaderStorageRead;
+	case StorageAccess::eWriteonly: return vk::AccessFlagBits2::eShaderStorageWrite;
+	case StorageAccess::eReadWrite: return vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite;
+	}
+
+	std::unreachable();
 }

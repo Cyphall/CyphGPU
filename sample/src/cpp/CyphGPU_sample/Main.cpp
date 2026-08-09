@@ -303,13 +303,6 @@ int main()
 			if (!texture)
 			{
 				uploadTexture(device_session, cmd_rec, texture.emplace());
-
-				cmd_rec.barrier({
-					.src_stages = vk::PipelineStageFlagBits2::eCopy,
-					.src_accesses = vk::AccessFlagBits2::eTransferWrite,
-					.dst_stages = vk::PipelineStageFlagBits2::eFragmentShader,
-					.dst_accesses = vk::AccessFlagBits2::eShaderSampledRead,
-				});
 			}
 
 			cmd_rec.graphicsPass({
@@ -362,9 +355,9 @@ int main()
 					);
 
 					parameters.u_mvp_matrix = p_matrix * v_matrix * m_matrix;
-					parameters.u_positions = ctx.getBufferDevicePtr<float3>(position_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
-					parameters.u_tex_coords = ctx.getBufferDevicePtr<float2>(tex_coord_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
-					parameters.u_texture = ctx.getSampledImageDescriptor(*texture);
+					parameters.u_positions = ctx.getBufferDevicePtr<float3>(position_buffer, cgpu::GraphicsStage::eVertex, cgpu::StorageAccess::eReadonly);
+					parameters.u_tex_coords = ctx.getBufferDevicePtr<float2>(tex_coord_buffer, cgpu::GraphicsStage::eVertex, cgpu::StorageAccess::eReadonly);
+					parameters.u_texture = ctx.getSampledImageDescriptor(*texture, cgpu::GraphicsStage::eFragment);
 					parameters.u_sampler = sampler->getDescriptor();
 
 					ctx.draw(12 * 3, 1, 0, 0, parameters);

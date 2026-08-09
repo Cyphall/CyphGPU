@@ -2,6 +2,50 @@
 
 #include <CyphGPU/CommandRecorder.hpp>
 
+cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(const ImagePtr& image, GraphicsStages stages, const Image::SampledDescriptorOverrides& overrides)
+{
+	registerSampledImageIndirectAccess(image, stages);
+	return image->getSampledDescriptorIndirect(overrides);
+}
+
+cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(const ImagePtr& image, GraphicsStages stages, StorageAccess access, const Image::StorageDescriptorOverrides& overrides)
+{
+	registerStorageImageIndirectAccess(image, stages, access);
+	return image->getStorageDescriptorIndirect(overrides);
+}
+
+cgpu::UniformTexelBufferHandle cgpu::GraphicsPassContext::getUniformTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides)
+{
+	registerSampledBufferIndirectAccess(buffer, stages);
+	return buffer->getUniformTexelDescriptorIndirect(format, overrides);
+}
+
+cgpu::StorageTexelBufferHandle cgpu::GraphicsPassContext::getStorageTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::Format format, const Buffer::StorageTexelDescriptorOverrides& overrides)
+{
+	registerStorageBufferIndirectAccess(buffer, stages, access);
+	return buffer->getStorageTexelDescriptorIndirect(format, overrides);
+}
+
+void cgpu::GraphicsPassContext::registerSampledImageIndirectAccess(const ImagePtr& image, GraphicsStages stages)
+{
+	m_rec->addCmdResource(image, toVk(stages), vk::AccessFlagBits2::eShaderSampledRead);
+}
+
+void cgpu::GraphicsPassContext::registerStorageImageIndirectAccess(const ImagePtr& image, GraphicsStages stages, StorageAccess access)
+{
+	m_rec->addCmdResource(image, toVk(stages), PassContext::toVk(access));
+}
+
+void cgpu::GraphicsPassContext::registerSampledBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages)
+{
+	m_rec->addCmdResource(buffer, toVk(stages), vk::AccessFlagBits2::eShaderSampledRead);
+}
+
+void cgpu::GraphicsPassContext::registerStorageBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access)
+{
+	m_rec->addCmdResource(buffer, toVk(stages), PassContext::toVk(access));
+}
+
 void cgpu::GraphicsPassContext::bindPipelineStates(
 	const VertexInputStatePtr& vertex_input_state,
 	const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
@@ -109,4 +153,22 @@ void cgpu::GraphicsPassContext::setScissor(
 )
 {
 	m_rec->setScissor(scissor);
+}
+
+vk::PipelineStageFlags2 cgpu::GraphicsPassContext::toVk(GraphicsStages stages)
+{
+	vk::PipelineStageFlags2 vk_stages;
+	if (stages & GraphicsStage::eVertex)
+	{
+		vk_stages |= vk::PipelineStageFlagBits2::eVertexShader;
+	}
+	if (stages & GraphicsStage::eGeometry)
+	{
+		vk_stages |= vk::PipelineStageFlagBits2::eGeometryShader;
+	}
+	if (stages & GraphicsStage::eFragment)
+	{
+		vk_stages |= vk::PipelineStageFlagBits2::eFragmentShader;
+	}
+	return vk_stages;
 }

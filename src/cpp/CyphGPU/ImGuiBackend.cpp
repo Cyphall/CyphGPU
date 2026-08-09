@@ -120,13 +120,6 @@ void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmd_rec, ImTextureDa
 		ptr += row_size;
 	}
 
-	cmd_rec.barrier({
-		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
-		.src_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
-		.dst_stages = vk::PipelineStageFlagBits2::eCopy,
-		.dst_accesses = vk::AccessFlagBits2::eTransferWrite,
-	});
-
 	cmd_rec.copyBufferToImage({
 		.src_buffer = staging_buffer,
 		.dst_image = btd.image,
@@ -137,13 +130,6 @@ void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmd_rec, ImTextureDa
 				}},
 			},
 		}},
-	});
-
-	cmd_rec.barrier({
-		.src_stages = vk::PipelineStageFlagBits2::eCopy,
-		.src_accesses = vk::AccessFlagBits2::eTransferWrite,
-		.dst_stages = vk::PipelineStageFlagBits2::eAllCommands,
-		.dst_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
 	});
 }
 
@@ -382,13 +368,6 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		}
 	}
 
-	cmd_rec.barrier({
-		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
-		.src_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
-		.dst_stages = vk::PipelineStageFlagBits2::eAllCommands,
-		.dst_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
-	});
-
 	cmd_rec.graphicsPass({
 		.color_attachments = {{{
 			.image = output_image,
@@ -449,7 +428,7 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 							SamplerState::Handle sampler{};
 						} parameters{};
 
-						parameters.vertices = ctx.getBufferDevicePtr<ImDrawVert>(*vertex_buffer, cgpu::CommandRecorder::ResourceAccess::eReadonly);
+						parameters.vertices = ctx.getBufferDevicePtr<ImDrawVert>(*vertex_buffer, cgpu::GraphicsStage::eVertex, cgpu::StorageAccess::eReadonly);
 
 						parameters.scale = glm::vec2{
 							2.0f / draw_data.DisplaySize.x,
@@ -463,7 +442,7 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 
 						auto [image, overrides] = bd.referenced_images[cmd.GetTexID() - 1];
 						overrides.format = cgpu::getLinearEquivalent(overrides.format ? *overrides.format : image->getDesc().format);
-						parameters.image = ctx.getSampledImageDescriptor(image, overrides);
+						parameters.image = ctx.getSampledImageDescriptor(image, cgpu::GraphicsStage::eFragment, overrides);
 
 						parameters.sampler = render_state.sampler->getDescriptor();
 
@@ -483,13 +462,6 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 
 			ImGui::GetPlatformIO().Renderer_RenderState = nullptr;
 		},
-	});
-
-	cmd_rec.barrier({
-		.src_stages = vk::PipelineStageFlagBits2::eAllCommands,
-		.src_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
-		.dst_stages = vk::PipelineStageFlagBits2::eAllCommands,
-		.dst_accesses = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
 	});
 }
 

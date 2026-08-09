@@ -152,3 +152,63 @@ vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& base
 	}
 	return size;
 }
+
+vk::AccessFlags2 cgpu::getReadAccesses(vk::AccessFlags2 accesses)
+{
+	vk::AccessFlags2 read_accesses =
+		vk::AccessFlagBits2::eIndirectCommandRead |
+		vk::AccessFlagBits2::eIndexRead |
+		vk::AccessFlagBits2::eVertexAttributeRead |
+		vk::AccessFlagBits2::eUniformRead |
+		vk::AccessFlagBits2::eInputAttachmentRead |
+		vk::AccessFlagBits2::eShaderRead |
+		vk::AccessFlagBits2::eColorAttachmentRead |
+		vk::AccessFlagBits2::eDepthStencilAttachmentRead |
+		vk::AccessFlagBits2::eTransferRead |
+		vk::AccessFlagBits2::eHostRead |
+		vk::AccessFlagBits2::eMemoryRead |
+		vk::AccessFlagBits2::eShaderSampledRead |
+		vk::AccessFlagBits2::eShaderStorageRead |
+		vk::AccessFlagBits2::eVideoDecodeReadKHR |
+		vk::AccessFlagBits2::eSamplerHeapReadEXT |
+		vk::AccessFlagBits2::eResourceHeapReadEXT |
+		vk::AccessFlagBits2::eVideoEncodeReadKHR |
+		vk::AccessFlagBits2::eShaderTileAttachmentReadQCOM |
+		vk::AccessFlagBits2::eTransformFeedbackCounterReadEXT |
+		vk::AccessFlagBits2::eConditionalRenderingReadEXT |
+		vk::AccessFlagBits2::eCommandPreprocessReadEXT |
+		vk::AccessFlagBits2::eFragmentShadingRateAttachmentReadKHR |
+		vk::AccessFlagBits2::eAccelerationStructureReadKHR |
+		vk::AccessFlagBits2::eFragmentDensityMapReadEXT |
+		vk::AccessFlagBits2::eColorAttachmentReadNoncoherentEXT |
+		vk::AccessFlagBits2::eDescriptorBufferReadEXT |
+		vk::AccessFlagBits2::eInvocationMaskReadHUAWEI |
+		vk::AccessFlagBits2::eShaderBindingTableReadKHR |
+		vk::AccessFlagBits2::eMicromapReadEXT |
+		vk::AccessFlagBits2::eOpticalFlowReadNV;
+
+	return accesses & read_accesses;
+}
+
+vk::AccessFlags2 cgpu::getWriteAccesses(vk::AccessFlags2 accesses)
+{
+	vk::AccessFlags2 write_accesses =
+		vk::AccessFlagBits2::eShaderWrite |
+		vk::AccessFlagBits2::eColorAttachmentWrite |
+		vk::AccessFlagBits2::eDepthStencilAttachmentWrite |
+		vk::AccessFlagBits2::eTransferWrite |
+		vk::AccessFlagBits2::eHostWrite |
+		vk::AccessFlagBits2::eMemoryWrite |
+		vk::AccessFlagBits2::eShaderStorageWrite |
+		vk::AccessFlagBits2::eVideoDecodeWriteKHR |
+		vk::AccessFlagBits2::eVideoEncodeWriteKHR |
+		vk::AccessFlagBits2::eShaderTileAttachmentWriteQCOM |
+		vk::AccessFlagBits2::eTransformFeedbackWriteEXT |
+		vk::AccessFlagBits2::eTransformFeedbackCounterWriteEXT |
+		vk::AccessFlagBits2::eCommandPreprocessWriteEXT |
+		vk::AccessFlagBits2::eAccelerationStructureWriteKHR |
+		vk::AccessFlagBits2::eMicromapWriteEXT |
+		vk::AccessFlagBits2::eOpticalFlowWriteNV;
+
+	return accesses & write_accesses;
+}
