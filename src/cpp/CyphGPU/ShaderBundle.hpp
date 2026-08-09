@@ -19,6 +19,6 @@ private:
 };
 }
 
-#define CGPU_DECLARE_SHADER_BUNDLE(name) \
-	CMRC_DECLARE(name);                  \
-	static const cgpu::ShaderBundle name{cmrc::name::get_filesystem()};
+#define CGPU_DECLARE_SHADER_BUNDLE(name)            \
+	CMRC_DECLARE(name); /* NOLINT(*-type-traits) */ \
+	static const cgpu::ShaderBundle name{cmrc::name::get_filesystem()}; /* NOLINT(*-throwing-static-initialization) */
