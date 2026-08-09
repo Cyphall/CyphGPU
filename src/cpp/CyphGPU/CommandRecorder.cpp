@@ -1418,11 +1418,6 @@ void cgpu::CommandRecorder::addCmdResource(const BufferPtr& buffer, vk::Pipeline
 
 void cgpu::CommandRecorder::emitCmdBarrier()
 {
-	if (m_referenced_containers->cmd_images.empty() && m_referenced_containers->cmd_buffers.empty())
-	{
-		return;
-	}
-
 	vk::MemoryBarrier2 barrier;
 	barrier.srcStageMask = {};
 	barrier.srcAccessMask = {};
@@ -1465,6 +1460,11 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 
 	m_referenced_containers->cmd_images.clear();
 	m_referenced_containers->cmd_buffers.clear();
+
+	if (!barrier.srcStageMask && !barrier.srcAccessMask)
+	{
+		return;
+	}
 
 	vk::DependencyInfo dep_info;
 	dep_info.dependencyFlags = {};
