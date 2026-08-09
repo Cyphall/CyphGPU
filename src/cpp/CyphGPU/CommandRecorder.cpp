@@ -1195,10 +1195,10 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	}
 
 	m_curr_cmd_buf = pass_cmd_buf;
+	GraphicsPassContext ctx{*this};
 	std::exception_ptr exception_ptr;
 	try
 	{
-		GraphicsPassContext ctx{*this};
 		(*params.callback)(ctx);
 	}
 	catch (...)
@@ -1248,7 +1248,15 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 	REGIONED_COMMAND_PROLOGUE
 
 	ComputePassContext ctx{*this, *m_bump_memory};
-	(*params.callback)(ctx);
+	std::exception_ptr exception_ptr;
+	try
+	{
+		(*params.callback)(ctx);
+	}
+	catch (...)
+	{
+		exception_ptr = std::current_exception();
+	}
 
 	emitCmdBarrier();
 
@@ -1267,6 +1275,11 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 		pushParameterPtr(dispatch_cmd.params_gpu_ptr);
 
 		dispatch(dispatch_cmd.group_count);
+	}
+
+	if (exception_ptr)
+	{
+		std::rethrow_exception(exception_ptr);
 	}
 }
 
