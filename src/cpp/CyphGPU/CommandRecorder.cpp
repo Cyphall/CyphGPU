@@ -1438,14 +1438,13 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 			{
 				GlobalResourceSync& global_sync = global_map[resource];
 
-				vk::AccessFlags2 cmd_write_accesses = getWriteAccesses(cmd_sync.accesses);
-				if (cmd_write_accesses != vk::AccessFlagBits2::eNone)
+				if (getWriteAccesses(cmd_sync.accesses))
 				{
 					barrier.srcStageMask |= global_sync.stages_since_last_write;
 					barrier.srcAccessMask |= global_sync.accesses_since_last_write;
 
 					global_sync.last_write_stages = global_sync.stages_since_last_write = cmd_sync.stages;
-					global_sync.last_write_accesses = global_sync.accesses_since_last_write = cmd_write_accesses;
+					global_sync.last_write_accesses = global_sync.accesses_since_last_write = cmd_sync.accesses;
 				}
 				else
 				{
