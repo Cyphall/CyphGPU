@@ -352,6 +352,8 @@ private:
 	struct ReferencedContainers
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
+
+		// Last resource accesses in the cmd rec
 		detail::BumpSegmentedUnorderedMap<Image*, GlobalResourceSync> images;
 		detail::BumpSegmentedUnorderedMap<Buffer*, GlobalResourceSync> buffers;
 
