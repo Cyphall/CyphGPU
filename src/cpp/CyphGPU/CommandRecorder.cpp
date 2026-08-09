@@ -1250,6 +1250,8 @@ void cgpu::CommandRecorder::computePass(const ComputePassParams& params)
 	ComputePassContext ctx{*this, *m_bump_memory};
 	(*params.callback)(ctx);
 
+	emitCmdBarrier();
+
 	std::optional<ComputeShaderStatePtr> current_compute_shader_state;
 	for (const auto& dispatch_cmd : ctx.getDispatchCmds())
 	{
