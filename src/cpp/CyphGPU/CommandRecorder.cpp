@@ -348,6 +348,11 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 		aspects |= vk::ImageAspectFlagBits::eStencil;
 	}
 
+	if (!aspects)
+	{
+		return;
+	}
+
 	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{*params.ranges} : CLEAR_IMAGE_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{*m_bump_memory};
 	vk_ranges.reserve(ranges.size());
