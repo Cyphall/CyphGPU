@@ -157,6 +157,8 @@ void cgpu::GraphicsPassContext::setScissor(
 
 vk::PipelineStageFlags2 cgpu::GraphicsPassContext::toVk(GraphicsStages stages)
 {
+	assert(stages != GraphicsStages{});
+
 	vk::PipelineStageFlags2 vk_stages;
 	if (stages & GraphicsStage::eVertex)
 	{
