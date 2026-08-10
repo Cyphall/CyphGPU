@@ -1418,62 +1418,101 @@ void cgpu::CommandRecorder::addCmdResource(const BufferPtr& buffer, vk::Pipeline
 
 void cgpu::CommandRecorder::emitCmdBarrier()
 {
-	vk::MemoryBarrier2 barrier;
-	barrier.srcStageMask = {};
-	barrier.srcAccessMask = {};
-	barrier.dstStageMask = {};
-	barrier.dstAccessMask = {};
+	auto calc_sync = [](const CmdResourceSync& cmd_sync, GlobalResourceSync& global_sync) -> std::pair<vk::PipelineStageFlags2, vk::AccessFlags2> {
+		vk::PipelineStageFlags2 src_stages;
+		vk::AccessFlags2 src_accesses;
+		if (getWriteAccesses(cmd_sync.accesses))
+		{
+			src_stages = global_sync.stages_since_last_write;
+			src_accesses = global_sync.accesses_since_last_write;
 
-	auto sync_resources =
-		[&]<class T>(
-			detail::BumpSegmentedUnorderedMap<T*, GlobalResourceSync>& global_map,
-			detail::BumpSegmentedUnorderedMap<T*, CmdResourceSync>& cmd_map
-		) {
-			for (const auto& [resource, cmd_sync] : cmd_map)
-			{
-				GlobalResourceSync& global_sync = global_map[resource];
+			global_sync.last_write_stages = global_sync.stages_since_last_write = cmd_sync.stages;
+			global_sync.last_write_accesses = global_sync.accesses_since_last_write = cmd_sync.accesses;
+		}
+		else
+		{
+			src_stages = global_sync.last_write_stages;
+			src_accesses = global_sync.last_write_accesses;
 
-				if (getWriteAccesses(cmd_sync.accesses))
-				{
-					barrier.srcStageMask |= global_sync.stages_since_last_write;
-					barrier.srcAccessMask |= global_sync.accesses_since_last_write;
+			global_sync.stages_since_last_write |= cmd_sync.stages;
+			global_sync.accesses_since_last_write |= cmd_sync.accesses;
+		}
 
-					global_sync.last_write_stages = global_sync.stages_since_last_write = cmd_sync.stages;
-					global_sync.last_write_accesses = global_sync.accesses_since_last_write = cmd_sync.accesses;
-				}
-				else
-				{
-					barrier.srcStageMask |= global_sync.last_write_stages;
-					barrier.srcAccessMask |= global_sync.last_write_accesses;
-
-					global_sync.stages_since_last_write |= cmd_sync.stages;
-					global_sync.accesses_since_last_write |= cmd_sync.accesses;
-				}
-
-				barrier.dstStageMask |= cmd_sync.stages;
-				barrier.dstAccessMask |= cmd_sync.accesses;
-			}
+		return {
+			src_stages,
+			src_accesses,
 		};
+	};
 
-	sync_resources(m_referenced_containers->images, m_referenced_containers->cmd_images);
-	sync_resources(m_referenced_containers->buffers, m_referenced_containers->cmd_buffers);
+	detail::BumpVector<vk::ImageMemoryBarrier2> image_barriers{*m_bump_memory};
+	for (const auto& [image, cmd_sync] : m_referenced_containers->cmd_images)
+	{
+		GlobalResourceSync& global_sync = m_referenced_containers->images[image];
+
+		auto [src_stages, src_accesses] = calc_sync(cmd_sync, global_sync);
+
+		if (!src_stages && !src_accesses)
+		{
+			continue;
+		}
+
+		auto& barrier = image_barriers.emplace_back();
+		barrier.srcStageMask = src_stages;
+		barrier.srcAccessMask = src_accesses;
+		barrier.dstStageMask = cmd_sync.stages;
+		barrier.dstAccessMask = cmd_sync.accesses;
+		barrier.oldLayout = vk::ImageLayout::eGeneral;
+		barrier.newLayout = vk::ImageLayout::eGeneral;
+		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.image = image->getHandle();
+		barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
+	}
+
+	detail::BumpVector<vk::BufferMemoryBarrier2> buffer_barriers{*m_bump_memory};
+	for (const auto& [buffer, cmd_sync] : m_referenced_containers->cmd_buffers)
+	{
+		GlobalResourceSync& global_sync = m_referenced_containers->buffers[buffer];
+
+		auto [src_stages, src_accesses] = calc_sync(cmd_sync, global_sync);
+
+		if (!src_stages && !src_accesses)
+		{
+			continue;
+		}
+
+		auto& barrier = buffer_barriers.emplace_back();
+		barrier.srcStageMask = src_stages;
+		barrier.srcAccessMask = src_accesses;
+		barrier.dstStageMask = cmd_sync.stages;
+		barrier.dstAccessMask = cmd_sync.accesses;
+		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.buffer = buffer->getHandle();
+		barrier.offset = 0;
+		barrier.size = vk::WholeSize;
+	}
 
 	m_referenced_containers->cmd_images.clear();
 	m_referenced_containers->cmd_buffers.clear();
 
-	if (!barrier.srcStageMask && !barrier.srcAccessMask)
+	if (image_barriers.empty() && buffer_barriers.empty())
 	{
 		return;
 	}
 
 	vk::DependencyInfo dep_info;
 	dep_info.dependencyFlags = {};
-	dep_info.memoryBarrierCount = 1;
-	dep_info.pMemoryBarriers = &barrier;
-	dep_info.bufferMemoryBarrierCount = 0;
-	// dep_info.pBufferMemoryBarriers;
-	dep_info.imageMemoryBarrierCount = 0;
-	// dep_info.pImageMemoryBarriers;
+	dep_info.memoryBarrierCount = 0;
+	// dep_info.pMemoryBarriers;
+	dep_info.bufferMemoryBarrierCount = static_cast<uint32_t>(buffer_barriers.size());
+	dep_info.pBufferMemoryBarriers = buffer_barriers.data();
+	dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(image_barriers.size());
+	dep_info.pImageMemoryBarriers = image_barriers.data();
 
 	{
 #if defined(PROFILE_VULKAN_CALLS)
