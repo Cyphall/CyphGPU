@@ -1,6 +1,5 @@
 #include "CommandRecorder.hpp"
 
-#include <CyphGPU/CommandContextSlot.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
@@ -1237,7 +1236,7 @@ void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
 }
 
 cgpu::CommandRecorder::CommandRecorder(
-	std::shared_ptr<CommandContextSlot>&& slot,
+	std::shared_ptr<CommandContext::Slot>&& slot,
 	detail::BumpMemoryResource& bump_memory,
 	const QueuePtr& queue,
 	vk::CommandBuffer cmd_buf

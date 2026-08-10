@@ -21,7 +21,6 @@ class FragmentOutputState;
 class ComputeShaderState;
 
 class CommandContext;
-class CommandContextSlot;
 class CommandRecorder;
 
 class GraphicsPassContext;

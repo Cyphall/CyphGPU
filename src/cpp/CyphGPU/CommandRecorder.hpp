@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/Buffer.hpp>
+#include <CyphGPU/CommandContext.hpp>
 #include <CyphGPU/detail/BumpAllocator.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/Image.hpp>
@@ -321,7 +322,7 @@ public:
 	void endDebugRegion(const EndDebugRegionParams& params);
 
 private:
-	friend class CommandContextSlot;
+	friend class CommandContext::Slot;
 	friend class GraphicsPassContext;
 	friend class ComputePassContext;
 
@@ -365,7 +366,7 @@ private:
 		{}
 	};
 
-	std::shared_ptr<CommandContextSlot> m_slot;
+	std::shared_ptr<CommandContext::Slot> m_slot;
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
 	detail::BumpMemoryResource* m_bump_memory;
 
@@ -380,7 +381,7 @@ private:
 #endif
 
 	explicit CommandRecorder(
-		std::shared_ptr<CommandContextSlot>&& slot,
+		std::shared_ptr<CommandContext::Slot>&& slot,
 		detail::BumpMemoryResource& bump_memory,
 		const QueuePtr& queue,
 		vk::CommandBuffer cmd_buf
