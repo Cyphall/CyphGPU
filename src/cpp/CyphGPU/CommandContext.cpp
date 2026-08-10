@@ -148,7 +148,7 @@ void cgpu::CommandContext::Slot::addFinishedSignal(const Queue::Signal& signal)
 	}
 }
 
-void cgpu::CommandContext::Slot::reset()
+void cgpu::CommandContext::Slot::recycle()
 {
 	ZoneScoped;
 
@@ -251,7 +251,7 @@ void cgpu::CommandContext::endSlot()
 
 	if (m_current_slot->getFinishedSignals().empty())
 	{
-		m_current_slot->reset();
+		m_current_slot->recycle();
 		m_available_slots.push(std::move(m_current_slot));
 	}
 	else
@@ -283,7 +283,7 @@ void cgpu::CommandContext::recycleFinishedSlots()
 
 			if (finished)
 			{
-				slot->reset();
+				slot->recycle();
 				m_available_slots.push(std::move(slot));
 			}
 

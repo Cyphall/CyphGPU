@@ -60,7 +60,7 @@ private:
 
 		void addFinishedSignal(const Queue::Signal& signal);
 
-		void reset();
+		void recycle();
 
 		vk::CommandBuffer createCommandBuffer(const QueuePtr& queue, vk::CommandBufferLevel level);
 
