@@ -1383,7 +1383,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
 
-		image->setLayoutInitialized();
+		image->setLayoutInitialized(true);
 	}
 
 	detail::BumpVector<vk::BufferMemoryBarrier2> buffer_barriers{*m_bump_memory};

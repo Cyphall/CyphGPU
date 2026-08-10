@@ -294,7 +294,7 @@ bool cgpu::Image::isLayoutInitialized() const
 	return m_layout_initialized;
 }
 
-void cgpu::Image::setLayoutInitialized()
+void cgpu::Image::setLayoutInitialized(bool init)
 {
-	m_layout_initialized = true;
+	m_layout_initialized = init;
 }
