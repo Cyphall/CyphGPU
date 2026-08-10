@@ -21,8 +21,6 @@
 
 namespace cgpu
 {
-class CommandRecorder;
-
 namespace detail
 {
 class ShaderChainBuilder;

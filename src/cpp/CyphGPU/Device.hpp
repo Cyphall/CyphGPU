@@ -1,7 +1,6 @@
 #pragma once
 
 #include <CyphGPU/ContextSession.hpp>
-#include <CyphGPU/detail/DynamicFeatureChain.hpp>
 #include <CyphGPU/fwd.hpp>
 
 #include <boost/optional.hpp>
@@ -10,6 +9,11 @@
 
 namespace cgpu
 {
+namespace detail
+{
+class DynamicFeatureChain;
+}
+
 class Device final
 {
 	class PrivateKey

@@ -1,16 +1,11 @@
 #pragma once
 
-#include <CyphGPU/Buffer.hpp>
-#include <CyphGPU/CommandRecorder.hpp>
-#include <CyphGPU/Image.hpp>
-#include <CyphGPU/ShaderTypes.hpp>
+#include <CyphGPU/fwd.hpp>
 
-#include <glm/glm.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {
-class CommandRecorder;
-
 enum class StorageAccess : uint8_t
 {
 	eReadonly,

@@ -1,13 +1,9 @@
 #pragma once
 
+#include <CyphGPU/fwd.hpp>
 #include <CyphGPU/Image.hpp>
 
 #include <imgui.h>
-
-namespace cgpu
-{
-class CommandRecorder;
-}
 
 // NOLINTBEGIN(*-identifier-naming)
 void ImGui_ImplCyphGPU_Init(const cgpu::DeviceSessionPtr& device_session, vk::Format output_image_format);

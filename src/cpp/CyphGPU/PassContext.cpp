@@ -1,7 +1,5 @@
 #include "PassContext.hpp"
 
-#include <CyphGPU/CommandRecorder.hpp>
-
 cgpu::PassContext::PassContext(CommandRecorder& rec):
 	m_rec(&rec)
 {

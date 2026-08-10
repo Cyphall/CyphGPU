@@ -14,8 +14,6 @@
 
 namespace cgpu
 {
-class CommandRecorder;
-
 class Image final : public Resource
 {
 	class PrivateKey

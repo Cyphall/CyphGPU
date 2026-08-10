@@ -1,6 +1,7 @@
 #include "Device.hpp"
 
 #include <CyphGPU/Context.hpp>
+#include <CyphGPU/detail/DynamicFeatureChain.hpp>
 #include <CyphGPU/Surface.hpp>
 #include <CyphGPU/Utils.hpp>
 

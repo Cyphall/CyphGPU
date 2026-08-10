@@ -7,7 +7,6 @@
 #include <CyphGPU/Utils.hpp>
 
 #include <flat_map>
-#include <glm/glm.hpp>
 #include <optional>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>

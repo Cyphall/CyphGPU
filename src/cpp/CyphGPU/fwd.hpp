@@ -20,6 +20,13 @@ class FragmentShaderState;
 class FragmentOutputState;
 class ComputeShaderState;
 
+class CommandContext;
+class CommandContextSlot;
+class CommandRecorder;
+
+class GraphicsPassContext;
+class ComputePassContext;
+
 using ContextPtr = std::shared_ptr<Context>;
 using ContextSessionPtr = std::shared_ptr<ContextSession>;
 using SurfacePtr = std::shared_ptr<Surface>;

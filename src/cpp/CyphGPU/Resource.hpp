@@ -2,6 +2,8 @@
 
 #include <CyphGPU/Queue.hpp>
 
+#include <flat_map>
+#include <mutex>
 #include <optional>
 
 namespace cgpu

@@ -1,14 +1,14 @@
 #pragma once
 
+#include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Image.hpp>
 #include <CyphGPU/PassContext.hpp>
 
 #include <optional>
 
 namespace cgpu
 {
-class CommandRecorder;
-
 enum class GraphicsStage : uint8_t
 {
 	eVertex = 1 << 0,
@@ -156,4 +156,5 @@ struct vk::FlagTraits<cgpu::GraphicsStage>
 		cgpu::GraphicsStage::eGeometry |
 		cgpu::GraphicsStage::eFragment;
 };
+
 // NOLINTEND(readability-identifier-naming)

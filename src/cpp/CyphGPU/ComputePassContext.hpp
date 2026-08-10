@@ -1,14 +1,15 @@
 #pragma once
 
+#include <CyphGPU/Buffer.hpp>
+#include <CyphGPU/detail/BumpAllocator.hpp>
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Image.hpp>
 #include <CyphGPU/PassContext.hpp>
 
 #include <glm/glm.hpp>
 
 namespace cgpu
 {
-class CommandRecorder;
-
 class ComputePassContext final : public PassContext
 {
 public:

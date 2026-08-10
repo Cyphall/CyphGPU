@@ -1,10 +1,9 @@
 #pragma once
 
+#include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/detail/BumpAllocator.hpp>
-#include <CyphGPU/detail/BumpMemoryResource.hpp>
 #include <CyphGPU/fwd.hpp>
-#include <CyphGPU/Queue.hpp>
-#include <CyphGPU/Resource.hpp>
+#include <CyphGPU/Image.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <glm/glm.hpp>
@@ -12,10 +11,6 @@
 
 namespace cgpu
 {
-class CommandContextSlot;
-class GraphicsPassContext;
-class ComputePassContext;
-
 class CommandRecorder
 {
 public:

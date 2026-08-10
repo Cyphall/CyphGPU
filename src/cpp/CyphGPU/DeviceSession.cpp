@@ -1,6 +1,8 @@
 #include "DeviceSession.hpp"
 
 #include <CyphGPU/Context.hpp>
+#include <CyphGPU/ContextSession.hpp>
+#include <CyphGPU/detail/DynamicFeatureChain.hpp>
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/HashExt.hpp>
 #include <CyphGPU/Queue.hpp>

@@ -1,5 +1,7 @@
 #include "CommandContext.hpp"
 
+#include <CyphGPU/CommandContextSlot.hpp>
+#include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 
 #include <tracy/Tracy.hpp>

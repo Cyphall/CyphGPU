@@ -1,19 +1,22 @@
 #pragma once
 
-#include <CyphGPU/detail/BumpMemoryResource.hpp>
 #include <CyphGPU/fwd.hpp>
 
-#include <flat_map>
 #include <mutex>
 #include <queue>
 #include <stack>
 #include <vulkan/vulkan.hpp>
 
-#include <tracy/TracyVulkan.hpp>
+#if defined(TRACY_ENABLE)
+#	include <tracy/TracyVulkan.hpp>
+#endif
 
 namespace cgpu
 {
-class CommandRecorder;
+namespace detail
+{
+class BumpMemoryResource;
+}
 
 class Queue final
 {

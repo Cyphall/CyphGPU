@@ -1,7 +1,6 @@
 #pragma once
 
-#include <CyphGPU/CommandContextSlot.hpp>
-#include <CyphGPU/Queue.hpp>
+#include <CyphGPU/fwd.hpp>
 
 #include <memory>
 #include <stack>

@@ -11,6 +11,7 @@
 #include <CyphGPU/GraphicsPassContext.hpp>
 #include <CyphGPU/Image.hpp>
 #include <CyphGPU/Sampler.hpp>
+#include <CyphGPU/ShaderBundle.hpp>
 #include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Surface.hpp>
 #include <CyphGPU/Swapchain.hpp>
@@ -20,6 +21,7 @@
 #include <tracy/Tracy.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <CyphGPU/CommandRecorder.hpp>
 #include <stb_image.h>
 
 using namespace cgpu::shader_types;

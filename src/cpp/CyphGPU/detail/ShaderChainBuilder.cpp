@@ -3,8 +3,7 @@
 #include <CyphGPU/Context.hpp>
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
-
-#include <spdlog/spdlog.h>
+#include <CyphGPU/ShaderBundle.hpp>
 
 namespace
 {

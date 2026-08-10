@@ -1,5 +1,6 @@
 #include "Swapchain.hpp"
 
+#include <CyphGPU/ContextSession.hpp>
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Image.hpp>
@@ -7,7 +8,6 @@
 #include <CyphGPU/Surface.hpp>
 
 #include <flat_set>
-#include <ranges>
 #include <tracy/Tracy.hpp>
 
 cgpu::SwapchainPtr cgpu::Swapchain::create(const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc)

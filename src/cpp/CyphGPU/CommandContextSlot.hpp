@@ -1,16 +1,14 @@
 #pragma once
 
-#include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/detail/BumpMemoryResource.hpp>
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Queue.hpp>
 
 #include <flat_map>
 #include <unordered_map>
 
 namespace cgpu
 {
-class CommandContext;
-
 class CommandContextSlot : public std::enable_shared_from_this<CommandContextSlot>
 {
 	class PrivateKey

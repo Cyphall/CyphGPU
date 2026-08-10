@@ -1,13 +1,14 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
-#include <CyphGPU/ShaderBundle.hpp>
 
 #include <boost/optional.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
 {
+class ShaderBundle;
+
 class Context final
 {
 	class PrivateKey

@@ -1,5 +1,6 @@
 #include "Queue.hpp"
 
+#include <CyphGPU/ContextSession.hpp>
 #include <CyphGPU/detail/BumpAllocator.hpp>
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>

@@ -1,11 +1,9 @@
 #include "CommandRecorder.hpp"
 
-#include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContextSlot.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
-#include <CyphGPU/Image.hpp>
 #include <CyphGPU/Queue.hpp>
 
 #include <bit>
@@ -13,6 +11,7 @@
 #include <exception>
 #include <ranges>
 #include <tracy/Tracy.hpp>
+#include <tracy/TracyVulkan.hpp>
 
 // #define PROFILE_VULKAN_CALLS
 // #define PROFILE_HOT_CALLS

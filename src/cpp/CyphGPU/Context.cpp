@@ -1,5 +1,6 @@
 #include "Context.hpp"
 
+#include <CyphGPU/ShaderBundle.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <magic_enum/magic_enum.hpp>

@@ -8,7 +8,6 @@
 #include <CyphGPU/Sampler.hpp>
 
 #include <magic_enum/magic_enum.hpp>
-#include <spdlog/spdlog.h>
 #include <vector>
 
 using namespace cgpu::shader_types;
