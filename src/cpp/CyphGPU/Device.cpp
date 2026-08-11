@@ -15,6 +15,14 @@ cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDe
 	m_handle{physical_device}
 {
 	checkCapabilitySupport();
+
+	const auto& props = getProperties<vk::PhysicalDeviceProperties2>().properties;
+	m_vulkan_version = props.apiVersion;
+	m_driver_version = props.driverVersion;
+	m_vendor_id = props.vendorID;
+	m_device_id = props.deviceID;
+	m_type = props.deviceType;
+	m_name = props.deviceName.data();
 }
 
 cgpu::ContextSessionPtr cgpu::Device::getContextSession() const
@@ -30,6 +38,36 @@ const vk::PhysicalDevice& cgpu::Device::getHandle()
 cgpu::Device::Capabilities cgpu::Device::getCapabilities() const
 {
 	return m_capabilities;
+}
+
+uint32_t cgpu::Device::getVulkanVersion() const
+{
+	return m_vulkan_version;
+}
+
+uint32_t cgpu::Device::getDriverVersion() const
+{
+	return m_driver_version;
+}
+
+uint32_t cgpu::Device::getVendorID() const
+{
+	return m_vendor_id;
+}
+
+uint32_t cgpu::Device::getDeviceID() const
+{
+	return m_device_id;
+}
+
+vk::PhysicalDeviceType cgpu::Device::getType() const
+{
+	return m_type;
+}
+
+const std::string& cgpu::Device::getName() const
+{
+	return m_name;
 }
 
 std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(

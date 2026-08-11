@@ -49,6 +49,24 @@ public:
 	[[nodiscard]]
 	Capabilities getCapabilities() const;
 
+	[[nodiscard]]
+	uint32_t getVulkanVersion() const;
+
+	[[nodiscard]]
+	uint32_t getDriverVersion() const;
+
+	[[nodiscard]]
+	uint32_t getVendorID() const;
+
+	[[nodiscard]]
+	uint32_t getDeviceID() const;
+
+	[[nodiscard]]
+	vk::PhysicalDeviceType getType() const;
+
+	[[nodiscard]]
+	const std::string& getName() const;
+
 	template<class T>
 	[[nodiscard]]
 	const T& getProperties() const
@@ -104,6 +122,13 @@ private:
 	vk::PhysicalDevice m_handle;
 
 	Capabilities m_capabilities{};
+
+	uint32_t m_vulkan_version{};
+	uint32_t m_driver_version{};
+	uint32_t m_vendor_id{};
+	uint32_t m_device_id{};
+	vk::PhysicalDeviceType m_type{};
+	std::string m_name{};
 
 	mutable std::unordered_map<vk::StructureType, std::shared_ptr<void>> m_properties_structs{};
 	mutable std::mutex m_properties_mutex{};
