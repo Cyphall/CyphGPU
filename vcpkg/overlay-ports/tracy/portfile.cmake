@@ -2,9 +2,8 @@ vcpkg_from_github(
 	OUT_SOURCE_PATH SOURCE_PATH
 	REPO wolfpld/tracy
 	REF "v${VERSION}"
-	SHA512 18c0c589a1d97d0760958c8ab00ba2135bc602fd359d48445b5d8ed76e5b08742d818bb8f835b599149030f455e553a92db86fb7bae049b47820e4401cf9f935
+	SHA512 d6d07db668e62e2c4fb476b549243c240434613554e99bd68b6446b56b92e6cec606246186a02964ed9a223b5ccdac55546185510cd9f6fda05d458314fb05c1
 	HEAD_REF master
-	PATCHES 0001-public-client-Correctly-initialize-atomic-thread-ref.patch
 )
 
 vcpkg_cmake_configure(
