@@ -92,7 +92,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 
 	if (!(m_device->getCapabilities() & Device::Capability::eUnifiedImageLayouts))
 	{
-		spdlog::warn("This device doesn't support the UnifiedImageLayouts capability, expect slower performance than expected.");
+		spdlog::warn("This device doesn't support the UnifiedImageLayouts capability, expect reduced performance.");
 	}
 
 	createDevice();
