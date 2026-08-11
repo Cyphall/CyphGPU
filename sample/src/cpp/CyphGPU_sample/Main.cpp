@@ -197,7 +197,7 @@ int main()
 	std::optional<vk::SurfaceFormatKHR> surface_format = selected_device.value()->selectBestSurfaceFormat(
 		surface,
 		{{
-			{vk::Format::eB8G8R8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear},
+			{vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear},
 		}}
 	);
 
@@ -259,7 +259,7 @@ int main()
 		{
 			.color_attachments = {
 				{
-					.format = surface_format->format,
+					.format = cgpu::getSrgbEquivalent(surface_format->format),
 				},
 			},
 			.depth_stencil_attachment = {{
@@ -310,6 +310,7 @@ int main()
 			cmd_rec.graphicsPass({
 				.color_attachments = {{{
 					.image = *swapchain->tryGetImage(),
+					.format = cgpu::getSrgbEquivalent(surface_format->format),
 					.load_op = vk::AttachmentLoadOp::eClear,
 					.store_op = vk::AttachmentStoreOp::eStore,
 					.clear_color_value = glm::vec4{0.033f, 0.033f, 0.033f, 1.0f},
