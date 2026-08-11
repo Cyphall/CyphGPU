@@ -540,14 +540,18 @@ void cgpu::DeviceSession::createDescriptorHeaps()
 		buffer_info.pQueueFamilyIndices = m_active_queue_families.data();
 
 		VmaAllocationCreateInfo alloc_create_info{};
-		alloc_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		alloc_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 		alloc_create_info.usage = VMA_MEMORY_USAGE_UNKNOWN;
-		alloc_create_info.requiredFlags = {};
+		alloc_create_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(
+			vk::MemoryPropertyFlagBits::eDeviceLocal |
+			vk::MemoryPropertyFlagBits::eHostVisible |
+			vk::MemoryPropertyFlagBits::eHostCoherent
+		);
 		alloc_create_info.preferredFlags = {};
-		alloc_create_info.memoryTypeBits = {};
-		alloc_create_info.pool = getMemoryPool(MemoryType::eCPUVisibleGPU).handle;
+		alloc_create_info.memoryTypeBits = std::numeric_limits<uint32_t>::max();
+		alloc_create_info.pool = nullptr;
 		alloc_create_info.pUserData = nullptr;
-		alloc_create_info.priority = 0.0f;
+		alloc_create_info.priority = 1.0f;
 
 		vk::Buffer buffer{};
 		VmaAllocation alloc{};
