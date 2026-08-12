@@ -7,6 +7,7 @@
 #include <CyphGPU/Image.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <boost/container/static_vector.hpp>
 #include <glm/glm.hpp>
 #include <variant>
 
@@ -292,7 +293,7 @@ public:
 		/// Default: Single layer.
 		Opt<std::variant<LayerCount, MultiviewMask>> layer_mode{};
 		/// Default: No color attachment.
-		Opt<std::vector<ColorAttachment>> color_attachments{};
+		Opt<boost::container::static_vector<ColorAttachment, 8>> color_attachments{};
 		/// Default: No depth-stencil attachment.
 		Opt<DepthStencilAttachment> depth_stencil_attachment{};
 		Req<std::function<void(GraphicsPassContext& ctx)>> callback;
