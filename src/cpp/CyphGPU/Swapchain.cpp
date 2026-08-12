@@ -48,6 +48,7 @@ cgpu::Swapchain::~Swapchain()
 	{
 		m_device_session->getHandle().destroySemaphore(image.semaphore, nullptr, m_device_session->getDispatcher());
 	}
+	m_image_data.clear();
 	m_device_session->getHandle().destroySwapchainKHR(m_handle, nullptr, m_device_session->getDispatcher());
 }
 
