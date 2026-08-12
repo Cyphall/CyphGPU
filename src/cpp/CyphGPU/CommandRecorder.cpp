@@ -186,6 +186,7 @@ void cgpu::CommandRecorder::submit()
 	std::ranges::sort(referenced_images, {}, &std::pair<Image*, GlobalResourceSync>::first);
 	std::ranges::sort(referenced_buffers, {}, &std::pair<Buffer*, GlobalResourceSync>::first);
 
+	detail::BumpList<Image*> images_to_init{*m_bump_memory};
 	auto lock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, GlobalResourceSync>>& resources) {
 		for (auto& [resource, access] : resources)
 		{
@@ -206,15 +207,103 @@ void cgpu::CommandRecorder::submit()
 					add_signal_to_wait(semaphore, value);
 				}
 			}
+
+			if constexpr (std::is_same_v<T, Image>)
+			{
+				if (!resource->isLayoutInitialized())
+				{
+					images_to_init.emplace_back(resource);
+					resource->setLayoutInitialized();
+				}
+			}
 		}
 	};
 
 	lock_and_process_resources(referenced_images);
 	lock_and_process_resources(referenced_buffers);
 
+	boost::container::static_vector<vk::CommandBuffer, 2> cmd_bufs{};
+
+	//TODO: Freshly created images are in the Undefined layout,
+	// and I couldn't find any easier way to transition them to General
+	// than this prologue command buffer.
+	// Remove this if we ever get a better way to init image layouts on the host
+	// without compromising on perf or support (so no host_image_copy).
+	if (!images_to_init.empty())
+	{
+		auto cmd_buf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::ePrimary);
+
+		vk::CommandBufferBeginInfo begin_info;
+		begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		// begin_info.pInheritanceInfo;
+
+		{
+#if defined(PROFILE_VULKAN_CALLS)
+			ZoneScopedN("vkBeginCommandBuffer");
+#endif
+			cmd_buf.begin(
+				begin_info,
+				*m_dispatcher
+			);
+		}
+
+		detail::BumpVector<vk::ImageMemoryBarrier2> barriers{*m_bump_memory};
+		barriers.reserve(images_to_init.size());
+		for (auto* image : images_to_init)
+		{
+			auto& barrier = barriers.emplace_back();
+			barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
+			barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+			barrier.dstStageMask = vk::PipelineStageFlagBits2::eAllCommands;
+			barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+			barrier.oldLayout = vk::ImageLayout::eUndefined;
+			barrier.newLayout = vk::ImageLayout::eGeneral;
+			barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+			barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+			barrier.image = image->getHandle();
+			barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = image->getDesc().levels;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = image->getDesc().layers;
+		}
+
+		vk::DependencyInfo dep_info;
+		dep_info.dependencyFlags = {};
+		dep_info.memoryBarrierCount = 0;
+		// dep_info.pMemoryBarriers;
+		dep_info.bufferMemoryBarrierCount = 0;
+		// dep_info.pBufferMemoryBarriers;
+		dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(barriers.size());
+		dep_info.pImageMemoryBarriers = barriers.data();
+
+		{
+#if defined(PROFILE_VULKAN_CALLS)
+			ZoneScopedN("vkCmdPipelineBarrier2");
+#endif
+			cmd_buf.pipelineBarrier2(
+				dep_info,
+				*m_dispatcher
+			);
+		}
+
+		{
+#if defined(PROFILE_VULKAN_CALLS)
+			ZoneScopedN("vkEndCommandBuffer");
+#endif
+			cmd_buf.end(
+				*m_dispatcher
+			);
+		}
+
+		cmd_bufs.emplace_back(cmd_buf);
+	}
+
+	cmd_bufs.emplace_back(m_curr_cmd_buf);
+
 	Queue::Signal signal = m_queue->submit(
 		*m_bump_memory,
-		{{m_curr_cmd_buf}},
+		cmd_bufs,
 		signals_to_wait.keys(),
 		signals_to_wait.values(),
 		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_containers->objects)
@@ -1360,7 +1449,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 
 		auto [src_stages, src_accesses] = calc_sync(cmd_sync, global_sync);
 
-		if (!src_stages && !src_accesses && image->isLayoutInitialized())
+		if (!src_stages && !src_accesses)
 		{
 			continue;
 		}
@@ -1370,7 +1459,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		barrier.srcAccessMask = src_accesses;
 		barrier.dstStageMask = cmd_sync.stages;
 		barrier.dstAccessMask = cmd_sync.accesses;
-		barrier.oldLayout = image->isLayoutInitialized() ? vk::ImageLayout::eGeneral : vk::ImageLayout::eUndefined;
+		barrier.oldLayout = vk::ImageLayout::eGeneral;
 		barrier.newLayout = vk::ImageLayout::eGeneral;
 		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
 		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
@@ -1380,8 +1469,6 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
-
-		image->setLayoutInitialized(true);
 	}
 
 	detail::BumpVector<vk::BufferMemoryBarrier2> buffer_barriers{*m_bump_memory};

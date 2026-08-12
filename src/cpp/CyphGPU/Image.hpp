@@ -178,6 +178,6 @@ private:
 	[[nodiscard]]
 	bool isLayoutInitialized() const;
 
-	void setLayoutInitialized(bool init);
+	void setLayoutInitialized();
 };
 }

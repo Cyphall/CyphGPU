@@ -97,7 +97,8 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 
 cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 	const SwapchainPtr& swapchain,
-	vk::Semaphore semaphore
+	vk::Semaphore semaphore,
+	vk::CommandBuffer cmd_buf
 )
 {
 	std::unique_lock lock{m_mutex};
@@ -110,6 +111,13 @@ cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 			.value = 0,
 			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 			.deviceIndex = 0,
+		},
+	};
+
+	std::array cmd_buf_infos{
+		vk::CommandBufferSubmitInfo{
+			.commandBuffer = cmd_buf,
+			.deviceMask = 1,
 		},
 	};
 
@@ -126,8 +134,8 @@ cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 	info.flags = {};
 	info.waitSemaphoreInfoCount = static_cast<uint32_t>(wait_infos.size());
 	info.pWaitSemaphoreInfos = wait_infos.data();
-	info.commandBufferInfoCount = 0;
-	// info.pCommandBufferInfos;
+	info.commandBufferInfoCount = static_cast<uint32_t>(cmd_buf_infos.size());
+	info.pCommandBufferInfos = cmd_buf_infos.data();
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 
