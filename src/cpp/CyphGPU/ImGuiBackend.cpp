@@ -439,9 +439,12 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 							-1.0f - draw_data.DisplayPos.y * (2.0f / draw_data.DisplaySize.y),
 						};
 
-						auto [image, overrides] = bd.referenced_images[cmd.GetTexID() - 1];
-						overrides.format = cgpu::getLinearEquivalent(overrides.format ? *overrides.format : image->getDesc().format);
-						parameters.image = ctx.getSampledImageDescriptor(image, cgpu::GraphicsStage::eFragment, overrides);
+						if (cmd.GetTexID() != ImTextureID_Invalid)
+						{
+							auto [image, overrides] = bd.referenced_images[cmd.GetTexID() - 1];
+							overrides.format = cgpu::getLinearEquivalent(overrides.format ? *overrides.format : image->getDesc().format);
+							parameters.image = ctx.getSampledImageDescriptor(image, cgpu::GraphicsStage::eFragment, overrides);
+						}
 
 						parameters.sampler = render_state.sampler->getDescriptor();
 
