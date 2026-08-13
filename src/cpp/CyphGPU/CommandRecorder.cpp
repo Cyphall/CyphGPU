@@ -1,9 +1,12 @@
 #include "CommandRecorder.hpp"
 
+#include <CyphGPU/BLAS.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
+#include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
 #include <CyphGPU/Queue.hpp>
+#include <CyphGPU/TLAS.hpp>
 
 #include <bit>
 #include <boost/container/static_vector.hpp>
@@ -1322,6 +1325,166 @@ void cgpu::CommandRecorder::endDebugRegion(const EndDebugRegionParams&)
 			*m_dispatcher
 		);
 	}
+}
+
+void cgpu::CommandRecorder::buildBLAS(const BLASParams& params)
+{
+	COMMAND_PROLOGUE
+
+	auto vertex_range = std::get<0>(resolveRange(*params.vertex_buffer->buffer, params.vertex_buffer->range.value_or(BufferRange{})));
+
+	addCmdResource(
+		*params.vertex_buffer->buffer,
+		vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+		vk::AccessFlagBits2::eShaderRead
+	);
+
+	cgpu::Range<vk::DeviceSize> index_range;
+	if (params.index_buffer)
+	{
+		index_range = std::get<0>(resolveRange(*params.index_buffer->buffer, params.index_buffer->range.value_or(BufferRange{})));
+
+		addCmdResource(
+			*params.index_buffer->buffer,
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eShaderRead
+		);
+	}
+
+	cgpu::Range<vk::DeviceSize> scratch_range;
+	if (params.scratch_buffer)
+	{
+		scratch_range = std::get<0>(resolveRange(*params.scratch_buffer->buffer, params.scratch_buffer->range.value_or(BufferRange{})));
+
+		addCmdResource(
+			*params.scratch_buffer->buffer,
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR
+		);
+	}
+
+	addCmdResource(
+		(*params.blas)->getBuffer(),
+		vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+		vk::AccessFlagBits2::eAccelerationStructureWriteKHR
+	);
+
+	emitCmdBarrier();
+
+	BLAS::VkStructs vk_structs;
+	BLAS::fillVkStructs((*params.blas)->getDesc().as_info, vk_structs);
+
+	vk_structs.geometry_info.geometry.triangles.vertexData.deviceAddress = (*params.vertex_buffer->buffer)->getDevicePtr(vertex_range.offset);
+	vk_structs.geometry_info.geometry.triangles.indexData.deviceAddress = params.index_buffer ? (*params.index_buffer->buffer)->getDevicePtr(index_range.offset) : 0;
+
+	vk_structs.build_geometry_info.dstAccelerationStructure = (*params.blas)->getHandle();
+	vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
+
+	vk::AccelerationStructureBuildRangeInfoKHR range_info{
+		.primitiveCount = vk_structs.primitive_count,
+		.primitiveOffset = 0,
+		.firstVertex = 0,
+		.transformOffset = 0,
+	};
+
+	{
+#if defined(PROFILE_VULKAN_CALLS)
+		ZoneScopedN("vkCmdBuildAccelerationStructuresKHR");
+#endif
+		m_curr_cmd_buf.buildAccelerationStructuresKHR(
+			vk_structs.build_geometry_info,
+			&range_info,
+			*m_dispatcher
+		);
+	}
+
+	addReferencedObject(*params.blas);
+}
+
+void cgpu::CommandRecorder::buildTLAS(const TLASParams& params)
+{
+	COMMAND_PROLOGUE
+
+	auto instance_range = std::get<0>(resolveRange(*params.instance_buffer->buffer, params.instance_buffer->range.value_or(BufferRange{})));
+
+	assert(instance_range.size == params.instances->size() * sizeof(vk::AccelerationStructureInstanceKHR));
+	assert(instance_range.offset % 16 == 0);
+
+	auto* instance_ptr = (*params.instance_buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>();
+	for (const auto& instance : *params.instances)
+	{
+		std::memcpy(instance_ptr->transform.matrix.data(), glm::value_ptr(*instance.local_to_world), sizeof(glm::mat3x4));
+		instance_ptr->instanceCustomIndex = instance.custom_index.value_or(0);
+		instance_ptr->mask = instance.mask.value_or(0xFF);
+		instance_ptr->instanceShaderBindingTableRecordOffset = instance.sbt_record_offset.value_or(0);
+		instance_ptr->flags = static_cast<VkGeometryInstanceFlagsKHR>(instance.flags.value_or(vk::GeometryInstanceFlagsKHR{}));
+		instance_ptr->accelerationStructureReference = (*instance.blas)->getDevicePtr();
+
+		addCmdResource(
+			(*instance.blas)->getBuffer(),
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eShaderRead
+		);
+	}
+
+	addCmdResource(
+		*params.instance_buffer->buffer,
+		vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+		vk::AccessFlagBits2::eShaderRead
+	);
+
+	cgpu::Range<vk::DeviceSize> scratch_range;
+	if (params.scratch_buffer)
+	{
+		scratch_range = std::get<0>(resolveRange(*params.scratch_buffer->buffer, params.scratch_buffer->range.value_or(BufferRange{})));
+
+		addCmdResource(
+			*params.scratch_buffer->buffer,
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR
+		);
+	}
+
+	addCmdResource(
+		(*params.tlas)->getBuffer(),
+		vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+		vk::AccessFlagBits2::eAccelerationStructureWriteKHR
+	);
+
+	emitCmdBarrier();
+
+	TLAS::VkStructs vk_structs;
+	TLAS::fillVkStructs((*params.tlas)->getDesc().as_info, vk_structs);
+
+	vk_structs.geometry_info.geometry.instances.data.deviceAddress = (*params.instance_buffer->buffer)->getDevicePtr(instance_range.offset);
+
+	vk_structs.build_geometry_info.dstAccelerationStructure = (*params.tlas)->getHandle();
+	vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
+
+	vk::AccelerationStructureBuildRangeInfoKHR range_info{
+		.primitiveCount = vk_structs.primitive_count,
+		.primitiveOffset = 0,
+		.firstVertex = 0,
+		.transformOffset = 0,
+	};
+
+	{
+#if defined(PROFILE_VULKAN_CALLS)
+		ZoneScopedN("vkCmdBuildAccelerationStructuresKHR");
+#endif
+		m_curr_cmd_buf.buildAccelerationStructuresKHR(
+			vk_structs.build_geometry_info,
+			&range_info,
+			*m_dispatcher
+		);
+	}
+
+	for (const auto& instance : *params.instances)
+	{
+		addReferencedObject(*instance.blas);
+	}
+
+	addReferencedObject(*params.tlas);
 }
 
 cgpu::CommandRecorder::CommandRecorder(

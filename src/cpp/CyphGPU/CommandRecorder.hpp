@@ -29,6 +29,14 @@ public:
 			value{std::forward<TArgs>(args)...}
 		{}
 
+		Req(const T& value):
+			value{value}
+		{}
+
+		Req(T&& value):
+			value{std::move(value)}
+		{}
+
 		T& operator*()
 		{
 			return value;
@@ -321,6 +329,83 @@ public:
 	{};
 
 	void endDebugRegion(const EndDebugRegionParams& params);
+
+	struct BLASParams
+	{
+		struct VertexBuffer
+		{
+			Req<BufferPtr> buffer;
+			/// Default: Default-initialized range.
+			Opt<BufferRange> range{};
+		};
+
+		struct IndexBuffer
+		{
+			Req<BufferPtr> buffer;
+			/// Default: Default-initialized range.
+			Opt<BufferRange> range{};
+		};
+
+		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
+		struct ScratchBuffer
+		{
+			Req<BufferPtr> buffer;
+			/// Default: Default-initialized range.
+			Opt<BufferRange> range{};
+		};
+
+		Req<BLASPtr> blas;
+		Req<VertexBuffer> vertex_buffer;
+		/// Default: No index buffer.
+		Opt<IndexBuffer> index_buffer{};
+		/// Default: No scratch buffer.
+		Opt<ScratchBuffer> scratch_buffer{};
+	};
+
+	void buildBLAS(const BLASParams& params);
+
+	struct TLASParams
+	{
+		struct Instance
+		{
+			Req<BLASPtr> blas;
+			Req<glm::mat3x4> local_to_world;
+			/// Default: 0.
+			Opt<uint32_t> custom_index{};
+			/// Default: 0xFF.
+			Opt<uint8_t> mask{};
+			/// Default: 0.
+			Opt<uint32_t> sbt_record_offset{};
+			/// Default: 0.
+			Opt<vk::GeometryInstanceFlagsKHR> flags{};
+		};
+
+		/// Must have a size of instances.size() * sizeof(vk::AccelerationStructureInstanceKHR).
+		///
+		/// Must be aligned to 256 bytes.
+		struct InstancesBuffer
+		{
+			Req<BufferPtr> buffer;
+			/// Default: Default-initialized range.
+			Opt<BufferRange> range{};
+		};
+
+		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
+		struct ScratchBuffer
+		{
+			Req<BufferPtr> buffer;
+			/// Default: Default-initialized range.
+			Opt<BufferRange> range{};
+		};
+
+		Req<TLASPtr> tlas;
+		Req<std::vector<Instance>> instances;
+		Req<InstancesBuffer> instance_buffer;
+		/// Default: No scratch buffer.
+		Opt<ScratchBuffer> scratch_buffer{};
+	};
+
+	void buildTLAS(const TLASParams& params);
 
 private:
 	friend class CommandContext::Slot;

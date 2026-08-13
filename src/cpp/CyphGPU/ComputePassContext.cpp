@@ -1,6 +1,7 @@
 #include "ComputePassContext.hpp"
 
 #include <CyphGPU/CommandRecorder.hpp>
+#include <CyphGPU/TLAS.hpp>
 
 cgpu::SampledImageHandle cgpu::ComputePassContext::getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides)
 {
@@ -26,6 +27,12 @@ cgpu::StorageTexelBufferHandle cgpu::ComputePassContext::getStorageTexelBufferDe
 	return buffer->getStorageTexelDescriptorIndirect(format, overrides);
 }
 
+vk::DeviceAddress cgpu::ComputePassContext::getTLASDevicePtr(const TLASPtr& tlas)
+{
+	registerTLASIndirectAccess(tlas);
+	return tlas->getDevicePtr();
+}
+
 void cgpu::ComputePassContext::registerSampledImageIndirectAccess(const ImagePtr& image)
 {
 	m_rec->addCmdResource(image, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderSampledRead);
@@ -44,6 +51,11 @@ void cgpu::ComputePassContext::registerSampledBufferIndirectAccess(const BufferP
 void cgpu::ComputePassContext::registerStorageBufferIndirectAccess(const BufferPtr& buffer, StorageAccess access)
 {
 	m_rec->addCmdResource(buffer, vk::PipelineStageFlagBits2::eComputeShader, PassContext::toVk(access));
+}
+
+void cgpu::ComputePassContext::registerTLASIndirectAccess(const TLASPtr& tlas)
+{
+	m_rec->addCmdResource(tlas->getBuffer(), vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eAccelerationStructureReadKHR);
 }
 
 void cgpu::ComputePassContext::dispatch(

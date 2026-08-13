@@ -41,10 +41,14 @@ public:
 	[[nodiscard]]
 	StorageTexelBufferHandle getStorageTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::Format format, const Buffer::StorageTexelDescriptorOverrides& overrides = {});
 
+	[[nodiscard]]
+	vk::DeviceAddress getTLASDevicePtr(const TLASPtr& tlas, GraphicsStages stages);
+
 	void registerSampledImageIndirectAccess(const ImagePtr& image, GraphicsStages stages);
 	void registerStorageImageIndirectAccess(const ImagePtr& image, GraphicsStages stages, StorageAccess access);
 	void registerSampledBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages);
 	void registerStorageBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access);
+	void registerTLASIndirectAccess(const TLASPtr& tlas, GraphicsStages stages);
 
 	// ----- Commands -----
 

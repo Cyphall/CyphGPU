@@ -105,6 +105,8 @@ target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/detail/ShaderChainBuilder.cpp"
 	"src/cpp/CyphGPU/ShaderBundle.cpp"
 	"src/cpp/CyphGPU/PassContext.cpp"
+	"src/cpp/CyphGPU/BLAS.cpp"
+	"src/cpp/CyphGPU/TLAS.cpp"
 )
 
 target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
@@ -139,6 +141,8 @@ target_sources(CyphGPU PUBLIC FILE_SET HEADERS BASE_DIRS "src/cpp" FILES
 	"src/cpp/CyphGPU/PassContext.hpp"
 	"src/cpp/CyphGPU/detail/BumpAllocator.hpp"
 	"src/cpp/CyphGPU/detail/BumpMemoryResource.hpp"
+	"src/cpp/CyphGPU/BLAS.hpp"
+	"src/cpp/CyphGPU/TLAS.hpp"
 )
 
 if (CYPHGPU_ENABLE_IMGUI_BACKEND)

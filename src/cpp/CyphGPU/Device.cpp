@@ -405,6 +405,29 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
+	static CapabilityData tray_tracing{
+		{
+			vk::KHRDeferredHostOperationsExtensionName,
+			vk::KHRAccelerationStructureExtensionName,
+			vk::KHRRayQueryExtensionName,
+			vk::KHRRayTracingMaintenance1ExtensionName,
+		},
+		[](detail::DynamicFeatureChain& chain) {
+			{
+				auto& features = chain.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
+				features.accelerationStructure = vk::True;
+			}
+			{
+				auto& features = chain.get<vk::PhysicalDeviceRayQueryFeaturesKHR>();
+				features.rayQuery = vk::True;
+			}
+			{
+				auto& features = chain.get<vk::PhysicalDeviceRayTracingMaintenance1FeaturesKHR>();
+				features.rayTracingMaintenance1 = vk::True;
+			}
+		}
+	};
+
 	switch (capability)
 	{
 	case Capability::eCore: return core;
@@ -413,6 +436,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 	case Capability::eMemoryPriority: return memory_priority;
 	case Capability::ePageableDeviceLocalMemory: return pageable_device_local_memory;
 	case Capability::eUnifiedImageLayouts: return unified_image_layouts;
+	case Capability::eRayTracing: return tray_tracing;
 	default: std::unreachable();
 	}
 }

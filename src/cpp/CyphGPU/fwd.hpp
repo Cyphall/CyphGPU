@@ -19,6 +19,8 @@ class PreRasterizationShaderState;
 class FragmentShaderState;
 class FragmentOutputState;
 class ComputeShaderState;
+class BLAS;
+class TLAS;
 
 class CommandContext;
 class CommandRecorder;
@@ -41,4 +43,6 @@ using PreRasterizationShaderStatePtr = std::shared_ptr<PreRasterizationShaderSta
 using FragmentShaderStatePtr = std::shared_ptr<FragmentShaderState>;
 using FragmentOutputStatePtr = std::shared_ptr<FragmentOutputState>;
 using ComputeShaderStatePtr = std::shared_ptr<ComputeShaderState>;
+using BLASPtr = std::shared_ptr<BLAS>;
+using TLASPtr = std::shared_ptr<TLAS>;
 }

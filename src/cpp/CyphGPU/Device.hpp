@@ -28,6 +28,7 @@ public:
 		eMemoryPriority = 1 << 3,
 		ePageableDeviceLocalMemory = 1 << 4,
 		eUnifiedImageLayouts = 1 << 5,
+		eRayTracing = 1 << 6,
 	};
 
 	using Capabilities = vk::Flags<Capability>;
@@ -151,7 +152,8 @@ struct vk::FlagTraits<cgpu::Device::Capability>
 		cgpu::Device::Capability::eMemoryBudget |
 		cgpu::Device::Capability::eMemoryPriority |
 		cgpu::Device::Capability::ePageableDeviceLocalMemory |
-		cgpu::Device::Capability::eUnifiedImageLayouts;
+		cgpu::Device::Capability::eUnifiedImageLayouts |
+		cgpu::Device::Capability::eRayTracing;
 };
 
 // NOLINTEND(readability-identifier-naming)
