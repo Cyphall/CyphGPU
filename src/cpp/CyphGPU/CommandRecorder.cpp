@@ -1413,7 +1413,7 @@ void cgpu::CommandRecorder::buildTLAS(const TLASParams& params)
 	auto* instance_ptr = (*params.instance_buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>();
 	for (const auto& instance : *params.instances)
 	{
-		std::memcpy(instance_ptr->transform.matrix.data(), glm::value_ptr(*instance.local_to_world), sizeof(glm::mat3x4));
+		std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(*instance.local_to_world), sizeof(glm::mat3x4));
 		instance_ptr->instanceCustomIndex = instance.custom_index.value_or(0);
 		instance_ptr->mask = instance.mask.value_or(0xFF);
 		instance_ptr->instanceShaderBindingTableRecordOffset = instance.sbt_record_offset.value_or(0);
