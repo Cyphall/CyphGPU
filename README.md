@@ -31,7 +31,7 @@ CyphGPU supports Windows, macOS and Linux.
 ```bash
 # To build (required)
 cmake --preset [PRESET_NAME]
-cmake --build --preset [PRESET_NAME] --target CyphGPU
+cmake --build --preset [PRESET_NAME] --target CyphGPU # or CyphGPU_sample
 
 # To install (optional)
 cmake --build --preset [PRESET_NAME] --target install
