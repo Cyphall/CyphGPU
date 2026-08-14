@@ -333,13 +333,11 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		);
 
 		ImDrawVert* vertex_ptr = (*vertex_buffer)->getHostPtr<ImDrawVert>();
-		for (int i = 0; i < draw_data.CmdLists.Size; i++)
+		for (const ImDrawList* cmd_list : draw_data.CmdLists)
 		{
-			const ImDrawList& cmd_list = *draw_data.CmdLists[i];
+			std::copy_n(cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size, vertex_ptr);
 
-			std::copy_n(cmd_list.VtxBuffer.Data, cmd_list.VtxBuffer.Size, vertex_ptr);
-
-			vertex_ptr += cmd_list.VtxBuffer.Size;
+			vertex_ptr += cmd_list->VtxBuffer.Size;
 		}
 	}
 
@@ -357,13 +355,11 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 		);
 
 		ImDrawIdx* index_ptr = (*index_buffer)->getHostPtr<ImDrawIdx>();
-		for (int i = 0; i < draw_data.CmdLists.Size; i++)
+		for (const ImDrawList* cmd_list : draw_data.CmdLists)
 		{
-			const ImDrawList& cmd_list = *draw_data.CmdLists[i];
+			std::copy_n(cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size, index_ptr);
 
-			std::copy_n(cmd_list.IdxBuffer.Data, cmd_list.IdxBuffer.Size, index_ptr);
-
-			index_ptr += cmd_list.IdxBuffer.Size;
+			index_ptr += cmd_list->IdxBuffer.Size;
 		}
 	}
 
