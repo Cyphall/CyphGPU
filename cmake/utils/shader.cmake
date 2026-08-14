@@ -48,8 +48,10 @@ function(cgpu_target_shader_pipelines TARGET BUNDLE PREFIX)
 	if (NOT TARGET ${SHADERS_TARGET})
 		cmrc_add_resource_library(${SHADERS_TARGET}
 			NAMESPACE ${BUNDLE}
+			TYPE OBJECT
 		)
-		target_link_libraries(${TARGET} PRIVATE ${SHADERS_TARGET})
+		target_sources(${TARGET} PRIVATE $<TARGET_OBJECTS:${SHADERS_TARGET}>)
+		target_link_libraries(${TARGET} PRIVATE $<BUILD_INTERFACE:cmrc::base>)
 	endif ()
 
 	cmrc_add_resources(${SHADERS_TARGET}
