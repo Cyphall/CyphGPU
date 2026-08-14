@@ -22,7 +22,12 @@ cgpu::Device::Device(PrivateKey, ContextSession& context_session, vk::PhysicalDe
 	m_vendor_id = props.vendorID;
 	m_device_id = props.deviceID;
 	m_type = props.deviceType;
-	m_name = props.deviceName.data();
+	m_device_name = props.deviceName.data();
+
+	const auto& driver_props = getProperties<vk::PhysicalDeviceDriverProperties>();
+	m_driver_id = driver_props.driverID;
+	m_driver_name = driver_props.driverName.data();
+	m_driver_info = driver_props.driverInfo.data();
 }
 
 cgpu::ContextSessionPtr cgpu::Device::getContextSession() const
@@ -65,9 +70,24 @@ vk::PhysicalDeviceType cgpu::Device::getType() const
 	return m_type;
 }
 
-const std::string& cgpu::Device::getName() const
+const std::string& cgpu::Device::getDeviceName() const
 {
-	return m_name;
+	return m_device_name;
+}
+
+vk::DriverId cgpu::Device::getDriverID() const
+{
+	return m_driver_id;
+}
+
+const std::string& cgpu::Device::getDriverName() const
+{
+	return m_driver_name;
+}
+
+const std::string& cgpu::Device::getDriverInfo() const
+{
+	return m_driver_info;
 }
 
 std::optional<vk::SurfaceFormatKHR> cgpu::Device::selectBestSurfaceFormat(

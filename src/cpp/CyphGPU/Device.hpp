@@ -66,7 +66,16 @@ public:
 	vk::PhysicalDeviceType getType() const;
 
 	[[nodiscard]]
-	const std::string& getName() const;
+	const std::string& getDeviceName() const;
+
+	[[nodiscard]]
+	vk::DriverId getDriverID() const;
+
+	[[nodiscard]]
+	const std::string& getDriverName() const;
+
+	[[nodiscard]]
+	const std::string& getDriverInfo() const;
 
 	template<class T>
 	[[nodiscard]]
@@ -129,7 +138,10 @@ private:
 	uint32_t m_vendor_id{};
 	uint32_t m_device_id{};
 	vk::PhysicalDeviceType m_type{};
-	std::string m_name{};
+	std::string m_device_name{};
+	vk::DriverId m_driver_id{};
+	std::string m_driver_name{};
+	std::string m_driver_info{};
 
 	mutable std::unordered_map<vk::StructureType, std::shared_ptr<void>> m_properties_structs{};
 	mutable std::mutex m_properties_mutex{};
