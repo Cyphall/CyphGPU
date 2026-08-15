@@ -131,6 +131,16 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	return it->second;
 }
 
+glm::uvec3 cgpu::Image::calcLevelExtent(uint32_t level) const
+{
+	return calcImageLevelExtent(m_desc.extent, level);
+}
+
+vk::DeviceSize cgpu::Image::calcByteSize(Range<uint32_t> levels, uint32_t layers) const
+{
+	return calcImageByteSize(m_desc.format, m_desc.extent, levels, layers);
+}
+
 void cgpu::Image::createImage()
 {
 	if (m_desc.existing_handle)

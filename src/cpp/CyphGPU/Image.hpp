@@ -112,6 +112,12 @@ public:
 	[[nodiscard]]
 	StorageImageHandle getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides = {});
 
+	[[nodiscard]]
+	glm::uvec3 calcLevelExtent(uint32_t level) const;
+
+	[[nodiscard]]
+	vk::DeviceSize calcByteSize(Range<uint32_t> levels, uint32_t layers) const;
+
 private:
 	friend class Swapchain;
 	friend class CommandRecorder;
