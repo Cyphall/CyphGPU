@@ -2,7 +2,6 @@
 
 #include <CyphGPU/BLAS.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
-#include <CyphGPU/Device.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
 #include <CyphGPU/Queue.hpp>
@@ -148,7 +147,7 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 }
 }
 
-void cgpu::CommandRecorder::submit()
+cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 {
 	ZoneScoped;
 
@@ -329,6 +328,35 @@ void cgpu::CommandRecorder::submit()
 	m_slot->addFinishedSignal(signal);
 
 	m_referenced_containers.reset();
+
+	return {m_slot->getDeviceSession(), signal};
+}
+
+void cgpu::CommandRecorder::SubmitHandle::waitFinished() const
+{
+	std::ignore = waitSemaphore(std::numeric_limits<uint64_t>::max());
+}
+
+bool cgpu::CommandRecorder::SubmitHandle::isFinished() const
+{
+	return waitSemaphore(0) == vk::Result::eSuccess;
+}
+
+cgpu::CommandRecorder::SubmitHandle::SubmitHandle(const DeviceSessionPtr& device_session, Queue::Signal signal):
+	m_device_session{device_session},
+	m_signal{signal}
+{
+}
+
+vk::Result cgpu::CommandRecorder::SubmitHandle::waitSemaphore(uint64_t timeout) const
+{
+	vk::SemaphoreWaitInfo info;
+	info.flags = {};
+	info.semaphoreCount = 1;
+	info.pSemaphores = &m_signal.semaphore;
+	info.pValues = &m_signal.value;
+
+	return m_device_session->getHandle().waitSemaphores(info, timeout, m_device_session->getDispatcher());
 }
 
 void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)

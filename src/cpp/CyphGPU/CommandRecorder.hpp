@@ -61,13 +61,33 @@ public:
 	template<class T>
 	using Opt = std::optional<T>;
 
+	class SubmitHandle
+	{
+	public:
+		void waitFinished() const;
+
+		[[nodiscard]]
+		bool isFinished() const;
+
+	private:
+		friend class CommandRecorder;
+
+		DeviceSessionPtr m_device_session;
+		Queue::Signal m_signal;
+
+		SubmitHandle(const DeviceSessionPtr& device_session, Queue::Signal signal);
+
+		[[nodiscard]]
+		vk::Result waitSemaphore(uint64_t timeout) const;
+	};
+
 	CommandRecorder(const CommandRecorder&) = delete;
 	CommandRecorder(CommandRecorder&&) = delete;
 
 	CommandRecorder& operator=(const CommandRecorder&) = delete;
 	CommandRecorder& operator=(CommandRecorder&&) = delete;
 
-	void submit();
+	SubmitHandle submit();
 
 	// ----- Common structs -----
 
