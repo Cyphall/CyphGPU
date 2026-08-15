@@ -1,6 +1,7 @@
 #include "Utils.hpp"
 
 #include <vulkan/vulkan_format_traits.hpp>
+#include <glm/ext/scalar_common.hpp>
 
 vk::Format cgpu::getLinearEquivalent(vk::Format format)
 {
@@ -211,4 +212,9 @@ vk::AccessFlags2 cgpu::getWriteAccesses(vk::AccessFlags2 accesses)
 		vk::AccessFlagBits2::eOpticalFlowWriteNV;
 
 	return accesses & write_accesses;
+}
+
+uint32_t cgpu::calcImageMaxLevelCount(const glm::uvec3& extent)
+{
+	return static_cast<uint32_t>(glm::floor(glm::log2(static_cast<float>(glm::max(extent.x, extent.y, extent.z))))) + 1;
 }
