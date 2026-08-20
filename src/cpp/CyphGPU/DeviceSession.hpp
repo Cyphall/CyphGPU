@@ -207,6 +207,7 @@ private:
 	[[nodiscard]]
 	const MemoryPool& getMemoryPool(MemoryType type) const;
 
+	[[nodiscard]]
 	std::span<const uint32_t> getActiveQueueFamilies() const;
 
 	[[nodiscard]]
