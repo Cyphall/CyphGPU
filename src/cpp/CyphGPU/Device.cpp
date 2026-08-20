@@ -146,6 +146,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
+			vk::KHRMaintenance10ExtensionName,
 #if defined(TRACY_ENABLE)
 			vk::EXTCalibratedTimestampsExtensionName,
 #endif
@@ -355,6 +356,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			{
 				auto& features = chain.get<vk::PhysicalDeviceMaintenance9FeaturesKHR>();
 				features.maintenance9 = vk::True;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceMaintenance10FeaturesKHR>();
+				features.maintenance10 = vk::True;
 			}
 		}
 	};

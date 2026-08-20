@@ -1244,11 +1244,14 @@ void cgpu::CommandRecorder::graphicsPass(const GraphicsPassParams& params)
 	}
 	m_curr_cmd_buf = m_main_cmd_buf;
 
+	vk::RenderingEndInfoKHR rendering_end_info;
+
 	{
 #if defined(PROFILE_VULKAN_CALLS)
 		ZoneScopedN("vkCmdEndRendering");
 #endif
-		pass_cmd_buf.endRendering(
+		pass_cmd_buf.endRendering2KHR(
+			rendering_end_info,
 			*m_dispatcher
 		);
 	}
