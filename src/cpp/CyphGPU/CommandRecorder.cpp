@@ -59,6 +59,10 @@ constexpr std::array BLIT_DEFAULT_RANGE = {
 	cgpu::CommandRecorder::BlitParams::Range{},
 };
 
+constexpr std::array RESOLVE_DEFAULT_RANGE = {
+	cgpu::CommandRecorder::ResolveParams::Range{},
+};
+
 std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	const cgpu::ImagePtr& image,
 	const cgpu::CommandRecorder::ImageLevelsLayersRange& range,
@@ -1546,6 +1550,109 @@ void cgpu::CommandRecorder::debugBarrier(const DebugBarrierParams& params)
 #endif
 		m_curr_cmd_buf.pipelineBarrier2(
 			dep_info,
+			*m_dispatcher
+		);
+	}
+}
+
+void cgpu::CommandRecorder::resolve(const ResolveParams& params)
+{
+	REGIONED_COMMAND_PROLOGUE
+
+	vk::ImageAspectFlags aspects_in_ranges;
+	std::span<const ResolveParams::Range> ranges = params.ranges ? std::span{*params.ranges} : RESOLVE_DEFAULT_RANGE;
+	detail::BumpVector<vk::ImageResolve2> vk_regions{*m_bump_memory};
+	vk_regions.reserve(ranges.size());
+	for (const auto& range : ranges)
+	{
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+
+		if (src_vk_range.layerCount != dst_vk_range.layerCount)
+		{
+			throw std::logic_error("Image ranges must have the same number of layers.");
+		}
+
+		if (src_vk_range.aspectMask != dst_vk_range.aspectMask)
+		{
+			throw std::logic_error("Image ranges must have the same aspects.");
+		}
+
+		if (dst_byte_size == 0)
+		{
+			continue;
+		}
+
+		vk::ImageResolve2& vk_region = vk_regions.emplace_back();
+		vk_region.srcSubresource = src_vk_range;
+		vk_region.srcOffset.x = static_cast<int>(src_pixel_range.offset.x);
+		vk_region.srcOffset.y = static_cast<int>(src_pixel_range.offset.y);
+		vk_region.srcOffset.z = static_cast<int>(src_pixel_range.offset.z);
+		vk_region.dstSubresource = dst_vk_range;
+		vk_region.dstOffset.x = static_cast<int>(dst_pixel_range.offset.x);
+		vk_region.dstOffset.y = static_cast<int>(dst_pixel_range.offset.y);
+		vk_region.dstOffset.z = static_cast<int>(dst_pixel_range.offset.z);
+		vk_region.extent.width = src_pixel_range.size.x;
+		vk_region.extent.height = src_pixel_range.size.y;
+		vk_region.extent.depth = src_pixel_range.size.z;
+
+		aspects_in_ranges |= src_vk_range.aspectMask;
+	}
+
+	if (vk_regions.empty())
+	{
+		return;
+	}
+
+	addCmdResource(
+		*params.src_image,
+		vk::PipelineStageFlagBits2::eResolve,
+		vk::AccessFlagBits2::eTransferRead
+	);
+	addCmdResource(
+		*params.dst_image,
+		vk::PipelineStageFlagBits2::eResolve,
+		vk::AccessFlagBits2::eTransferWrite
+	);
+
+	emitCmdBarrier();
+
+	vk::StructureChain<
+		vk::ResolveImageInfo2,
+		vk::ResolveImageModeInfoKHR>
+		chain;
+
+	auto& resolve_info = chain.get<vk::ResolveImageInfo2>();
+	resolve_info.srcImage = (*params.src_image)->getHandle();
+	resolve_info.srcImageLayout = vk::ImageLayout::eGeneral;
+	resolve_info.dstImage = (*params.dst_image)->getHandle();
+	resolve_info.dstImageLayout = vk::ImageLayout::eGeneral;
+	resolve_info.regionCount = static_cast<uint32_t>(vk_regions.size());
+	resolve_info.pRegions = vk_regions.data();
+
+	auto& resolve_mode_info = chain.get<vk::ResolveImageModeInfoKHR>();
+	resolve_mode_info.flags = {};
+	resolve_mode_info.resolveMode = vk::ResolveModeFlagBits::eNone;
+	resolve_mode_info.stencilResolveMode = vk::ResolveModeFlagBits::eNone;
+	if (aspects_in_ranges & vk::ImageAspectFlagBits::eColor)
+	{
+		resolve_mode_info.resolveMode = params.color_mode ? *params.color_mode : vk::ResolveModeFlagBits::eAverage;
+	}
+	if (aspects_in_ranges & vk::ImageAspectFlagBits::eDepth)
+	{
+		resolve_mode_info.resolveMode = params.depth_mode ? *params.depth_mode : vk::ResolveModeFlagBits::eSampleZero;
+	}
+	if (aspects_in_ranges & vk::ImageAspectFlagBits::eStencil)
+	{
+		resolve_mode_info.stencilResolveMode = params.stencil_mode ? *params.stencil_mode : vk::ResolveModeFlagBits::eSampleZero;
+	}
+
+	{
+#if defined(PROFILE_VULKAN_CALLS)
+		ZoneScopedN("vkCmdResolveImage2");
+#endif
+		m_curr_cmd_buf.resolveImage2(
+			resolve_info,
 			*m_dispatcher
 		);
 	}

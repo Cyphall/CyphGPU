@@ -437,6 +437,30 @@ public:
 
 	void debugBarrier(const DebugBarrierParams& params);
 
+	struct ResolveParams
+	{
+		struct Range
+		{
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsPixelsRange> src{};
+			/// Default: Default-initialized range.
+			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+		};
+
+		Req<ImagePtr> src_image;
+		Req<ImagePtr> dst_image;
+		/// Default: One default-initialized range.
+		Opt<std::vector<Range>> ranges{};
+		/// Default: Average.
+		Opt<vk::ResolveModeFlagBits> color_mode{};
+		/// Default: SampleZero.
+		Opt<vk::ResolveModeFlagBits> depth_mode{};
+		/// Default: SampleZero.
+		Opt<vk::ResolveModeFlagBits> stencil_mode{};
+	};
+
+	void resolve(const ResolveParams& params);
+
 private:
 	friend class CommandContext::Slot;
 	friend class GraphicsPassContext;
