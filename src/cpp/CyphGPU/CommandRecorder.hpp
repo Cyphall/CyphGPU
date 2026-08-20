@@ -427,6 +427,16 @@ public:
 
 	void buildTLAS(const TLASParams& params);
 
+	struct DebugBarrierParams
+	{
+		Req<vk::PipelineStageFlags2> src_stages;
+		Req<vk::AccessFlags2> src_accesses;
+		Req<vk::PipelineStageFlags2> dst_stages;
+		Req<vk::AccessFlags2> dst_accesses;
+	};
+
+	void debugBarrier(const DebugBarrierParams& params);
+
 private:
 	friend class CommandContext::Slot;
 	friend class GraphicsPassContext;
