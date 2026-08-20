@@ -142,11 +142,13 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::EXTDescriptorHeapExtensionName,
 			vk::KHRPipelineLibraryExtensionName,
 			vk::EXTGraphicsPipelineLibraryExtensionName,
-			vk::EXTCalibratedTimestampsExtensionName,
 			vk::KHRDeviceAddressCommandsExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
+#if defined(TRACY_ENABLE)
+			vk::EXTCalibratedTimestampsExtensionName,
+#endif
 		},
 		[](detail::DynamicFeatureChain& chain) {
 			{
