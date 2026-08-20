@@ -94,15 +94,14 @@ void cgpu::BLAS::createBLAS()
 	assert(range.offset % 256 == 0);
 	assert(range.size == m_desc.sizes.accelerationStructureSize);
 
-	vk::AccelerationStructureCreateInfoKHR as_info;
+	vk::AccelerationStructureCreateInfo2KHR as_info;
 	as_info.createFlags = {};
-	as_info.buffer = m_buffer->getHandle();
-	as_info.offset = range.offset;
-	as_info.size = range.size;
+	as_info.addressRange.address = m_buffer->getDevicePtr() + range.offset;
+	as_info.addressRange.size = range.size;
+	as_info.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
 	as_info.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
-	as_info.deviceAddress = 0;
 
-	m_handle = m_device_session->getHandle().createAccelerationStructureKHR(as_info, nullptr, m_device_session->getDispatcher());
+	m_handle = m_device_session->getHandle().createAccelerationStructure2KHR(as_info, nullptr, m_device_session->getDispatcher());
 
 	m_device_session->getHandle().setDebugUtilsObjectNameEXT(m_handle, m_desc.name, m_device_session->getDispatcher());
 

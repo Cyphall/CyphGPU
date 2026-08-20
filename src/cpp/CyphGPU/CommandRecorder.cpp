@@ -545,7 +545,7 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
-	detail::BumpVector<vk::BufferImageCopy2> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{*m_bump_memory};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -562,10 +562,13 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 			continue;
 		}
 
-		vk::BufferImageCopy2& vk_region = vk_regions.emplace_back();
-		vk_region.bufferOffset = src_vk_range.offset;
-		vk_region.bufferRowLength = 0;
-		vk_region.bufferImageHeight = 0;
+		vk::DeviceMemoryImageCopyKHR& vk_region = vk_regions.emplace_back();
+		vk_region.addressRange.address = (*params.src_buffer)->getDevicePtr() + src_vk_range.offset;
+		vk_region.addressRange.size = src_vk_range.size;
+		vk_region.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+		vk_region.addressRowLength = 0;
+		vk_region.addressImageHeight = 0;
+		vk_region.imageLayout = vk::ImageLayout::eGeneral;
 		vk_region.imageSubresource = dst_vk_range;
 		vk_region.imageOffset.x = static_cast<int>(dst_pixel_range.offset.x);
 		vk_region.imageOffset.y = static_cast<int>(dst_pixel_range.offset.y);
@@ -593,18 +596,16 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 
 	emitCmdBarrier();
 
-	vk::CopyBufferToImageInfo2 info;
-	info.srcBuffer = (*params.src_buffer)->getHandle();
-	info.dstImage = (*params.dst_image)->getHandle();
-	info.dstImageLayout = vk::ImageLayout::eGeneral;
+	vk::CopyDeviceMemoryImageInfoKHR info;
+	info.image = (*params.dst_image)->getHandle();
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
 	{
 #if defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdCopyBufferToImage2");
+		ZoneScopedN("vkCmdCopyMemoryToImageKHR");
 #endif
-		m_curr_cmd_buf.copyBufferToImage2(
+		m_curr_cmd_buf.copyMemoryToImageKHR(
 			info,
 			*m_dispatcher
 		);
@@ -616,7 +617,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
-	detail::BumpVector<vk::BufferImageCopy2> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{*m_bump_memory};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -633,11 +634,14 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 			continue;
 		}
 
-		vk::BufferImageCopy2& vk_region = vk_regions.emplace_back();
-		vk_region.bufferOffset = dst_vk_range.offset;
-		vk_region.bufferRowLength = 0;
-		vk_region.bufferImageHeight = 0;
+		vk::DeviceMemoryImageCopyKHR& vk_region = vk_regions.emplace_back();
+		vk_region.addressRange.address = (*params.dst_buffer)->getDevicePtr() + dst_vk_range.offset;
+		vk_region.addressRange.size = dst_vk_range.size;
+		vk_region.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+		vk_region.addressRowLength = 0;
+		vk_region.addressImageHeight = 0;
 		vk_region.imageSubresource = src_vk_range;
+		vk_region.imageLayout = vk::ImageLayout::eGeneral;
 		vk_region.imageOffset.x = static_cast<int>(src_pixel_range.offset.x);
 		vk_region.imageOffset.y = static_cast<int>(src_pixel_range.offset.y);
 		vk_region.imageOffset.z = static_cast<int>(src_pixel_range.offset.z);
@@ -664,18 +668,16 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 
 	emitCmdBarrier();
 
-	vk::CopyImageToBufferInfo2 info;
-	info.srcImage = (*params.src_image)->getHandle();
-	info.srcImageLayout = vk::ImageLayout::eGeneral;
-	info.dstBuffer = (*params.dst_buffer)->getHandle();
+	vk::CopyDeviceMemoryImageInfoKHR info;
+	info.image = (*params.src_image)->getHandle();
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
 	{
 #if defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdCopyImageToBuffer2");
+		ZoneScopedN("vkCmdCopyImageToMemoryKHR");
 #endif
-		m_curr_cmd_buf.copyImageToBuffer2(
+		m_curr_cmd_buf.copyImageToMemoryKHR(
 			info,
 			*m_dispatcher
 		);
@@ -687,7 +689,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
-	detail::BumpVector<vk::BufferCopy2> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::DeviceMemoryCopyKHR> vk_regions{*m_bump_memory};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -704,10 +706,13 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 			continue;
 		}
 
-		vk::BufferCopy2& vk_region = vk_regions.emplace_back();
-		vk_region.srcOffset = src_vk_range.offset;
-		vk_region.dstOffset = dst_vk_range.offset;
-		vk_region.size = src_vk_range.size;
+		vk::DeviceMemoryCopyKHR& vk_region = vk_regions.emplace_back();
+		vk_region.srcRange.address = (*params.src_buffer)->getDevicePtr() + src_vk_range.offset;
+		vk_region.srcRange.size = src_vk_range.size;
+		vk_region.srcFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+		vk_region.dstRange.address = (*params.dst_buffer)->getDevicePtr() + dst_vk_range.offset;
+		vk_region.dstRange.size = dst_vk_range.size;
+		vk_region.dstFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
 	}
 
 	if (vk_regions.empty())
@@ -728,17 +733,15 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 
 	emitCmdBarrier();
 
-	vk::CopyBufferInfo2 info;
-	info.srcBuffer = (*params.src_buffer)->getHandle();
-	info.dstBuffer = (*params.dst_buffer)->getHandle();
+	vk::CopyDeviceMemoryInfoKHR info;
 	info.regionCount = static_cast<uint32_t>(vk_regions.size());
 	info.pRegions = vk_regions.data();
 
 	{
 #if defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdCopyBuffer2");
+		ZoneScopedN("vkCmdCopyMemoryKHR");
 #endif
-		m_curr_cmd_buf.copyBuffer2(
+		m_curr_cmd_buf.copyMemoryKHR(
 			info,
 			*m_dispatcher
 		);
@@ -1662,7 +1665,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
 	}
 
-	detail::BumpVector<vk::BufferMemoryBarrier2> buffer_barriers{*m_bump_memory};
+	detail::BumpVector<vk::MemoryRangeBarrierKHR> buffer_barriers{*m_bump_memory};
 	for (const auto& [buffer, cmd_sync] : m_referenced_containers->cmd_buffers)
 	{
 		GlobalResourceSync& global_sync = m_referenced_containers->buffers[buffer];
@@ -1681,9 +1684,9 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		barrier.dstAccessMask = cmd_sync.accesses;
 		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
 		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-		barrier.buffer = buffer->getHandle();
-		barrier.offset = 0;
-		barrier.size = vk::WholeSize;
+		barrier.addressRange.address = buffer->getDevicePtr();
+		barrier.addressRange.size = buffer->getDesc().size;
+		barrier.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
 	}
 
 	m_referenced_containers->cmd_images.clear();
@@ -1694,14 +1697,23 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		return;
 	}
 
-	vk::DependencyInfo dep_info;
+	vk::StructureChain<
+		vk::DependencyInfo,
+		vk::MemoryRangeBarriersInfoKHR>
+		chain;
+
+	auto& dep_info = chain.get<vk::DependencyInfo>();
 	dep_info.dependencyFlags = {};
 	dep_info.memoryBarrierCount = 0;
 	// dep_info.pMemoryBarriers;
-	dep_info.bufferMemoryBarrierCount = static_cast<uint32_t>(buffer_barriers.size());
-	dep_info.pBufferMemoryBarriers = buffer_barriers.data();
+	dep_info.bufferMemoryBarrierCount = 0;
+	// dep_info.pBufferMemoryBarriers;
 	dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(image_barriers.size());
 	dep_info.pImageMemoryBarriers = image_barriers.data();
+
+	auto& mem_range_info = chain.get<vk::MemoryRangeBarriersInfoKHR>();
+	mem_range_info.memoryRangeBarrierCount = static_cast<uint32_t>(buffer_barriers.size());
+	mem_range_info.pMemoryRangeBarriers = buffer_barriers.data();
 
 	{
 #if defined(PROFILE_VULKAN_CALLS)
@@ -1759,17 +1771,17 @@ void cgpu::CommandRecorder::bindIndexBuffer(
 	ZoneScoped;
 #endif
 
+	vk::BindIndexBuffer3InfoKHR info;
+	info.addressRange.address = buffer->getDevicePtr() + range.offset;
+	info.addressRange.size = range.size;
+	info.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+	info.indexType = index_type;
+
 	{
 #if defined(PROFILE_HOT_CALLS) && defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdBindIndexBuffer2");
+		ZoneScopedN("vkCmdBindIndexBuffer3KHR");
 #endif
-		m_curr_cmd_buf.bindIndexBuffer2(
-			buffer->getHandle(),
-			range.offset,
-			range.size,
-			index_type,
-			*m_dispatcher
-		);
+		m_curr_cmd_buf.bindIndexBuffer3KHR(info, *m_dispatcher);
 	}
 
 	addCmdResource(buffer, vk::PipelineStageFlagBits2::eIndexInput, vk::AccessFlagBits2::eIndexRead);
