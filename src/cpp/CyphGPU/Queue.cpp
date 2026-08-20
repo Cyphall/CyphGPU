@@ -8,10 +8,11 @@
 
 #include <tracy/Tracy.hpp>
 
-cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family, std::string_view name):
+cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family, vk::QueueFlags caps, std::string_view name):
 	m_device_session{&device_session},
 	m_handle{queue},
-	m_family{family}
+	m_family{family},
+	m_caps{caps}
 {
 	m_device_session->getHandle().setDebugUtilsObjectNameEXT(queue, std::string{name}, m_device_session->getDispatcher());
 
@@ -51,6 +52,11 @@ const vk::Queue& cgpu::Queue::getHandle()
 const uint32_t& cgpu::Queue::getFamily() const
 {
 	return m_family;
+}
+
+const vk::QueueFlags& cgpu::Queue::getCapabilities() const
+{
+	return m_caps;
 }
 
 void cgpu::Queue::waitIdle()

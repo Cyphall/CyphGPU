@@ -1553,24 +1553,27 @@ cgpu::CommandRecorder::CommandRecorder(
 		);
 	}
 
+	if (m_queue->getCapabilities() & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
 	{
+		{
 #if defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdBindResourceHeapEXT");
+			ZoneScopedN("vkCmdBindResourceHeapEXT");
 #endif
-		m_curr_cmd_buf.bindResourceHeapEXT(
-			m_slot->getDeviceSession()->getResourceBindHeapInfo(),
-			*m_dispatcher
-		);
-	}
+			m_curr_cmd_buf.bindResourceHeapEXT(
+				m_slot->getDeviceSession()->getResourceBindHeapInfo(),
+				*m_dispatcher
+			);
+		}
 
-	{
+		{
 #if defined(PROFILE_VULKAN_CALLS)
-		ZoneScopedN("vkCmdBindSamplerHeapEXT");
+			ZoneScopedN("vkCmdBindSamplerHeapEXT");
 #endif
-		m_curr_cmd_buf.bindSamplerHeapEXT(
-			m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
-			*m_dispatcher
-		);
+			m_curr_cmd_buf.bindSamplerHeapEXT(
+				m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
+				*m_dispatcher
+			);
+		}
 	}
 }
 

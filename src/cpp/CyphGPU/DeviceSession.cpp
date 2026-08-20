@@ -34,7 +34,11 @@ std::vector<QueueFamilyInfo> queryAvailableQueues(const cgpu::DevicePtr& device)
 		QueueFamilyInfo& info = infos.emplace_back();
 		info.available_queue_count = properties.queueCount;
 		info.caps = properties.queueFlags;
-		info.num_caps = std::popcount(static_cast<vk::QueueFlags::MaskType>(properties.queueFlags));
+		if (info.caps & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
+		{
+			info.caps |= vk::QueueFlagBits::eTransfer;
+		}
+		info.num_caps = std::popcount(static_cast<vk::QueueFlags::MaskType>(info.caps));
 	}
 
 	return infos;
@@ -261,17 +265,17 @@ void cgpu::DeviceSession::createDevice()
 
 	std::optional<uint32_t> main_queue_family = tryReserveBestQueue(
 		available_queues,
-		vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute
+		vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
 	);
 
 	std::optional<uint32_t> async_graphics_queue_family = tryReserveBestQueue(
 		available_queues,
-		vk::QueueFlagBits::eGraphics
+		vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
 	);
 
 	std::optional<uint32_t> async_compute_queue_family = tryReserveBestQueue(
 		available_queues,
-		vk::QueueFlagBits::eCompute
+		vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
 	);
 
 	std::optional<uint32_t> async_transfer_queue_family = tryReserveBestQueue(
@@ -379,7 +383,7 @@ void cgpu::DeviceSession::createDevice()
 
 		vk::Queue queue = m_handle.getQueue2(info, m_dispatcher);
 
-		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue, *family, name);
+		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue, *family, available_queues[*family].caps, name);
 	};
 
 	m_main_queue = try_create_queue(main_queue_family, main_queue_index, "Main");
