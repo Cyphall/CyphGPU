@@ -389,7 +389,7 @@ public:
 		struct Instance
 		{
 			Req<BLASPtr> blas;
-			Req<glm::mat3x4> local_to_world;
+			Req<glm::mat4x3> local_to_world;
 			/// Default: 0.
 			Opt<uint32_t> custom_index{};
 			/// Default: 0xFF.
