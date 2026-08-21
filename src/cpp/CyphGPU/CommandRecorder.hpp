@@ -429,10 +429,14 @@ public:
 
 	struct DebugBarrierParams
 	{
-		Req<vk::PipelineStageFlags2> src_stages;
-		Req<vk::AccessFlags2> src_accesses;
-		Req<vk::PipelineStageFlags2> dst_stages;
-		Req<vk::AccessFlags2> dst_accesses;
+		/// Default: All commands.
+		Opt<vk::PipelineStageFlags2> src_stages;
+		/// Default: All accesses.
+		Opt<vk::AccessFlags2> src_accesses;
+		/// Default: All commands.
+		Opt<vk::PipelineStageFlags2> dst_stages;
+		/// Default: All accesses.
+		Opt<vk::AccessFlags2> dst_accesses;
 	};
 
 	void debugBarrier(const DebugBarrierParams& params);

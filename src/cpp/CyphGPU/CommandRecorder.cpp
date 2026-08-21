@@ -1530,10 +1530,10 @@ void cgpu::CommandRecorder::debugBarrier(const DebugBarrierParams& params)
 	REGIONED_COMMAND_PROLOGUE
 
 	vk::MemoryBarrier2 barrier;
-	barrier.srcStageMask = *params.src_stages;
-	barrier.srcAccessMask = *params.src_accesses;
-	barrier.dstStageMask = *params.dst_stages;
-	barrier.dstAccessMask = *params.dst_accesses;
+	barrier.srcStageMask = params.src_stages ? *params.src_stages : vk::PipelineStageFlagBits2::eAllCommands;
+	barrier.srcAccessMask = params.src_accesses ? *params.src_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+	barrier.dstStageMask = params.dst_stages ? *params.dst_stages : vk::PipelineStageFlagBits2::eAllCommands;
+	barrier.dstAccessMask = params.dst_accesses ? *params.dst_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
 
 	vk::DependencyInfo dep_info;
 	dep_info.dependencyFlags = {};
