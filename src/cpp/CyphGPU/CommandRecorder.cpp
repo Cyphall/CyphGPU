@@ -1461,6 +1461,8 @@ void cgpu::CommandRecorder::buildTLAS(const TLASParams& params)
 			instance_ptr->flags = static_cast<VkGeometryInstanceFlagsKHR>(instance.flags.value_or(vk::GeometryInstanceFlagsKHR{}));
 			instance_ptr->accelerationStructureReference = (*instance.blas)->getDevicePtr();
 
+			instance_ptr++;
+
 			addCmdResource(
 				(*instance.blas)->getBuffer(),
 				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
