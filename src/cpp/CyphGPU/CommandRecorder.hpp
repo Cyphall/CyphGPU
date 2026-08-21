@@ -419,8 +419,10 @@ public:
 		};
 
 		Req<TLASPtr> tlas;
-		Req<std::vector<Instance>> instances;
-		Req<InstancesBuffer> instance_buffer;
+		/// Default: No instance.
+		Opt<std::vector<Instance>> instances;
+		/// Default: No instance buffer.
+		Opt<InstancesBuffer> instance_buffer;
 		/// Default: No scratch buffer.
 		Opt<ScratchBuffer> scratch_buffer{};
 	};
