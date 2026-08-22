@@ -1667,9 +1667,9 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 		instance_range = std::get<0>(resolveRange(*params.instance_buffer->buffer, params.instance_buffer->range.value_or(BufferRange{})));
 
 		assert(instance_range.size == params.instances->size() * sizeof(vk::AccelerationStructureInstanceKHR));
-		assert(instance_range.offset % 16 == 0);
+		assert(((*params.instance_buffer->buffer)->getDevicePtr() + instance_range.offset) % 16 == 0);
 
-		auto* instance_ptr = (*params.instance_buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>();
+		auto* instance_ptr = (*params.instance_buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
 		for (const auto& instance : *params.instances)
 		{
 			std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(glm::transpose(*instance.local_to_world)), sizeof(glm::mat3x4));
