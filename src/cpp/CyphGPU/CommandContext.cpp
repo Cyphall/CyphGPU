@@ -40,7 +40,7 @@ void cgpu::CommandContext::finish()
 	beginSlot();
 }
 
-cgpu::CommandContext::Slot::Slot(PrivateKey, const DeviceSessionPtr& device_session):
+cgpu::CommandContext::Slot::Slot(const DeviceSessionPtr& device_session):
 	m_device_session{device_session},
 	m_min_param_buf_alloc_alignment{m_device_session->getDevice()->getProperties<vk::PhysicalDeviceProperties2>().properties.limits.minUniformBufferOffsetAlignment}
 {
@@ -233,7 +233,6 @@ void cgpu::CommandContext::beginSlot()
 	{
 		m_available_slots.push(
 			std::make_shared<Slot>(
-				Slot::PrivateKey{},
 				m_device_session
 			)
 		);

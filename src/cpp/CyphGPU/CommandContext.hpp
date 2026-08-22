@@ -33,9 +33,6 @@ private:
 
 	class Slot : public std::enable_shared_from_this<Slot>
 	{
-		class PrivateKey
-		{};
-
 	public:
 		struct ParameterMemory
 		{
@@ -43,7 +40,7 @@ private:
 			vk::DeviceAddress gpu_ptr;
 		};
 
-		explicit Slot(PrivateKey, const DeviceSessionPtr& device_session);
+		explicit Slot(const DeviceSessionPtr& device_session);
 
 		~Slot();
 
