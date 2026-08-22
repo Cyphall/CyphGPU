@@ -577,6 +577,12 @@ public:
 	explicit ScopedDebugRegion(CommandRecorder& rec, std::string_view name, glm::vec4 color = glm::vec4{0.0f});
 	~ScopedDebugRegion();
 
+	ScopedDebugRegion(const ScopedDebugRegion&) = delete;
+	ScopedDebugRegion(ScopedDebugRegion&&) = delete;
+
+	ScopedDebugRegion& operator=(const ScopedDebugRegion&) = delete;
+	ScopedDebugRegion& operator=(ScopedDebugRegion&&) = delete;
+
 private:
 	CommandRecorder* m_rec;
 };
