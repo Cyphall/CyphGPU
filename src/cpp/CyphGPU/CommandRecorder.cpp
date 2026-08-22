@@ -1287,7 +1287,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	// With auto sync, we need to record which resources are used during the
 	// pass callback and then inject the barrier before the pass is executed.
 	// Using a secondary cmd buf is the only way to do that without switching
-	// to slower deferred command recording.
+	// pass commands to slower deferred recording.
 	cmd.pass_cmd_buf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::eSecondary);
 
 	{
