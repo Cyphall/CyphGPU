@@ -102,7 +102,7 @@ void cgpu::GraphicsPassContext::bindPipelineStates(
 	);
 
 	{
-		VULKAN_CALL("vkCmdBindPipeline");
+		VULKAN_CALL(vkCmdBindPipeline);
 		m_cmd_buf.bindPipeline(
 			vk::PipelineBindPoint::eGraphics,
 			pipeline,
@@ -133,7 +133,7 @@ void cgpu::GraphicsPassContext::bindIndexBuffer(
 	info.indexType = index_type;
 
 	{
-		VULKAN_CALL("vkCmdBindIndexBuffer3KHR");
+		VULKAN_CALL(vkCmdBindIndexBuffer3KHR);
 		m_cmd_buf.bindIndexBuffer3KHR(info, *m_dispatcher);
 	}
 }
@@ -153,7 +153,7 @@ void cgpu::GraphicsPassContext::draw(
 	pushParameters(data, size, alignment);
 
 	{
-		VULKAN_CALL("vkCmdDraw");
+		VULKAN_CALL(vkCmdDraw);
 		m_cmd_buf.draw(
 			vertex_count,
 			instance_count,
@@ -180,7 +180,7 @@ void cgpu::GraphicsPassContext::drawIndexed(
 	pushParameters(data, size, alignment);
 
 	{
-		VULKAN_CALL("vkCmdDrawIndexed");
+		VULKAN_CALL(vkCmdDrawIndexed);
 		m_cmd_buf.drawIndexed(
 			index_count,
 			instance_count,
@@ -199,7 +199,7 @@ void cgpu::GraphicsPassContext::setViewport(
 	COMMAND;
 
 	{
-		VULKAN_CALL("vkCmdSetViewport");
+		VULKAN_CALL(vkCmdSetViewport);
 		m_cmd_buf.setViewport(
 			0,
 			viewport,
@@ -215,7 +215,7 @@ void cgpu::GraphicsPassContext::setScissor(
 	COMMAND;
 
 	{
-		VULKAN_CALL("vkCmdSetScissor");
+		VULKAN_CALL(vkCmdSetScissor);
 		m_cmd_buf.setScissor(
 			0,
 			scissor,
@@ -264,7 +264,7 @@ void cgpu::GraphicsPassContext::pushParameters(const void* data, size_t size, si
 	info.data.size = sizeof(vk::DeviceAddress);
 
 	{
-		VULKAN_CALL("vkCmdPushDataEXT");
+		VULKAN_CALL(vkCmdPushDataEXT);
 		m_cmd_buf.pushDataEXT(
 			info,
 			*m_dispatcher

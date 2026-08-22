@@ -18,6 +18,8 @@
 	ZoneScoped;       \
 	assert(!m_submitted);
 
+#define VULKAN_CALL(name) ZoneScopedN(#name);
+
 #define REGIONED_COMMAND_EXECUTE_BEGIN(name)                     \
 	TracyVkZone(queue->getTracyContext(), cmd_buf, #name);       \
                                                                  \
@@ -26,17 +28,15 @@
 		debug_info.pLabelName = #name;                           \
 		debug_info.color = {{0.0f, 0.0f, 0.0f, 0.0f}};           \
                                                                  \
-		VULKAN_CALL("vkCmdBeginDebugUtilsLabelEXT");             \
+		VULKAN_CALL(vkCmdBeginDebugUtilsLabelEXT);               \
 		cmd_buf.beginDebugUtilsLabelEXT(debug_info, dispatcher); \
 	}
 
 #define REGIONED_COMMAND_EXECUTE_END               \
 	{                                              \
-		VULKAN_CALL("vkCmdEndDebugUtilsLabelEXT"); \
+		VULKAN_CALL(vkCmdEndDebugUtilsLabelEXT);   \
 		cmd_buf.endDebugUtilsLabelEXT(dispatcher); \
 	}
-
-#define VULKAN_CALL(name) ZoneScopedN(#name);
 
 namespace
 {
@@ -227,7 +227,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 		// info.pInheritanceInfo;
 
-		VULKAN_CALL("vkBeginCommandBuffer");
+		VULKAN_CALL(vkBeginCommandBuffer);
 		cmd_buf.begin(
 			info,
 			*m_dispatcher
@@ -237,7 +237,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	if (m_queue->getCapabilities() & (vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute))
 	{
 		{
-			VULKAN_CALL("vkCmdBindResourceHeapEXT");
+			VULKAN_CALL(vkCmdBindResourceHeapEXT);
 			cmd_buf.bindResourceHeapEXT(
 				m_slot->getDeviceSession()->getResourceBindHeapInfo(),
 				*m_dispatcher
@@ -245,7 +245,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 
 		{
-			VULKAN_CALL("vkCmdBindSamplerHeapEXT");
+			VULKAN_CALL(vkCmdBindSamplerHeapEXT);
 			cmd_buf.bindSamplerHeapEXT(
 				m_slot->getDeviceSession()->getSamplerBindHeapInfo(),
 				*m_dispatcher
@@ -357,7 +357,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			mem_range_info.memoryRangeBarrierCount = static_cast<uint32_t>(buffer_barriers.size());
 			mem_range_info.pMemoryRangeBarriers = buffer_barriers.data();
 
-			VULKAN_CALL("vkCmdPipelineBarrier2");
+			VULKAN_CALL(vkCmdPipelineBarrier2);
 			cmd_buf.pipelineBarrier2(
 				dep_info,
 				*m_dispatcher
@@ -375,7 +375,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	}
 
 	{
-		VULKAN_CALL("vkEndCommandBuffer");
+		VULKAN_CALL(vkEndCommandBuffer);
 		cmd_buf.end(
 			*m_dispatcher
 		);
@@ -500,7 +500,7 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 
 			if (color_value)
 			{
-				VULKAN_CALL("vkCmdClearColorImage");
+				VULKAN_CALL(vkCmdClearColorImage);
 				cmd_buf.clearColorImage(
 					image,
 					vk::ImageLayout::eGeneral,
@@ -512,7 +512,7 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 
 			if (depth_stencil_value)
 			{
-				VULKAN_CALL("vkCmdClearDepthStencilImage");
+				VULKAN_CALL(vkCmdClearDepthStencilImage);
 				cmd_buf.clearDepthStencilImage(
 					image,
 					vk::ImageLayout::eGeneral,
@@ -621,7 +621,7 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyImageToImage)
 
 			{
-				VULKAN_CALL("vkCmdCopyImage2");
+				VULKAN_CALL(vkCmdCopyImage2);
 				cmd_buf.copyImage2(
 					info,
 					dispatcher
@@ -713,7 +713,7 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyBufferToImage)
 
 			{
-				VULKAN_CALL("vkCmdCopyMemoryToImageKHR");
+				VULKAN_CALL(vkCmdCopyMemoryToImageKHR);
 				cmd_buf.copyMemoryToImageKHR(
 					info,
 					dispatcher
@@ -801,7 +801,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyImageToBuffer)
 
 			{
-				VULKAN_CALL("vkCmdCopyImageToMemoryKHR");
+				VULKAN_CALL(vkCmdCopyImageToMemoryKHR);
 				cmd_buf.copyImageToMemoryKHR(
 					info,
 					dispatcher
@@ -882,7 +882,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyBufferToBuffer)
 
 			{
-				VULKAN_CALL("vkCmdCopyMemoryKHR");
+				VULKAN_CALL(vkCmdCopyMemoryKHR);
 				cmd_buf.copyMemoryKHR(
 					info,
 					dispatcher
@@ -970,7 +970,7 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(blit)
 
 			{
-				VULKAN_CALL("vkCmdBlitImage2");
+				VULKAN_CALL(vkCmdBlitImage2);
 				cmd_buf.blitImage2(
 					info,
 					dispatcher
@@ -1271,7 +1271,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(graphicsPass)
 
 			{
-				VULKAN_CALL("vkCmdExecuteCommands");
+				VULKAN_CALL(vkCmdExecuteCommands);
 				cmd_buf.executeCommands(
 					pass_cmd_buf,
 					dispatcher
@@ -1312,7 +1312,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 		info.pInheritanceInfo = &inherit_chain.get();
 
-		VULKAN_CALL("vkBeginCommandBuffer");
+		VULKAN_CALL(vkBeginCommandBuffer);
 		cmd.pass_cmd_buf.begin(
 			info,
 			*m_dispatcher
@@ -1330,7 +1330,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		info.pDepthAttachment = vk_depth_attachment ? &*vk_depth_attachment : nullptr;
 		info.pStencilAttachment = vk_stencil_attachment ? &*vk_stencil_attachment : nullptr;
 
-		VULKAN_CALL("vkCmdBeginRendering");
+		VULKAN_CALL(vkCmdBeginRendering);
 		cmd.pass_cmd_buf.beginRendering(
 			info,
 			*m_dispatcher
@@ -1363,7 +1363,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	{
 		vk::RenderingEndInfoKHR info;
 
-		VULKAN_CALL("vkCmdEndRendering");
+		VULKAN_CALL(vkCmdEndRendering);
 		cmd.pass_cmd_buf.endRendering2KHR(
 			info,
 			*m_dispatcher
@@ -1371,7 +1371,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	}
 
 	{
-		VULKAN_CALL("vkEndCommandBuffer");
+		VULKAN_CALL(vkEndCommandBuffer);
 		cmd.pass_cmd_buf.end(
 			*m_dispatcher
 		);
@@ -1478,7 +1478,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 						current_compute_shader_state = dispatch_cmd.compute_shader_state;
 
 						{
-							VULKAN_CALL("vkCmdBindPipeline");
+							VULKAN_CALL(vkCmdBindPipeline);
 							cmd_buf.bindPipeline(
 								vk::PipelineBindPoint::eCompute,
 								dispatch_cmd.compute_shader_state->getHandle(),
@@ -1494,7 +1494,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 						info.data.size = sizeof(vk::DeviceAddress);
 
 						{
-							VULKAN_CALL("vkCmdPushDataEXT");
+							VULKAN_CALL(vkCmdPushDataEXT);
 							cmd_buf.pushDataEXT(
 								info,
 								dispatcher
@@ -1503,7 +1503,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 					}
 
 					{
-						VULKAN_CALL("vkCmdDispatch");
+						VULKAN_CALL(vkCmdDispatch);
 						cmd_buf.dispatch(
 							dispatch_cmd.group_count.x,
 							dispatch_cmd.group_count.y,
@@ -1555,7 +1555,7 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(buildBLAS)
 
 			{
-				VULKAN_CALL("vkCmdBuildAccelerationStructuresKHR");
+				VULKAN_CALL(vkCmdBuildAccelerationStructuresKHR);
 				cmd_buf.buildAccelerationStructuresKHR(
 					vk_structs.build_geometry_info,
 					&range_info,
@@ -1647,7 +1647,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(buildTLAS)
 
 			{
-				VULKAN_CALL("vkCmdBuildAccelerationStructuresKHR");
+				VULKAN_CALL(vkCmdBuildAccelerationStructuresKHR);
 				cmd_buf.buildAccelerationStructuresKHR(
 					vk_structs.build_geometry_info,
 					&range_info,
@@ -1760,7 +1760,7 @@ void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(debugBarrier)
 
 			{
-				VULKAN_CALL("vkCmdPipelineBarrier2");
+				VULKAN_CALL(vkCmdPipelineBarrier2);
 				cmd_buf.pipelineBarrier2(
 					info,
 					dispatcher
@@ -1854,7 +1854,7 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 			REGIONED_COMMAND_EXECUTE_BEGIN(resolve)
 
 			{
-				VULKAN_CALL("vkCmdResolveImage2");
+				VULKAN_CALL(vkCmdResolveImage2);
 				cmd_buf.resolveImage2(
 					chain.get(),
 					dispatcher
@@ -2019,7 +2019,7 @@ void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 co
 
 		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
-			VULKAN_CALL("vkCmdBeginDebugUtilsLabelEXT");
+			VULKAN_CALL(vkCmdBeginDebugUtilsLabelEXT);
 			cmd_buf.beginDebugUtilsLabelEXT(
 				info,
 				dispatcher
@@ -2044,7 +2044,7 @@ void cgpu::CommandRecorder::endDebugRegion()
 
 		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
-			VULKAN_CALL("vkCmdEndDebugUtilsLabelEXT");
+			VULKAN_CALL(vkCmdEndDebugUtilsLabelEXT);
 			cmd_buf.endDebugUtilsLabelEXT(
 				dispatcher
 			);
