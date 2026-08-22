@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CyphGPU/fwd.hpp>
+#include <CyphGPU/CommandRecorder.hpp>
 
 #include <vulkan/vulkan.hpp>
 
@@ -17,8 +17,9 @@ class PassContext
 {
 protected:
 	CommandRecorder* m_rec;
+	CommandRecorder::CmdBase* m_cmd;
 
-	explicit PassContext(CommandRecorder& rec);
+	explicit PassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd);
 
 	static vk::AccessFlags2 toVk(StorageAccess access);
 };

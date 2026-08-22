@@ -78,11 +78,8 @@ private:
 		vk::DeviceAddress params_gpu_ptr;
 	};
 
-	detail::BumpList<DispatchCmd> m_dispatch_cmds;
+	detail::BumpList<DispatchCmd>* m_dispatch_cmds;
 
-	explicit ComputePassContext(CommandRecorder& rec, detail::BumpMemoryResource& bump_memory);
-
-	[[nodiscard]]
-	const detail::BumpList<DispatchCmd>& getDispatchCmds() const;
+	explicit ComputePassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd, detail::BumpList<DispatchCmd>& dispatch_cmds);
 };
 }

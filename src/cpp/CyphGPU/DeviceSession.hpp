@@ -88,6 +88,7 @@ private:
 	friend class FragmentOutputState;
 	friend class ComputeShaderState;
 	friend class CommandRecorder;
+	friend class GraphicsPassContext;
 	friend class detail::ShaderChainBuilder;
 
 	struct MemoryPool

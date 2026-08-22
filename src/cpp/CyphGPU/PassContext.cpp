@@ -1,7 +1,8 @@
 #include "PassContext.hpp"
 
-cgpu::PassContext::PassContext(CommandRecorder& rec):
-	m_rec(&rec)
+cgpu::PassContext::PassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd):
+	m_rec(&rec),
+	m_cmd{&cmd}
 {
 }
 

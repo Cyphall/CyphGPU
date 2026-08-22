@@ -144,9 +144,15 @@ private:
 	std::optional<FragmentShaderStatePtr> m_current_fragment_shader_state;
 	std::optional<FragmentOutputStatePtr> m_current_fragment_output_state;
 
-	using PassContext::PassContext;
+	DeviceSessionPtr m_device_session;
+	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
+	vk::CommandBuffer m_cmd_buf;
+
+	explicit GraphicsPassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd, const DeviceSessionPtr& device_session, vk::CommandBuffer cmd_buf);
 
 	static vk::PipelineStageFlags2 toVk(GraphicsStages stages);
+
+	void pushParameters(const void* data, size_t size, size_t alignment);
 };
 }
 

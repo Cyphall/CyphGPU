@@ -1,6 +1,7 @@
 #include "ComputePassContext.hpp"
 
 #include <CyphGPU/CommandRecorder.hpp>
+#include <CyphGPU/ComputeShaderState.hpp>
 #include <CyphGPU/TLAS.hpp>
 
 cgpu::SampledImageHandle cgpu::ComputePassContext::getSampledImageDescriptor(const ImagePtr& image, const Image::SampledDescriptorOverrides& overrides)
@@ -35,27 +36,28 @@ vk::DeviceAddress cgpu::ComputePassContext::getTLASDevicePtr(const TLASPtr& tlas
 
 void cgpu::ComputePassContext::registerSampledImageIndirectAccess(const ImagePtr& image)
 {
-	m_rec->addCmdResource(image, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderSampledRead);
+	m_rec->addCmdResource(*m_cmd, image, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderSampledRead);
 }
 
 void cgpu::ComputePassContext::registerStorageImageIndirectAccess(const ImagePtr& image, StorageAccess access)
 {
-	m_rec->addCmdResource(image, vk::PipelineStageFlagBits2::eComputeShader, PassContext::toVk(access));
+	m_rec->addCmdResource(*m_cmd, image, vk::PipelineStageFlagBits2::eComputeShader, PassContext::toVk(access));
 }
 
 void cgpu::ComputePassContext::registerSampledBufferIndirectAccess(const BufferPtr& buffer)
 {
-	m_rec->addCmdResource(buffer, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderSampledRead);
+	m_rec->addCmdResource(*m_cmd, buffer, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderSampledRead);
 }
 
 void cgpu::ComputePassContext::registerStorageBufferIndirectAccess(const BufferPtr& buffer, StorageAccess access)
 {
-	m_rec->addCmdResource(buffer, vk::PipelineStageFlagBits2::eComputeShader, PassContext::toVk(access));
+	m_rec->addCmdResource(*m_cmd, buffer, vk::PipelineStageFlagBits2::eComputeShader, PassContext::toVk(access));
 }
 
 void cgpu::ComputePassContext::registerTLASIndirectAccess(const TLASPtr& tlas)
 {
-	m_rec->addCmdResource(tlas->getBuffer(), vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eAccelerationStructureReadKHR);
+	m_rec->addCmdResource(*m_cmd, tlas->getBuffer(), vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eAccelerationStructureReadKHR);
+	m_rec->addReferencedObject(tlas);
 }
 
 void cgpu::ComputePassContext::dispatch(
@@ -72,20 +74,17 @@ void cgpu::ComputePassContext::dispatch(
 		alignment
 	);
 
-	m_dispatch_cmds.push_back({
+	m_dispatch_cmds->push_back({
 		.compute_shader_state = compute_shader_state,
 		.group_count = group_count,
 		.params_gpu_ptr = gpu_ptr,
 	});
+
+	m_rec->addReferencedObject(compute_shader_state);
 }
 
-cgpu::ComputePassContext::ComputePassContext(CommandRecorder& rec, detail::BumpMemoryResource& bump_memory):
-	PassContext{rec},
-	m_dispatch_cmds{detail::BumpAllocator{bump_memory}}
+cgpu::ComputePassContext::ComputePassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd, detail::BumpList<DispatchCmd>& dispatch_cmds):
+	PassContext{rec, cmd},
+	m_dispatch_cmds{&dispatch_cmds}
 {
-}
-
-const cgpu::detail::BumpList<cgpu::ComputePassContext::DispatchCmd>& cgpu::ComputePassContext::getDispatchCmds() const
-{
-	return m_dispatch_cmds;
 }

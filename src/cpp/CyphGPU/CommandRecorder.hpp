@@ -9,10 +9,13 @@
 
 #include <boost/container/static_vector.hpp>
 #include <glm/glm.hpp>
+#include <memory>
 #include <variant>
 
 namespace cgpu
 {
+class ScopedDebugRegion;
+
 class CommandRecorder
 {
 public:
@@ -146,7 +149,7 @@ public:
 		Opt<uint32_t> stencil_value{};
 	};
 
-	void clearImage(const ClearImageParams& params);
+	void clearImage(ClearImageParams&& params);
 
 	struct CopyImageToImageParams
 	{
@@ -164,7 +167,7 @@ public:
 		Opt<std::vector<Range>> ranges{};
 	};
 
-	void copyImageToImage(const CopyImageToImageParams& params);
+	void copyImageToImage(CopyImageToImageParams&& params);
 
 	struct CopyBufferToImageParams
 	{
@@ -182,7 +185,7 @@ public:
 		Opt<std::vector<Range>> ranges{};
 	};
 
-	void copyBufferToImage(const CopyBufferToImageParams& params);
+	void copyBufferToImage(CopyBufferToImageParams&& params);
 
 	struct CopyImageToBufferParams
 	{
@@ -200,7 +203,7 @@ public:
 		Opt<std::vector<Range>> ranges{};
 	};
 
-	void copyImageToBuffer(const CopyImageToBufferParams& params);
+	void copyImageToBuffer(CopyImageToBufferParams&& params);
 
 	struct CopyBufferToBufferParams
 	{
@@ -218,7 +221,7 @@ public:
 		Opt<std::vector<Range>> ranges{};
 	};
 
-	void copyBufferToBuffer(const CopyBufferToBufferParams& params);
+	void copyBufferToBuffer(CopyBufferToBufferParams&& params);
 
 	struct BlitParams
 	{
@@ -238,7 +241,7 @@ public:
 		Opt<std::vector<Range>> ranges{};
 	};
 
-	void blit(const BlitParams& params);
+	void blit(BlitParams&& params);
 
 	struct GraphicsPassParams
 	{
@@ -327,28 +330,14 @@ public:
 		Req<std::function<void(GraphicsPassContext& ctx)>> callback;
 	};
 
-	void graphicsPass(const GraphicsPassParams& params);
+	void graphicsPass(GraphicsPassParams&& params);
 
 	struct ComputePassParams
 	{
 		Req<std::function<void(ComputePassContext& ctx)>> callback;
 	};
 
-	void computePass(const ComputePassParams& params);
-
-	struct BeginDebugRegionParams
-	{
-		Req<std::string> name;
-		/// Default: No color.
-		Opt<glm::vec4> color{};
-	};
-
-	void beginDebugRegion(const BeginDebugRegionParams& params);
-
-	struct EndDebugRegionParams
-	{};
-
-	void endDebugRegion(const EndDebugRegionParams& params);
+	void computePass(ComputePassParams&& params);
 
 	struct BLASParams
 	{
@@ -382,7 +371,7 @@ public:
 		Opt<ScratchBuffer> scratch_buffer{};
 	};
 
-	void buildBLAS(const BLASParams& params);
+	void buildBLAS(BLASParams&& params);
 
 	struct TLASParams
 	{
@@ -427,7 +416,7 @@ public:
 		Opt<ScratchBuffer> scratch_buffer{};
 	};
 
-	void buildTLAS(const TLASParams& params);
+	void buildTLAS(TLASParams&& params);
 
 	struct DebugBarrierParams
 	{
@@ -441,7 +430,7 @@ public:
 		Opt<vk::AccessFlags2> dst_accesses;
 	};
 
-	void debugBarrier(const DebugBarrierParams& params);
+	void debugBarrier(DebugBarrierParams&& params);
 
 	struct ResolveParams
 	{
@@ -465,12 +454,14 @@ public:
 		Opt<vk::ResolveModeFlagBits> stencil_mode{};
 	};
 
-	void resolve(const ResolveParams& params);
+	void resolve(ResolveParams&& params);
 
 private:
 	friend class CommandContext::Slot;
+	friend class PassContext;
 	friend class GraphicsPassContext;
 	friend class ComputePassContext;
+	friend class ScopedDebugRegion;
 
 	struct GlobalResourceSync
 	{
@@ -491,24 +482,44 @@ private:
 		vk::AccessFlags2 accesses{};
 	};
 
+	struct CmdBase
+	{
+		virtual ~CmdBase() = default;
+
+		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
+
+		detail::BumpSegmentedUnorderedMap<Image*, CmdResourceSync> images;
+		detail::BumpSegmentedUnorderedMap<Buffer*, CmdResourceSync> buffers;
+
+		explicit CmdBase(detail::BumpMemoryResource& bump_memory):
+			images{detail::BumpAllocator{bump_memory}},
+			buffers{detail::BumpAllocator{bump_memory}}
+		{}
+	};
+
+	struct CmdDeleter
+	{
+		void operator()(CmdBase* ptr) const
+		{
+			std::destroy_at(ptr);
+			// Memory was allocated from a bump allocator, no need to free it
+		}
+	};
+
 	struct ReferencedContainers
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
 
-		// Last resource accesses in the cmd rec
-		detail::BumpSegmentedUnorderedMap<Image*, GlobalResourceSync> images;
-		detail::BumpSegmentedUnorderedMap<Buffer*, GlobalResourceSync> buffers;
+		detail::BumpSegmentedUnorderedMap<Image*, bool> images;
+		detail::BumpSegmentedUnorderedMap<Buffer*, bool> buffers;
 
-		// Resource accesses in the current command
-		detail::BumpSegmentedUnorderedMap<Image*, CmdResourceSync> cmd_images;
-		detail::BumpSegmentedUnorderedMap<Buffer*, CmdResourceSync> cmd_buffers;
+		detail::BumpList<std::unique_ptr<CmdBase, CmdDeleter>> cmd_list;
 
 		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
 			objects{detail::BumpAllocator{bump_memory}},
 			images{detail::BumpAllocator{bump_memory}},
 			buffers{detail::BumpAllocator{bump_memory}},
-			cmd_images{detail::BumpAllocator{bump_memory}},
-			cmd_buffers{detail::BumpAllocator{bump_memory}}
+			cmd_list{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 
@@ -517,8 +528,6 @@ private:
 	detail::BumpMemoryResource* m_bump_memory;
 
 	QueuePtr m_queue;
-	vk::CommandBuffer m_main_cmd_buf;
-	vk::CommandBuffer m_curr_cmd_buf;
 
 	std::optional<ReferencedContainers> m_referenced_containers;
 
@@ -529,36 +538,23 @@ private:
 	explicit CommandRecorder(
 		std::shared_ptr<CommandContext::Slot>&& slot,
 		detail::BumpMemoryResource& bump_memory,
-		const QueuePtr& queue,
-		vk::CommandBuffer cmd_buf
+		const QueuePtr& queue
 	);
 
 	template<class T>
 	requires(!std::derived_from<T, cgpu::Resource>)
-	void addReferencedObject(const std::shared_ptr<T>& object);
+	void addReferencedObject(const std::shared_ptr<T>& object)
+	{
+		m_referenced_containers->objects.emplace(object);
+	}
 
-	void addCmdResource(const ImagePtr& image, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
-	void addCmdResource(const BufferPtr& buffer, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
-	void emitCmdBarrier();
+	template<class T>
+	requires(std::derived_from<T, cgpu::Resource>)
+	void addCmdResource(CmdBase& cmd, const std::shared_ptr<T>& resource, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
 
-	// ----- Pass sub-commands -----
-
-	void bindPipelineStates(
-		const VertexInputStatePtr& vertex_input_state,
-		const PreRasterizationShaderStatePtr& pre_rasterization_shader_state,
-		const FragmentShaderStatePtr& fragment_shader_state,
-		const FragmentOutputStatePtr& fragment_output_state
-	);
-
-	void bindIndexBuffer(
-		const BufferPtr& buffer,
-		vk::IndexType index_type,
-		Range<vk::DeviceSize> range
-	);
-
-	void bindPipelineStates(
-		const ComputeShaderStatePtr& compute_shader_state
-	);
+	template<class T, class... TArgs>
+	requires(std::derived_from<T, CmdBase>)
+	T& addCmd(TArgs&&... args);
 
 	vk::DeviceAddress writeParameters(
 		const void* data,
@@ -566,42 +562,15 @@ private:
 		size_t alignment
 	);
 
-	void pushParameterPtr(
-		vk::DeviceAddress ptr
-	);
+	void beginDebugRegion(std::string_view name, glm::vec4 color);
 
-	void draw(
-		uint32_t vertex_count,
-		uint32_t instance_count,
-		uint32_t first_vertex,
-		uint32_t first_instance
-	);
-
-	void drawIndexed(
-		uint32_t index_count,
-		uint32_t instance_count,
-		uint32_t first_index,
-		int32_t vertex_offset,
-		uint32_t first_instance
-	);
-
-	void setViewport(
-		const vk::Viewport& viewport
-	);
-
-	void setScissor(
-		const vk::Rect2D& scissor
-	);
-
-	void dispatch(
-		const glm::uvec3& group_count
-	);
+	void endDebugRegion();
 };
 
 class ScopedDebugRegion
 {
 public:
-	explicit ScopedDebugRegion(CommandRecorder& rec, const CommandRecorder::BeginDebugRegionParams& params);
+	explicit ScopedDebugRegion(CommandRecorder& rec, std::string_view name, glm::vec4 color = glm::vec4{0.0f});
 	~ScopedDebugRegion();
 
 private:

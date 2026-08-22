@@ -64,8 +64,6 @@ cgpu::CommandRecorder cgpu::CommandContext::Slot::createRecorder(const QueuePtr&
 {
 	ZoneScoped;
 
-	vk::CommandBuffer cmd_buf = createCommandBuffer(queue, vk::CommandBufferLevel::ePrimary);
-
 	m_num_cmd_rec++;
 	if (m_num_cmd_rec == 500 && !m_high_cmd_recs_warning_emitted)
 	{
@@ -73,7 +71,7 @@ cgpu::CommandRecorder cgpu::CommandContext::Slot::createRecorder(const QueuePtr&
 		m_high_cmd_recs_warning_emitted = true;
 	}
 
-	return CommandRecorder{shared_from_this(), m_bump_memory, queue, cmd_buf};
+	return CommandRecorder{shared_from_this(), m_bump_memory, queue};
 }
 
 const cgpu::DeviceSessionPtr& cgpu::CommandContext::Slot::getDeviceSession() const
