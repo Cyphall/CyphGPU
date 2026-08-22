@@ -1662,15 +1662,15 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 	auto& cmd = addCmd<Cmd>();
 
 	cgpu::Range<vk::DeviceSize> instance_range;
-	if (!params.instances->empty())
+	if (params.instance_info)
 	{
-		instance_range = std::get<0>(resolveRange(*params.instance_buffer->buffer, params.instance_buffer->range.value_or(BufferRange{})));
+		instance_range = std::get<0>(resolveRange(*params.instance_info->buffer->buffer, params.instance_info->buffer->range.value_or(BufferRange{})));
 
-		assert(instance_range.size == params.instances->size() * sizeof(vk::AccelerationStructureInstanceKHR));
-		assert(((*params.instance_buffer->buffer)->getDevicePtr() + instance_range.offset) % 16 == 0);
+		assert(instance_range.size == params.instance_info->data->size() * sizeof(vk::AccelerationStructureInstanceKHR));
+		assert(((*params.instance_info->buffer->buffer)->getDevicePtr() + instance_range.offset) % 16 == 0);
 
-		auto* instance_ptr = (*params.instance_buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
-		for (const auto& instance : *params.instances)
+		auto* instance_ptr = (*params.instance_info->buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
+		for (const auto& instance : *params.instance_info->data)
 		{
 			std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(glm::transpose(*instance.local_to_world)), sizeof(glm::mat3x4));
 			instance_ptr->instanceCustomIndex = instance.custom_index.value_or(0);
@@ -1691,7 +1691,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 
 		addCmdResource(
 			cmd,
-			*params.instance_buffer->buffer,
+			*params.instance_info->buffer->buffer,
 			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 			vk::AccessFlagBits2::eShaderRead
 		);
@@ -1719,7 +1719,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 
 	TLAS::fillVkStructs((*params.tlas)->getDesc().as_info, cmd.vk_structs);
 
-	cmd.vk_structs.geometry_info.geometry.instances.data.deviceAddress = params.instance_buffer ? (*params.instance_buffer->buffer)->getDevicePtr(instance_range.offset) : 0;
+	cmd.vk_structs.geometry_info.geometry.instances.data.deviceAddress = params.instance_info ? (*params.instance_info->buffer->buffer)->getDevicePtr(instance_range.offset) : 0;
 
 	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = (*params.tlas)->getHandle();
 	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
@@ -1731,9 +1731,12 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 		.transformOffset = 0,
 	};
 
-	for (const auto& instance : *params.instances)
+	if (params.instance_info)
 	{
-		addReferencedObject(*instance.blas);
+		for (const auto& instance : *params.instance_info->data)
+		{
+			addReferencedObject(*instance.blas);
+		}
 	}
 
 	addReferencedObject(*params.tlas);

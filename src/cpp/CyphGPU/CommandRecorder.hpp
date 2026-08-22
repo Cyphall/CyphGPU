@@ -389,7 +389,7 @@ public:
 			Opt<vk::GeometryInstanceFlagsKHR> flags{};
 		};
 
-		/// Must have a size of instances.size() * sizeof(vk::AccelerationStructureInstanceKHR).
+		/// Must have a size of N * sizeof(vk::AccelerationStructureInstanceKHR) structs, where N being the number of instances.
 		///
 		/// Must be aligned to 16 bytes.
 		struct InstancesBuffer
@@ -397,6 +397,12 @@ public:
 			Req<BufferPtr> buffer;
 			/// Default: Default-initialized range.
 			Opt<BufferRange> range{};
+		};
+
+		struct InstanceInfo
+		{
+			Req<std::vector<Instance>> data;
+			Req<InstancesBuffer> buffer;
 		};
 
 		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
@@ -409,9 +415,7 @@ public:
 
 		Req<TLASPtr> tlas;
 		/// Default: No instance.
-		Opt<std::vector<Instance>> instances;
-		/// Default: No instance buffer.
-		Opt<InstancesBuffer> instance_buffer;
+		Opt<InstanceInfo> instance_info;
 		/// Default: No scratch buffer.
 		Opt<ScratchBuffer> scratch_buffer{};
 	};
