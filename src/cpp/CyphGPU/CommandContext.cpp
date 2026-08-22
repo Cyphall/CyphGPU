@@ -146,17 +146,12 @@ void cgpu::CommandContext::Slot::addFinishedSignal(const Queue::Signal& signal)
 	}
 }
 
-void cgpu::CommandContext::Slot::recycle()
+void cgpu::CommandContext::Slot::recycleRecordingMemory()
 {
 	ZoneScoped;
 
 	for (auto& pool_data : m_pools | std::views::values)
 	{
-		{
-			ZoneScopedN("vkResetCommandPool");
-			m_device_session->getHandle().resetCommandPool(pool_data.pool, {}, m_device_session->getDispatcher());
-		}
-
 		for (size_t i = 0; i < 2; i++)
 		{
 			// Free cmd_bufs that were not used last run
@@ -180,9 +175,20 @@ void cgpu::CommandContext::Slot::recycle()
 	std::swap(m_free_param_bufs, m_used_param_bufs);
 	m_current_param_buf_offset = 0;
 
-	m_finished_signals.clear();
-
 	m_bump_memory.release();
+}
+
+void cgpu::CommandContext::Slot::recycleExecutionMemory()
+{
+	ZoneScoped;
+
+	for (auto& pool_data : m_pools | std::views::values)
+	{
+		ZoneScopedN("vkResetCommandPool");
+		m_device_session->getHandle().resetCommandPool(pool_data.pool, {}, m_device_session->getDispatcher());
+	}
+
+	m_finished_signals.clear();
 }
 
 vk::CommandBuffer cgpu::CommandContext::Slot::createCommandBuffer(const QueuePtr& queue, vk::CommandBufferLevel level)
@@ -246,9 +252,11 @@ void cgpu::CommandContext::endSlot()
 {
 	ZoneScoped;
 
+	m_current_slot->recycleRecordingMemory();
+
 	if (m_current_slot->getFinishedSignals().empty())
 	{
-		m_current_slot->recycle();
+		m_current_slot->recycleExecutionMemory();
 		m_available_slots.push(std::move(m_current_slot));
 	}
 	else
@@ -280,7 +288,7 @@ void cgpu::CommandContext::recycleFinishedSlots()
 
 			if (finished)
 			{
-				slot->recycle();
+				slot->recycleExecutionMemory();
 				m_available_slots.push(std::move(slot));
 			}
 
