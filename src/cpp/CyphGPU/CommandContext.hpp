@@ -62,9 +62,6 @@ private:
 		vk::CommandBuffer createCommandBuffer(const QueuePtr& queue, vk::CommandBufferLevel level);
 
 	private:
-		friend class CommandContext;
-		friend class CommandRecorder;
-
 		struct CommandPoolData
 		{
 			vk::CommandPool pool;
