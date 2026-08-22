@@ -391,7 +391,7 @@ public:
 
 		/// Must have a size of instances.size() * sizeof(vk::AccelerationStructureInstanceKHR).
 		///
-		/// Must be aligned to 256 bytes.
+		/// Must be aligned to 16 bytes.
 		struct InstancesBuffer
 		{
 			Req<BufferPtr> buffer;
