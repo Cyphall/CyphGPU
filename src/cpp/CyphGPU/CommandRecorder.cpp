@@ -1619,12 +1619,10 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = (*params.blas)->getHandle();
 	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
 
-	cmd.range_info = {
-		.primitiveCount = cmd.vk_structs.primitive_count,
-		.primitiveOffset = 0,
-		.firstVertex = 0,
-		.transformOffset = 0,
-	};
+	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
+	cmd.range_info.primitiveOffset = 0;
+	cmd.range_info.firstVertex = 0;
+	cmd.range_info.transformOffset = 0;
 
 	addReferencedObject(*params.blas);
 }
@@ -1724,12 +1722,10 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = (*params.tlas)->getHandle();
 	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
 
-	cmd.range_info = {
-		.primitiveCount = cmd.vk_structs.primitive_count,
-		.primitiveOffset = 0,
-		.firstVertex = 0,
-		.transformOffset = 0,
-	};
+	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
+	cmd.range_info.primitiveOffset = 0;
+	cmd.range_info.firstVertex = 0;
+	cmd.range_info.transformOffset = 0;
 
 	if (params.instance_info)
 	{

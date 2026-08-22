@@ -557,7 +557,7 @@ private:
 	void addCmdResource(CmdBase& cmd, const std::shared_ptr<T>& resource, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
 
 	template<class T, class... TArgs>
-	requires(std::derived_from<T, CmdBase>)
+	requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
 	T& addCmd(TArgs&&... args);
 
 	vk::DeviceAddress writeParameters(
