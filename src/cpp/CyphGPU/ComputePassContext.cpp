@@ -81,7 +81,7 @@ void cgpu::ComputePassContext::dispatch(
 
 cgpu::ComputePassContext::ComputePassContext(CommandRecorder& rec, detail::BumpMemoryResource& bump_memory):
 	PassContext{rec},
-	m_dispatch_cmds{bump_memory}
+	m_dispatch_cmds{detail::BumpAllocator{bump_memory}}
 {
 }
 

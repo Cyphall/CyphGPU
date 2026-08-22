@@ -504,11 +504,11 @@ private:
 		detail::BumpSegmentedUnorderedMap<Buffer*, CmdResourceSync> cmd_buffers;
 
 		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
-			objects{bump_memory},
-			images{bump_memory},
-			buffers{bump_memory},
-			cmd_images{bump_memory},
-			cmd_buffers{bump_memory}
+			objects{detail::BumpAllocator{bump_memory}},
+			images{detail::BumpAllocator{bump_memory}},
+			buffers{detail::BumpAllocator{bump_memory}},
+			cmd_images{detail::BumpAllocator{bump_memory}},
+			cmd_buffers{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 

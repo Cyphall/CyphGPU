@@ -181,18 +181,18 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	detail::BumpVector<std::pair<Image*, GlobalResourceSync>> referenced_images{
 		m_referenced_containers->images.begin(),
 		m_referenced_containers->images.end(),
-		*m_bump_memory,
+		detail::BumpAllocator{*m_bump_memory},
 	};
 	detail::BumpVector<std::pair<Buffer*, GlobalResourceSync>> referenced_buffers{
 		m_referenced_containers->buffers.begin(),
 		m_referenced_containers->buffers.end(),
-		*m_bump_memory,
+		detail::BumpAllocator{*m_bump_memory},
 	};
 
 	std::ranges::sort(referenced_images, {}, &std::pair<Image*, GlobalResourceSync>::first);
 	std::ranges::sort(referenced_buffers, {}, &std::pair<Buffer*, GlobalResourceSync>::first);
 
-	detail::BumpList<Image*> images_to_init{*m_bump_memory};
+	detail::BumpList<Image*> images_to_init{detail::BumpAllocator{*m_bump_memory}};
 	auto lock_and_process_resources = [&]<class T>(detail::BumpVector<std::pair<T*, GlobalResourceSync>>& resources) {
 		for (auto& [resource, access] : resources)
 		{
@@ -253,7 +253,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			);
 		}
 
-		detail::BumpVector<vk::ImageMemoryBarrier2> barriers{*m_bump_memory};
+		detail::BumpVector<vk::ImageMemoryBarrier2> barriers{detail::BumpAllocator{*m_bump_memory}};
 		barriers.reserve(images_to_init.size());
 		for (auto* image : images_to_init)
 		{
@@ -387,7 +387,7 @@ void cgpu::CommandRecorder::clearImage(const ClearImageParams& params)
 	}
 
 	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{*params.ranges} : CLEAR_IMAGE_DEFAULT_RANGE;
-	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{*m_bump_memory};
+	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
 	vk_ranges.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -466,7 +466,7 @@ void cgpu::CommandRecorder::copyImageToImage(const CopyImageToImageParams& param
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyImageToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
-	detail::BumpVector<vk::ImageCopy2> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::ImageCopy2> vk_regions{detail::BumpAllocator{*m_bump_memory}};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -549,7 +549,7 @@ void cgpu::CommandRecorder::copyBufferToImage(const CopyBufferToImageParams& par
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
-	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{detail::BumpAllocator{*m_bump_memory}};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -621,7 +621,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(const CopyImageToBufferParams& par
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
-	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{detail::BumpAllocator{*m_bump_memory}};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -693,7 +693,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(const CopyBufferToBufferParams& p
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{*params.ranges} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
-	detail::BumpVector<vk::DeviceMemoryCopyKHR> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::DeviceMemoryCopyKHR> vk_regions{detail::BumpAllocator{*m_bump_memory}};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -757,7 +757,7 @@ void cgpu::CommandRecorder::blit(const BlitParams& params)
 	REGIONED_COMMAND_PROLOGUE
 
 	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{*params.ranges} : BLIT_DEFAULT_RANGE;
-	detail::BumpVector<vk::ImageBlit2> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::ImageBlit2> vk_regions{detail::BumpAllocator{*m_bump_memory}};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -1567,7 +1567,7 @@ void cgpu::CommandRecorder::resolve(const ResolveParams& params)
 
 	vk::ImageAspectFlags aspects_in_ranges;
 	std::span<const ResolveParams::Range> ranges = params.ranges ? std::span{*params.ranges} : RESOLVE_DEFAULT_RANGE;
-	detail::BumpVector<vk::ImageResolve2> vk_regions{*m_bump_memory};
+	detail::BumpVector<vk::ImageResolve2> vk_regions{detail::BumpAllocator{*m_bump_memory}};
 	vk_regions.reserve(ranges.size());
 	for (const auto& range : ranges)
 	{
@@ -1785,7 +1785,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		};
 	};
 
-	detail::BumpVector<vk::ImageMemoryBarrier2> image_barriers{*m_bump_memory};
+	detail::BumpVector<vk::ImageMemoryBarrier2> image_barriers{detail::BumpAllocator{*m_bump_memory}};
 	for (const auto& [image, cmd_sync] : m_referenced_containers->cmd_images)
 	{
 		GlobalResourceSync& global_sync = m_referenced_containers->images[image];
@@ -1814,7 +1814,7 @@ void cgpu::CommandRecorder::emitCmdBarrier()
 		barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
 	}
 
-	detail::BumpVector<vk::MemoryRangeBarrierKHR> buffer_barriers{*m_bump_memory};
+	detail::BumpVector<vk::MemoryRangeBarrierKHR> buffer_barriers{detail::BumpAllocator{*m_bump_memory}};
 	for (const auto& [buffer, cmd_sync] : m_referenced_containers->cmd_buffers)
 	{
 		GlobalResourceSync& global_sync = m_referenced_containers->buffers[buffer];

@@ -350,7 +350,7 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 
 	clearCompletedPayloads();
 
-	detail::BumpVector<vk::SemaphoreSubmitInfo> wait_infos{bump_memory};
+	detail::BumpVector<vk::SemaphoreSubmitInfo> wait_infos{detail::BumpAllocator{bump_memory}};
 	wait_infos.resize(wait_semaphores.size());
 	for (size_t i = 0; i < wait_infos.size(); i++)
 	{
@@ -362,7 +362,7 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 		};
 	}
 
-	detail::BumpVector<vk::CommandBufferSubmitInfo> cmd_buf_infos{bump_memory};
+	detail::BumpVector<vk::CommandBufferSubmitInfo> cmd_buf_infos{detail::BumpAllocator{bump_memory}};
 	cmd_buf_infos.reserve(cmd_bufs.size());
 	for (vk::CommandBuffer cmd_buf : cmd_bufs)
 	{

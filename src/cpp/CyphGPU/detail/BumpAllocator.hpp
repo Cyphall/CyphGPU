@@ -21,7 +21,7 @@ class BumpAllocator
 public:
 	using value_type = T;
 
-	BumpAllocator(BumpMemoryResource& resource):
+	explicit BumpAllocator(BumpMemoryResource& resource):
 		m_resource{&resource}
 	{}
 
