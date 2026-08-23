@@ -186,10 +186,12 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	auto resolve_resources_sync =
 		[&]<class T>(
-			CmdBase& cmd,
+			auto& it,
 			const detail::BumpSegmentedUnorderedMap<T*, AccessPoints>& cmd_resources_accesses,
 			detail::BumpSegmentedUnorderedMap<T*, ResourceAccess>& global_resources_accesses
 		) {
+			auto& cmd = **it;
+
 			for (const auto& [resource, access_point] : cmd_resources_accesses)
 			{
 				ResourceAccess& global_resource_accesses = global_resources_accesses[resource];
@@ -231,6 +233,19 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					{
 						sync_point->cmd->signal_point.emplace(*m_bump_memory);
 						cmd.wait_cmds.emplace(sync_point->cmd);
+
+						// Lookback from current command to sync point command.
+						// If unrelated stageful commands are present between the two, use events instead of barriers.
+						for (auto lookback_it = std::prev(it); lookback_it->get() != sync_point->cmd; lookback_it--)
+						{
+							if ((*lookback_it)->is_stageless)
+							{
+								continue;
+							}
+
+							sync_point->cmd->signal_point->event.emplace(*m_bump_memory);
+							break;
+						}
 					}
 
 					auto& resource_barriers = constexprSelect<std::is_same_v<T, Image>>(
@@ -247,10 +262,10 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> global_images_accesses{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> global_buffers_accesses{detail::BumpAllocator{*m_bump_memory}};
-	for (auto& cmd : m_referenced_containers->cmd_list)
+	for (auto it = m_referenced_containers->cmd_list.begin(); it != m_referenced_containers->cmd_list.end(); it++)
 	{
-		resolve_resources_sync(*cmd, cmd->referenced_images, global_images_accesses);
-		resolve_resources_sync(*cmd, cmd->referenced_buffers, global_buffers_accesses);
+		resolve_resources_sync(it, (*it)->referenced_images, global_images_accesses);
+		resolve_resources_sync(it, (*it)->referenced_buffers, global_buffers_accesses);
 	}
 
 	detail::BumpFlatMap<vk::Semaphore, uint64_t> signals_to_wait{detail::BumpAllocator{*m_bump_memory}};
@@ -337,9 +352,74 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 	}
 
+	auto to_vk =
+		[&](
+			const detail::BumpSegmentedUnorderedMap<Image*, Barrier>& image_barriers,
+			const detail::BumpSegmentedUnorderedMap<Buffer*, Barrier>& buffer_barriers,
+			detail::BumpVector<vk::ImageMemoryBarrier2>& vk_image_barriers,
+			detail::BumpVector<vk::MemoryRangeBarrierKHR>& vk_buffer_barriers,
+			vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR>& vk_chain,
+			vk::PipelineStageFlags2& vk_dst_stages
+		) {
+			vk_image_barriers.reserve(image_barriers.size());
+			for (const auto& [image, barrier] : image_barriers)
+			{
+				auto& vk_barrier = vk_image_barriers.emplace_back();
+				vk_barrier.srcStageMask = barrier.src.stages;
+				vk_barrier.srcAccessMask = barrier.src.accesses;
+				vk_barrier.dstStageMask = barrier.dst.stages;
+				vk_barrier.dstAccessMask = barrier.dst.accesses;
+				vk_barrier.oldLayout = vk::ImageLayout::eGeneral;
+				vk_barrier.newLayout = vk::ImageLayout::eGeneral;
+				vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+				vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+				vk_barrier.image = image->getHandle();
+				vk_barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
+				vk_barrier.subresourceRange.baseMipLevel = 0;
+				vk_barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
+				vk_barrier.subresourceRange.baseArrayLayer = 0;
+				vk_barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
+
+				vk_dst_stages |= barrier.dst.stages;
+			}
+
+			vk_buffer_barriers.reserve(buffer_barriers.size());
+			for (const auto& [buffer, barrier] : buffer_barriers)
+			{
+				auto& vk_barrier = vk_buffer_barriers.emplace_back();
+				vk_barrier.srcStageMask = barrier.src.stages;
+				vk_barrier.srcAccessMask = barrier.src.accesses;
+				vk_barrier.dstStageMask = barrier.dst.stages;
+				vk_barrier.dstAccessMask = barrier.dst.accesses;
+				vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+				vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+				vk_barrier.addressRange.address = buffer->getDevicePtr();
+				vk_barrier.addressRange.size = buffer->getDesc().size;
+				vk_barrier.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+
+				vk_dst_stages |= barrier.dst.stages;
+			}
+
+			auto& dep_info = vk_chain.get<vk::DependencyInfo>();
+			dep_info.dependencyFlags = {};
+			dep_info.memoryBarrierCount = 0;
+			// dep_info.pMemoryBarriers;
+			dep_info.bufferMemoryBarrierCount = 0;
+			// dep_info.pBufferMemoryBarriers;
+			dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(vk_image_barriers.size());
+			dep_info.pImageMemoryBarriers = vk_image_barriers.data();
+
+			auto& mem_range_info = vk_chain.get<vk::MemoryRangeBarriersInfoKHR>();
+			mem_range_info.memoryRangeBarrierCount = static_cast<uint32_t>(vk_buffer_barriers.size());
+			mem_range_info.pMemoryRangeBarriers = vk_buffer_barriers.data();
+		};
+
 	detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpVector<vk::PipelineStageFlags2> wait_reset_stages_scratch{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpVector<vk::ImageMemoryBarrier2> images_init_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 	for (auto& cmd : m_referenced_containers->cmd_list)
 	{
 		// Wait events
@@ -347,31 +427,42 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		{
 			for (CmdBase* wait_cmd : cmd->wait_cmds)
 			{
-				wait_events_scratch.emplace_back(wait_cmd->signal_point->event);
-				wait_chains_scratch.emplace_back(wait_cmd->signal_point->vk_chain.get());
+				if (!wait_cmd->signal_point->event)
+				{
+					// The signal point was a full barrier instead of an event signal
+					continue;
+				}
+
+				wait_events_scratch.emplace_back(wait_cmd->signal_point->event->vk_event);
+				wait_chains_scratch.emplace_back(wait_cmd->signal_point->event->vk_chain.get());
+				wait_reset_stages_scratch.emplace_back(wait_cmd->signal_point->event->reset_stages);
 			}
 
+			if (!wait_events_scratch.empty())
 			{
-				VULKAN_CALL(vkCmdWaitEvents2);
-				cmd_buf.waitEvents2(
-					wait_events_scratch,
-					wait_chains_scratch,
-					*m_dispatcher
-				);
-			}
+				{
+					VULKAN_CALL(vkCmdWaitEvents2);
+					cmd_buf.waitEvents2(
+						wait_events_scratch,
+						wait_chains_scratch,
+						*m_dispatcher
+					);
+				}
 
-			for (CmdBase* wait_cmd : cmd->wait_cmds)
-			{
-				VULKAN_CALL(vkCmdResetEvent2);
-				cmd_buf.resetEvent2(
-					wait_cmd->signal_point->event,
-					wait_cmd->signal_point->reset_stages,
-					*m_dispatcher
-				);
-			}
+				for (size_t i = 0; i < wait_events_scratch.size(); i++)
+				{
+					VULKAN_CALL(vkCmdResetEvent2);
+					cmd_buf.resetEvent2(
+						wait_events_scratch[i],
+						wait_reset_stages_scratch[i],
+						*m_dispatcher
+					);
+				}
 
-			wait_events_scratch.clear();
-			wait_chains_scratch.clear();
+				wait_events_scratch.clear();
+				wait_chains_scratch.clear();
+				wait_reset_stages_scratch.clear();
+			}
 		}
 
 		// Init image layouts
@@ -431,67 +522,51 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		// Signal event
 		if (cmd->signal_point)
 		{
-			cmd->signal_point->event = m_slot->createEvent();
-
-			cmd->signal_point->vk_image_barriers.reserve(cmd->signal_point->image_barriers.size());
-			for (const auto& [image, barrier] : cmd->signal_point->image_barriers)
+			if (cmd->signal_point->event)
 			{
-				auto& vk_barrier = cmd->signal_point->vk_image_barriers.emplace_back();
-				vk_barrier.srcStageMask = barrier.src.stages;
-				vk_barrier.srcAccessMask = barrier.src.accesses;
-				vk_barrier.dstStageMask = barrier.dst.stages;
-				vk_barrier.dstAccessMask = barrier.dst.accesses;
-				vk_barrier.oldLayout = vk::ImageLayout::eGeneral;
-				vk_barrier.newLayout = vk::ImageLayout::eGeneral;
-				vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.image = image->getHandle();
-				vk_barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
-				vk_barrier.subresourceRange.baseMipLevel = 0;
-				vk_barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
-				vk_barrier.subresourceRange.baseArrayLayer = 0;
-				vk_barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
+				cmd->signal_point->event->vk_event = m_slot->createEvent();
 
-				cmd->signal_point->reset_stages |= barrier.dst.stages;
-			}
-
-			cmd->signal_point->vk_buffer_barriers.reserve(cmd->signal_point->buffer_barriers.size());
-			for (const auto& [buffer, barrier] : cmd->signal_point->buffer_barriers)
-			{
-				auto& vk_barrier = cmd->signal_point->vk_buffer_barriers.emplace_back();
-				vk_barrier.srcStageMask = barrier.src.stages;
-				vk_barrier.srcAccessMask = barrier.src.accesses;
-				vk_barrier.dstStageMask = barrier.dst.stages;
-				vk_barrier.dstAccessMask = barrier.dst.accesses;
-				vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.addressRange.address = buffer->getDevicePtr();
-				vk_barrier.addressRange.size = buffer->getDesc().size;
-				vk_barrier.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
-
-				cmd->signal_point->reset_stages |= barrier.dst.stages;
-			}
-
-			auto& dep_info = cmd->signal_point->vk_chain.get<vk::DependencyInfo>();
-			dep_info.dependencyFlags = {};
-			dep_info.memoryBarrierCount = 0;
-			// dep_info.pMemoryBarriers;
-			dep_info.bufferMemoryBarrierCount = 0;
-			// dep_info.pBufferMemoryBarriers;
-			dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(cmd->signal_point->vk_image_barriers.size());
-			dep_info.pImageMemoryBarriers = cmd->signal_point->vk_image_barriers.data();
-
-			auto& mem_range_info = cmd->signal_point->vk_chain.get<vk::MemoryRangeBarriersInfoKHR>();
-			mem_range_info.memoryRangeBarrierCount = static_cast<uint32_t>(cmd->signal_point->vk_buffer_barriers.size());
-			mem_range_info.pMemoryRangeBarriers = cmd->signal_point->vk_buffer_barriers.data();
-
-			{
-				VULKAN_CALL(vkCmdSetEvent2);
-				cmd_buf.setEvent2(
-					cmd->signal_point->event,
-					cmd->signal_point->vk_chain.get(),
-					*m_dispatcher
+				to_vk(
+					cmd->signal_point->image_barriers,
+					cmd->signal_point->buffer_barriers,
+					cmd->signal_point->event->vk_image_barriers,
+					cmd->signal_point->event->vk_buffer_barriers,
+					cmd->signal_point->event->vk_chain,
+					cmd->signal_point->event->reset_stages
 				);
+
+				{
+					VULKAN_CALL(vkCmdSetEvent2);
+					cmd_buf.setEvent2(
+						cmd->signal_point->event->vk_event,
+						cmd->signal_point->event->vk_chain.get(),
+						*m_dispatcher
+					);
+				}
+			}
+			else
+			{
+				vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
+				vk::PipelineStageFlags2 unused;
+				to_vk(
+					cmd->signal_point->image_barriers,
+					cmd->signal_point->buffer_barriers,
+					vk_images_barriers_scratch,
+					vk_buffers_barriers_scratch,
+					vk_chain,
+					unused
+				);
+
+				{
+					VULKAN_CALL(vkCmdPipelineBarrier2);
+					cmd_buf.pipelineBarrier2(
+						vk_chain.get(),
+						*m_dispatcher
+					);
+				}
+
+				vk_images_barriers_scratch.clear();
+				vk_buffers_barriers_scratch.clear();
 			}
 		}
 	}
@@ -1913,6 +1988,7 @@ void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 	};
 
 	auto& cmd = addCmd<Cmd>();
+	cmd.is_stageless = true;
 
 	cmd.barrier.srcStageMask = params.src_stages ? *params.src_stages : vk::PipelineStageFlagBits2::eAllCommands;
 	cmd.barrier.srcAccessMask = params.src_accesses ? *params.src_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
@@ -2136,6 +2212,7 @@ void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 co
 	};
 
 	auto& cmd = addCmd<Cmd>(name);
+	cmd.is_stageless = true;
 	cmd.info.pLabelName = cmd.name.c_str();
 	std::memcpy(cmd.info.color.data(), glm::value_ptr(color), sizeof(glm::vec4));
 }
@@ -2159,7 +2236,8 @@ void cgpu::CommandRecorder::endDebugRegion()
 		}
 	};
 
-	addCmd<Cmd>();
+	auto& cmd = addCmd<Cmd>();
+	cmd.is_stageless = true;
 }
 
 cgpu::ScopedDebugRegion::ScopedDebugRegion(CommandRecorder& rec, std::string_view name, glm::vec4 color):

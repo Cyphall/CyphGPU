@@ -492,23 +492,31 @@ private:
 		AccessPoints dst;
 	};
 
+	struct Event
+	{
+		vk::Event vk_event;
+		detail::BumpVector<vk::ImageMemoryBarrier2> vk_image_barriers;
+		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffer_barriers;
+		vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
+		vk::PipelineStageFlags2 reset_stages;
+
+		explicit Event(detail::BumpMemoryResource& bump_memory):
+			vk_image_barriers{detail::BumpAllocator{bump_memory}},
+			vk_buffer_barriers{detail::BumpAllocator{bump_memory}}
+		{}
+	};
+
 	struct SignalPoint
 	{
 		detail::BumpSegmentedUnorderedMap<Image*, Barrier> image_barriers;
 		detail::BumpSegmentedUnorderedMap<Buffer*, Barrier> buffer_barriers;
 
 		// Storage for submit-time recording
-		vk::Event event;
-		vk::PipelineStageFlags2 reset_stages;
-		detail::BumpVector<vk::ImageMemoryBarrier2> vk_image_barriers;
-		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffer_barriers;
-		vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
+		std::optional<Event> event;
 
 		explicit SignalPoint(detail::BumpMemoryResource& bump_memory):
 			image_barriers{detail::BumpAllocator{bump_memory}},
-			buffer_barriers{detail::BumpAllocator{bump_memory}},
-			vk_image_barriers{detail::BumpAllocator{bump_memory}},
-			vk_buffer_barriers{detail::BumpAllocator{bump_memory}}
+			buffer_barriers{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 
@@ -517,6 +525,9 @@ private:
 		virtual ~CmdBase() = default;
 
 		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
+
+		// If true, will not be taken into account when deciding between event vs barrier
+		bool is_stageless = false;
 
 		detail::BumpSegmentedUnorderedMap<Image*, AccessPoints> referenced_images;
 		detail::BumpSegmentedUnorderedMap<Buffer*, AccessPoints> referenced_buffers;
