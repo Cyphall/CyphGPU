@@ -112,6 +112,7 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 cgpu::DeviceSession::~DeviceSession()
 {
 #if defined(TRACY_ENABLE)
+	waitIdle();
 	m_tracy_collect_thread.request_stop();
 	m_tracy_collect_thread.join();
 #endif
