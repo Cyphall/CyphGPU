@@ -7,6 +7,19 @@ A rendering backend over modern Vulkan for my other projects.
 > [!IMPORTANT]  
 > Not production-ready and probably never will.
 
+## Features
+
+* Fully bindless (VK_EXT_descriptor_heap, buffer pointers)
+* Frame-agnostic (no frames-in-flight concept)
+* Async graphics/compute/transfer queues
+* Optimal event-based inter-queue automatic sync
+* Refcount-based lifetime management
+* Separate pipeline stages linked at runtime (VK_EXT_graphics_pipeline_library)
+* Ray tracing (VK_KHR_ray_query)
+* Built-in compilation and embedding of Slang shaders
+* Built-in Tracy CPU & GPU integration
+* Built-in ImGui rendering backend
+
 ## Build & Install
 
 CyphGPU supports Windows, macOS and Linux.
