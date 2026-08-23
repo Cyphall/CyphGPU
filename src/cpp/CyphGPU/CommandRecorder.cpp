@@ -497,7 +497,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					barrier.subresourceRange.baseArrayLayer = 0;
 					barrier.subresourceRange.layerCount = image->getDesc().layers;
 
-					image->setLayoutInitialized();
+					image->setLayoutInitialized(true);
 				}
 
 				if (!images_init_barriers_scratch.empty())

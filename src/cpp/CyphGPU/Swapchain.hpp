@@ -102,8 +102,8 @@ private:
 	vk::Result m_status{vk::Result::eSuccess};
 
 	vk::CommandPool m_layout_change_cmdpool{};
-	std::vector<vk::CommandBuffer> m_acquire_layout_change_cmd_bufs{};
-	std::vector<vk::CommandBuffer> m_present_layout_change_cmd_bufs{};
+	std::vector<vk::CommandBuffer> m_present_layout_change_init_cmd_bufs{};
+	std::vector<vk::CommandBuffer> m_present_layout_change_no_init_cmd_bufs{};
 
 	vk::Semaphore createSemaphore();
 	vk::Fence createFence();

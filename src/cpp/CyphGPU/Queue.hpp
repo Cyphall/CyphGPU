@@ -100,8 +100,7 @@ private:
 	[[nodiscard]]
 	Signal binaryToSignal(
 		const SwapchainPtr& swapchain,
-		vk::Semaphore semaphore,
-		vk::CommandBuffer cmd_buf
+		vk::Semaphore semaphore
 	);
 
 	[[nodiscard]]
