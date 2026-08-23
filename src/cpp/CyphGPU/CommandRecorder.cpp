@@ -262,10 +262,13 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> global_images_accesses{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> global_buffers_accesses{detail::BumpAllocator{*m_bump_memory}};
-	for (auto it = m_referenced_containers->cmd_list.begin(); it != m_referenced_containers->cmd_list.end(); it++)
 	{
-		resolve_resources_sync(it, (*it)->referenced_images, global_images_accesses);
-		resolve_resources_sync(it, (*it)->referenced_buffers, global_buffers_accesses);
+		ZoneScopedN("Resolve sync");
+		for (auto it = m_referenced_containers->cmd_list.begin(); it != m_referenced_containers->cmd_list.end(); it++)
+		{
+			resolve_resources_sync(it, (*it)->referenced_images, global_images_accesses);
+			resolve_resources_sync(it, (*it)->referenced_buffers, global_buffers_accesses);
+		}
 	}
 
 	detail::BumpFlatMap<vk::Semaphore, uint64_t> signals_to_wait{detail::BumpAllocator{*m_bump_memory}};
@@ -314,10 +317,12 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		};
 
 	detail::BumpVector<std::pair<Image*, bool>> referenced_images{detail::BumpAllocator{*m_bump_memory}};
-	resources_prologue(global_images_accesses, referenced_images);
-
 	detail::BumpVector<std::pair<Buffer*, bool>> referenced_buffers{detail::BumpAllocator{*m_bump_memory}};
-	resources_prologue(global_buffers_accesses, referenced_buffers);
+	{
+		ZoneScopedN("Resource prologue");
+		resources_prologue(global_images_accesses, referenced_images);
+		resources_prologue(global_buffers_accesses, referenced_buffers);
+	}
 
 	vk::CommandBuffer cmd_buf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::ePrimary);
 
@@ -414,159 +419,162 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			mem_range_info.pMemoryRangeBarriers = vk_buffer_barriers.data();
 		};
 
-	detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpVector<vk::PipelineStageFlags2> wait_reset_stages_scratch{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpVector<vk::ImageMemoryBarrier2> images_init_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
-	for (auto& cmd : m_referenced_containers->cmd_list)
 	{
-		// Wait events
-		if (!cmd->wait_cmds.empty())
+		ZoneScopedN("Command recording");
+		detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
+		detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
+		detail::BumpVector<vk::PipelineStageFlags2> wait_reset_stages_scratch{detail::BumpAllocator{*m_bump_memory}};
+		detail::BumpVector<vk::ImageMemoryBarrier2> images_init_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
+		detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
+		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
+		for (auto& cmd : m_referenced_containers->cmd_list)
 		{
-			for (CmdBase* wait_cmd : cmd->wait_cmds)
+			// Wait events
+			if (!cmd->wait_cmds.empty())
 			{
-				if (!wait_cmd->signal_point->event)
+				for (CmdBase* wait_cmd : cmd->wait_cmds)
 				{
-					// The signal point was a full barrier instead of an event signal
-					continue;
+					if (!wait_cmd->signal_point->event)
+					{
+						// The signal point was a full barrier instead of an event signal
+						continue;
+					}
+
+					wait_events_scratch.emplace_back(wait_cmd->signal_point->event->vk_event);
+					wait_chains_scratch.emplace_back(wait_cmd->signal_point->event->vk_chain.get());
+					wait_reset_stages_scratch.emplace_back(wait_cmd->signal_point->event->reset_stages);
 				}
 
-				wait_events_scratch.emplace_back(wait_cmd->signal_point->event->vk_event);
-				wait_chains_scratch.emplace_back(wait_cmd->signal_point->event->vk_chain.get());
-				wait_reset_stages_scratch.emplace_back(wait_cmd->signal_point->event->reset_stages);
+				if (!wait_events_scratch.empty())
+				{
+					{
+						VULKAN_CALL(vkCmdWaitEvents2);
+						cmd_buf.waitEvents2(
+							wait_events_scratch,
+							wait_chains_scratch,
+							*m_dispatcher
+						);
+					}
+
+					for (size_t i = 0; i < wait_events_scratch.size(); i++)
+					{
+						VULKAN_CALL(vkCmdResetEvent2);
+						cmd_buf.resetEvent2(
+							wait_events_scratch[i],
+							wait_reset_stages_scratch[i],
+							*m_dispatcher
+						);
+					}
+
+					wait_events_scratch.clear();
+					wait_chains_scratch.clear();
+					wait_reset_stages_scratch.clear();
+				}
 			}
 
-			if (!wait_events_scratch.empty())
+			// Init image layouts
 			{
+				for (const auto& [image, access_point] : cmd->referenced_images)
 				{
-					VULKAN_CALL(vkCmdWaitEvents2);
-					cmd_buf.waitEvents2(
-						wait_events_scratch,
-						wait_chains_scratch,
-						*m_dispatcher
-					);
+					if (image->isLayoutInitialized())
+					{
+						continue;
+					}
+
+					auto& barrier = images_init_barriers_scratch.emplace_back();
+					barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
+					barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+					barrier.dstStageMask = access_point.stages;
+					barrier.dstAccessMask = access_point.accesses;
+					barrier.oldLayout = vk::ImageLayout::eUndefined;
+					barrier.newLayout = vk::ImageLayout::eGeneral;
+					barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+					barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+					barrier.image = image->getHandle();
+					barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
+					barrier.subresourceRange.baseMipLevel = 0;
+					barrier.subresourceRange.levelCount = image->getDesc().levels;
+					barrier.subresourceRange.baseArrayLayer = 0;
+					barrier.subresourceRange.layerCount = image->getDesc().layers;
+
+					image->setLayoutInitialized();
 				}
 
-				for (size_t i = 0; i < wait_events_scratch.size(); i++)
+				if (!images_init_barriers_scratch.empty())
 				{
-					VULKAN_CALL(vkCmdResetEvent2);
-					cmd_buf.resetEvent2(
-						wait_events_scratch[i],
-						wait_reset_stages_scratch[i],
-						*m_dispatcher
-					);
+					vk::DependencyInfo dep_info;
+					dep_info.dependencyFlags = {};
+					dep_info.memoryBarrierCount = 0;
+					// dep_info.pMemoryBarriers;
+					dep_info.bufferMemoryBarrierCount = 0;
+					// dep_info.pBufferMemoryBarriers;
+					dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(images_init_barriers_scratch.size());
+					dep_info.pImageMemoryBarriers = images_init_barriers_scratch.data();
+
+					{
+						VULKAN_CALL(vkCmdPipelineBarrier2);
+						cmd_buf.pipelineBarrier2(
+							dep_info,
+							*m_dispatcher
+						);
+					}
+
+					images_init_barriers_scratch.clear();
 				}
-
-				wait_events_scratch.clear();
-				wait_chains_scratch.clear();
-				wait_reset_stages_scratch.clear();
-			}
-		}
-
-		// Init image layouts
-		{
-			for (const auto& [image, access_point] : cmd->referenced_images)
-			{
-				if (image->isLayoutInitialized())
-				{
-					continue;
-				}
-
-				auto& barrier = images_init_barriers_scratch.emplace_back();
-				barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
-				barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
-				barrier.dstStageMask = access_point.stages;
-				barrier.dstAccessMask = access_point.accesses;
-				barrier.oldLayout = vk::ImageLayout::eUndefined;
-				barrier.newLayout = vk::ImageLayout::eGeneral;
-				barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				barrier.image = image->getHandle();
-				barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
-				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = image->getDesc().levels;
-				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = image->getDesc().layers;
-
-				image->setLayoutInitialized();
 			}
 
-			if (!images_init_barriers_scratch.empty())
+			// Execute command
+			cmd->execute(m_queue, cmd_buf, *m_dispatcher);
+
+			// Signal event
+			if (cmd->signal_point)
 			{
-				vk::DependencyInfo dep_info;
-				dep_info.dependencyFlags = {};
-				dep_info.memoryBarrierCount = 0;
-				// dep_info.pMemoryBarriers;
-				dep_info.bufferMemoryBarrierCount = 0;
-				// dep_info.pBufferMemoryBarriers;
-				dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(images_init_barriers_scratch.size());
-				dep_info.pImageMemoryBarriers = images_init_barriers_scratch.data();
-
+				if (cmd->signal_point->event)
 				{
-					VULKAN_CALL(vkCmdPipelineBarrier2);
-					cmd_buf.pipelineBarrier2(
-						dep_info,
-						*m_dispatcher
+					cmd->signal_point->event->vk_event = m_slot->createEvent();
+
+					to_vk(
+						cmd->signal_point->image_barriers,
+						cmd->signal_point->buffer_barriers,
+						cmd->signal_point->event->vk_image_barriers,
+						cmd->signal_point->event->vk_buffer_barriers,
+						cmd->signal_point->event->vk_chain,
+						cmd->signal_point->event->reset_stages
 					);
+
+					{
+						VULKAN_CALL(vkCmdSetEvent2);
+						cmd_buf.setEvent2(
+							cmd->signal_point->event->vk_event,
+							cmd->signal_point->event->vk_chain.get(),
+							*m_dispatcher
+						);
+					}
 				}
-
-				images_init_barriers_scratch.clear();
-			}
-		}
-
-		// Execute command
-		cmd->execute(m_queue, cmd_buf, *m_dispatcher);
-
-		// Signal event
-		if (cmd->signal_point)
-		{
-			if (cmd->signal_point->event)
-			{
-				cmd->signal_point->event->vk_event = m_slot->createEvent();
-
-				to_vk(
-					cmd->signal_point->image_barriers,
-					cmd->signal_point->buffer_barriers,
-					cmd->signal_point->event->vk_image_barriers,
-					cmd->signal_point->event->vk_buffer_barriers,
-					cmd->signal_point->event->vk_chain,
-					cmd->signal_point->event->reset_stages
-				);
-
+				else
 				{
-					VULKAN_CALL(vkCmdSetEvent2);
-					cmd_buf.setEvent2(
-						cmd->signal_point->event->vk_event,
-						cmd->signal_point->event->vk_chain.get(),
-						*m_dispatcher
+					vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
+					vk::PipelineStageFlags2 unused;
+					to_vk(
+						cmd->signal_point->image_barriers,
+						cmd->signal_point->buffer_barriers,
+						vk_images_barriers_scratch,
+						vk_buffers_barriers_scratch,
+						vk_chain,
+						unused
 					);
-				}
-			}
-			else
-			{
-				vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
-				vk::PipelineStageFlags2 unused;
-				to_vk(
-					cmd->signal_point->image_barriers,
-					cmd->signal_point->buffer_barriers,
-					vk_images_barriers_scratch,
-					vk_buffers_barriers_scratch,
-					vk_chain,
-					unused
-				);
 
-				{
-					VULKAN_CALL(vkCmdPipelineBarrier2);
-					cmd_buf.pipelineBarrier2(
-						vk_chain.get(),
-						*m_dispatcher
-					);
-				}
+					{
+						VULKAN_CALL(vkCmdPipelineBarrier2);
+						cmd_buf.pipelineBarrier2(
+							vk_chain.get(),
+							*m_dispatcher
+						);
+					}
 
-				vk_images_barriers_scratch.clear();
-				vk_buffers_barriers_scratch.clear();
+					vk_images_barriers_scratch.clear();
+					vk_buffers_barriers_scratch.clear();
+				}
 			}
 		}
 	}
@@ -597,8 +605,11 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 	};
 
-	resources_epilogue(referenced_images);
-	resources_epilogue(referenced_buffers);
+	{
+		ZoneScopedN("Resource epilogue");
+		resources_epilogue(referenced_images);
+		resources_epilogue(referenced_buffers);
+	}
 
 	m_slot->addFinishedSignal(signal);
 
