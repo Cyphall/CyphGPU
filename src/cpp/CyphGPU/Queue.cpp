@@ -6,6 +6,7 @@
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Swapchain.hpp>
 
+#include <boost/container/small_vector.hpp>
 #include <tracy/Tracy.hpp>
 
 cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family, vk::QueueFlags caps, std::string_view name):
@@ -145,13 +146,11 @@ cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 
-	vk::Fence fence = acquireFence();
+	m_handle.submit2(info, nullptr, m_device_session->getDispatcher());
 
-	m_handle.submit2(info, fence, m_device_session->getDispatcher());
-
-	Payload& payload = m_submit_payloads.emplace();
+	SubmitPayload& payload = m_submit_payloads.emplace_back();
 	payload.objects.emplace_back(swapchain);
-	payload.fence = fence;
+	payload.semaphore_value = signal_infos[0].value;
 
 	return {
 		.semaphore = signal_infos[0].semaphore,
@@ -214,13 +213,11 @@ cgpu::Queue::Signal cgpu::Queue::signalToBinary(
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 
-	vk::Fence fence = acquireFence();
+	m_handle.submit2(info, nullptr, m_device_session->getDispatcher());
 
-	m_handle.submit2(info, fence, m_device_session->getDispatcher());
-
-	Payload& payload = m_submit_payloads.emplace();
+	SubmitPayload& payload = m_submit_payloads.emplace_back();
 	payload.objects.emplace_back(swapchain);
-	payload.fence = fence;
+	payload.semaphore_value = signal_infos[0].value;
 
 	return {
 		.semaphore = signal_infos[0].semaphore,
@@ -269,7 +266,7 @@ vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t
 	}
 
 	// Objects are still considered in-use if presentKHR() throws OutOfDate
-	Payload& payload = m_present_payloads.emplace();
+	PresentPayload& payload = m_present_payloads.emplace_back();
 	payload.objects.emplace_back(swapchain);
 	payload.fence = fence;
 
@@ -293,47 +290,82 @@ vk::Fence cgpu::Queue::acquireFence()
 	return m_device_session->getHandle().createFence(info, nullptr, m_device_session->getDispatcher());
 }
 
-void cgpu::Queue::releaseFence(vk::Fence fence)
+void cgpu::Queue::releaseFences(std::span<const vk::Fence> fences)
 {
 	std::unique_lock lock{m_mutex};
 
-	m_free_fences.push(fence);
+	m_free_fences.push_range(fences);
 }
 
 void cgpu::Queue::clearCompletedPayloads()
 {
 	std::unique_lock lock{m_mutex};
 
-	auto clear = [&](std::queue<Payload>& queue) {
-		while (!queue.empty() &&
-		       m_device_session->getHandle().getFenceStatus(queue.front().fence, m_device_session->getDispatcher()) == vk::Result::eSuccess)
-		{
-			m_device_session->getHandle().resetFences(queue.front().fence, m_device_session->getDispatcher());
-			releaseFence(queue.front().fence);
-			queue.pop();
-		}
-	};
+	while (!m_submit_payloads.empty())
+	{
+		vk::SemaphoreWaitInfo info;
+		info.flags = {};
+		info.semaphoreCount = 1;
+		info.pSemaphores = &m_semaphore;
+		info.pValues = &m_submit_payloads.front().semaphore_value;
 
-	clear(m_submit_payloads);
-	clear(m_present_payloads);
+		if (m_device_session->getHandle().waitSemaphores(info, 0, m_device_session->getDispatcher()) != vk::Result::eSuccess)
+		{
+			break;
+		}
+
+		m_submit_payloads.pop_front();
+	}
+
+	while (!m_present_payloads.empty())
+	{
+		vk::Fence fence = m_present_payloads.front().fence;
+
+		if (m_device_session->getHandle().waitForFences(fence, vk::True, 0, m_device_session->getDispatcher()) != vk::Result::eSuccess)
+		{
+			break;
+		}
+
+		m_device_session->getHandle().resetFences(fence, m_device_session->getDispatcher());
+		releaseFences({{fence}});
+
+		m_present_payloads.pop_front();
+	}
 }
 
 void cgpu::Queue::waitAndClearPayloads()
 {
 	std::unique_lock lock{m_mutex};
 
-	auto clear = [&](std::queue<Payload>& queue) {
-		while (!queue.empty())
-		{
-			std::ignore = m_device_session->getHandle().waitForFences(queue.front().fence, false, std::numeric_limits<uint64_t>::max(), m_device_session->getDispatcher());
-			m_device_session->getHandle().resetFences(queue.front().fence, m_device_session->getDispatcher());
-			releaseFence(queue.front().fence);
-			queue.pop();
-		}
-	};
+	if (!m_submit_payloads.empty())
+	{
+		vk::SemaphoreWaitInfo info;
+		info.flags = {};
+		info.semaphoreCount = 1;
+		info.pSemaphores = &m_semaphore;
+		info.pValues = &m_submit_payloads.back().semaphore_value;
 
-	clear(m_submit_payloads);
-	clear(m_present_payloads);
+		std::ignore = m_device_session->getHandle().waitSemaphores(info, std::numeric_limits<uint64_t>::max(), m_device_session->getDispatcher());
+
+		m_submit_payloads.clear();
+	}
+
+	if (!m_present_payloads.empty())
+	{
+		boost::container::small_vector<vk::Fence, 8> fences;
+		fences.reserve(m_present_payloads.size());
+		for (auto& payload : m_present_payloads)
+		{
+			fences.emplace_back(payload.fence);
+		}
+
+		std::ignore = m_device_session->getHandle().waitForFences(fences, vk::True, std::numeric_limits<uint64_t>::max(), m_device_session->getDispatcher());
+
+		m_device_session->getHandle().resetFences(fences, m_device_session->getDispatcher());
+		releaseFences(fences);
+
+		m_present_payloads.clear();
+	}
 }
 
 cgpu::Queue::Signal cgpu::Queue::submit(
@@ -389,13 +421,11 @@ cgpu::Queue::Signal cgpu::Queue::submit(
 	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
 	info.pSignalSemaphoreInfos = signal_infos.data();
 
-	vk::Fence fence = acquireFence();
+	m_handle.submit2(info, nullptr, m_device_session->getDispatcher());
 
-	m_handle.submit2(info, fence, m_device_session->getDispatcher());
-
-	Payload& payload = m_submit_payloads.emplace();
+	SubmitPayload& payload = m_submit_payloads.emplace_back();
 	payload.objects = std::move(referenced_objects);
-	payload.fence = fence;
+	payload.semaphore_value = signal_infos[0].value;
 
 	return {
 		.semaphore = signal_infos[0].semaphore,

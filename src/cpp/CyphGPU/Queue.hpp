@@ -59,7 +59,13 @@ private:
 	friend class Swapchain;
 	friend class CommandRecorder;
 
-	struct Payload
+	struct SubmitPayload
+	{
+		std::vector<std::shared_ptr<void>> objects;
+		uint64_t semaphore_value;
+	};
+
+	struct PresentPayload
 	{
 		std::vector<std::shared_ptr<void>> objects;
 		vk::Fence fence;
@@ -75,8 +81,8 @@ private:
 	vk::Semaphore m_semaphore{};
 	uint64_t m_next_index{1};
 
-	std::queue<Payload> m_submit_payloads{};
-	std::queue<Payload> m_present_payloads{};
+	std::deque<SubmitPayload> m_submit_payloads{};
+	std::deque<PresentPayload> m_present_payloads{};
 
 	std::stack<vk::Fence> m_free_fences{};
 
@@ -112,7 +118,7 @@ private:
 
 	[[nodiscard]]
 	vk::Fence acquireFence();
-	void releaseFence(vk::Fence fence);
+	void releaseFences(std::span<const vk::Fence> fences);
 
 	void clearCompletedPayloads();
 	void waitAndClearPayloads();
