@@ -325,7 +325,7 @@ void cgpu::Queue::waitAndClearPayloads()
 	auto clear = [&](std::queue<Payload>& queue) {
 		while (!queue.empty())
 		{
-			std::ignore = m_device_session->getHandle().waitForFences(queue.front().fence, false, UINT64_MAX, m_device_session->getDispatcher());
+			std::ignore = m_device_session->getHandle().waitForFences(queue.front().fence, false, std::numeric_limits<uint64_t>::max(), m_device_session->getDispatcher());
 			m_device_session->getHandle().resetFences(queue.front().fence, m_device_session->getDispatcher());
 			releaseFence(queue.front().fence);
 			queue.pop();

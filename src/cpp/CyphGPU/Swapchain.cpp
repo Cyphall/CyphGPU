@@ -39,7 +39,7 @@ cgpu::Swapchain::~Swapchain()
 	{
 		if (acquire_sync_data.signal_pending)
 		{
-			std::ignore = m_device_session->getHandle().waitForFences(acquire_sync_data.fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
+			std::ignore = m_device_session->getHandle().waitForFences(acquire_sync_data.fence, vk::False, std::numeric_limits<uint64_t>::max(), m_device_session->getDispatcher());
 		}
 		m_device_session->getHandle().destroyFence(acquire_sync_data.fence, nullptr, m_device_session->getDispatcher());
 		m_device_session->getHandle().destroySemaphore(acquire_sync_data.semaphore, nullptr, m_device_session->getDispatcher());
@@ -370,7 +370,7 @@ void cgpu::Swapchain::performAcquire()
 	{
 		ZoneScopedN("Fence wait");
 
-		std::ignore = m_device_session->getHandle().waitForFences(acquire_sync_data.fence, vk::False, UINT64_MAX, m_device_session->getDispatcher());
+		std::ignore = m_device_session->getHandle().waitForFences(acquire_sync_data.fence, vk::False, std::numeric_limits<uint64_t>::max(), m_device_session->getDispatcher());
 		m_device_session->getHandle().resetFences(acquire_sync_data.fence, m_device_session->getDispatcher());
 
 		acquire_sync_data.signal_pending = false;
@@ -381,7 +381,7 @@ void cgpu::Swapchain::performAcquire()
 
 		vk::AcquireNextImageInfoKHR info;
 		info.swapchain = m_handle;
-		info.timeout = UINT64_MAX;
+		info.timeout = std::numeric_limits<uint64_t>::max();
 		info.semaphore = acquire_sync_data.semaphore;
 		info.fence = acquire_sync_data.fence;
 		info.deviceMask = 1;
