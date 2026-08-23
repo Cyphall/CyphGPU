@@ -58,6 +58,17 @@ cgpu::CommandContext::Slot::~Slot()
 			m_device_session->getHandle().destroyCommandPool(pool_data.pool, nullptr, m_device_session->getDispatcher());
 		}
 	}
+
+	for (auto event : m_available_events)
+	{
+		ZoneScopedN("vkDestroyEvent");
+		m_device_session->getHandle().destroyEvent(event, nullptr, m_device_session->getDispatcher());
+	}
+	for (auto event : m_in_use_events)
+	{
+		ZoneScopedN("vkDestroyEvent");
+		m_device_session->getHandle().destroyEvent(event, nullptr, m_device_session->getDispatcher());
+	}
 }
 
 cgpu::CommandRecorder cgpu::CommandContext::Slot::createRecorder(const QueuePtr& queue)
@@ -154,7 +165,7 @@ void cgpu::CommandContext::Slot::recycleRecordingMemory()
 	{
 		for (size_t i = 0; i < 2; i++)
 		{
-			// Free cmd_bufs that were not used last run
+			// Free cmd bufs that were not used last run
 			if (!pool_data.available_cmd_bufs[i].empty())
 			{
 				{
@@ -164,10 +175,21 @@ void cgpu::CommandContext::Slot::recycleRecordingMemory()
 				pool_data.available_cmd_bufs[i].clear();
 			}
 
-			// Recycle last run command buffers
+			// Recycle last run cmd bufs
 			std::swap(pool_data.in_use_cmd_bufs[i], pool_data.available_cmd_bufs[i]);
 		}
 	}
+
+	// Free events that were not used last run
+	for (auto event : m_available_events)
+	{
+		ZoneScopedN("vkDestroyEvent");
+		m_device_session->getHandle().destroyEvent(event, nullptr, m_device_session->getDispatcher());
+	}
+	m_available_events.clear();
+
+	// Recycle last run events
+	std::swap(m_in_use_events, m_available_events);
 
 	m_num_cmd_rec = 0;
 
@@ -229,6 +251,27 @@ vk::CommandBuffer cgpu::CommandContext::Slot::createCommandBuffer(const QueuePtr
 	it->second.in_use_cmd_bufs[level_index].push_back(cmd_buf);
 
 	return cmd_buf;
+}
+
+vk::Event cgpu::CommandContext::Slot::createEvent()
+{
+	if (m_available_events.empty())
+	{
+		vk::EventCreateInfo info;
+		info.flags = vk::EventCreateFlagBits::eDeviceOnly;
+
+		{
+			ZoneScopedN("vkCreateEvent");
+			m_available_events.push_back(m_device_session->getHandle().createEvent(info, nullptr, m_device_session->getDispatcher()));
+		}
+	}
+
+	vk::Event event = m_available_events.back();
+	m_available_events.pop_back();
+
+	m_in_use_events.push_back(event);
+
+	return event;
 }
 
 void cgpu::CommandContext::beginSlot()

@@ -16,31 +16,54 @@
 #	define VULKAN_CALL(name)
 #endif
 
-cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(const ImagePtr& image, GraphicsStages stages, const Image::SampledDescriptorOverrides& overrides)
+cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(
+	const ImagePtr& image,
+	GraphicsStages stages,
+	const Image::SampledDescriptorOverrides& overrides
+)
 {
 	registerSampledImageIndirectAccess(image, stages);
 	return image->getSampledDescriptorIndirect(overrides);
 }
 
-cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(const ImagePtr& image, GraphicsStages stages, StorageAccess access, const Image::StorageDescriptorOverrides& overrides)
+cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(
+	const ImagePtr& image,
+	GraphicsStages stages,
+	StorageAccess access,
+	const Image::StorageDescriptorOverrides& overrides
+)
 {
 	registerStorageImageIndirectAccess(image, stages, access);
 	return image->getStorageDescriptorIndirect(overrides);
 }
 
-cgpu::UniformTexelBufferHandle cgpu::GraphicsPassContext::getUniformTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides)
+cgpu::UniformTexelBufferHandle cgpu::GraphicsPassContext::getUniformTexelBufferDescriptor(
+	const BufferPtr& buffer,
+	GraphicsStages stages,
+	vk::Format format,
+	const Buffer::UniformTexelDescriptorOverrides& overrides
+)
 {
 	registerSampledBufferIndirectAccess(buffer, stages);
 	return buffer->getUniformTexelDescriptorIndirect(format, overrides);
 }
 
-cgpu::StorageTexelBufferHandle cgpu::GraphicsPassContext::getStorageTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::Format format, const Buffer::StorageTexelDescriptorOverrides& overrides)
+cgpu::StorageTexelBufferHandle cgpu::GraphicsPassContext::getStorageTexelBufferDescriptor(
+	const BufferPtr& buffer,
+	GraphicsStages stages,
+	StorageAccess access,
+	vk::Format format,
+	const Buffer::StorageTexelDescriptorOverrides& overrides
+)
 {
 	registerStorageBufferIndirectAccess(buffer, stages, access);
 	return buffer->getStorageTexelDescriptorIndirect(format, overrides);
 }
 
-vk::DeviceAddress cgpu::GraphicsPassContext::getTLASDevicePtr(const TLASPtr& tlas, GraphicsStages stages)
+vk::DeviceAddress cgpu::GraphicsPassContext::getTLASDevicePtr(
+	const TLASPtr& tlas,
+	GraphicsStages stages
+)
 {
 	registerTLASIndirectAccess(tlas, stages);
 	return tlas->getDevicePtr();
@@ -48,27 +71,57 @@ vk::DeviceAddress cgpu::GraphicsPassContext::getTLASDevicePtr(const TLASPtr& tla
 
 void cgpu::GraphicsPassContext::registerSampledImageIndirectAccess(const ImagePtr& image, GraphicsStages stages)
 {
-	m_rec->addCmdResource(*m_cmd, image, toVk(stages), vk::AccessFlagBits2::eShaderSampledRead);
+	m_rec->addCmdResource(
+		image,
+		{
+			toVk(stages),
+			vk::AccessFlagBits2::eShaderSampledRead,
+		}
+	);
 }
 
 void cgpu::GraphicsPassContext::registerStorageImageIndirectAccess(const ImagePtr& image, GraphicsStages stages, StorageAccess access)
 {
-	m_rec->addCmdResource(*m_cmd, image, toVk(stages), PassContext::toVk(access));
+	m_rec->addCmdResource(
+		image,
+		{
+			toVk(stages),
+			PassContext::toVk(access),
+		}
+	);
 }
 
 void cgpu::GraphicsPassContext::registerSampledBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages)
 {
-	m_rec->addCmdResource(*m_cmd, buffer, toVk(stages), vk::AccessFlagBits2::eShaderSampledRead);
+	m_rec->addCmdResource(
+		buffer,
+		{
+			toVk(stages),
+			vk::AccessFlagBits2::eShaderSampledRead,
+		}
+	);
 }
 
 void cgpu::GraphicsPassContext::registerStorageBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access)
 {
-	m_rec->addCmdResource(*m_cmd, buffer, toVk(stages), PassContext::toVk(access));
+	m_rec->addCmdResource(
+		buffer,
+		{
+			toVk(stages),
+			PassContext::toVk(access),
+		}
+	);
 }
 
 void cgpu::GraphicsPassContext::registerTLASIndirectAccess(const TLASPtr& tlas, GraphicsStages stages)
 {
-	m_rec->addCmdResource(*m_cmd, tlas->getBuffer(), toVk(stages), vk::AccessFlagBits2::eAccelerationStructureReadKHR);
+	m_rec->addCmdResource(
+		tlas->getBuffer(),
+		{
+			toVk(stages),
+			vk::AccessFlagBits2::eAccelerationStructureReadKHR,
+		}
+	);
 	m_rec->addReferencedObject(tlas);
 }
 
@@ -124,7 +177,7 @@ void cgpu::GraphicsPassContext::bindIndexBuffer(
 {
 	COMMAND;
 
-	m_rec->addCmdResource(*m_cmd, buffer, vk::PipelineStageFlagBits2::eIndexInput, vk::AccessFlagBits2::eIndexRead);
+	m_rec->addCmdResource(buffer, {vk::PipelineStageFlagBits2::eIndexInput, vk::AccessFlagBits2::eIndexRead});
 
 	vk::BindIndexBuffer3InfoKHR info;
 	info.addressRange.address = buffer->getDevicePtr() + (range ? range->offset : 0);
@@ -224,8 +277,8 @@ void cgpu::GraphicsPassContext::setScissor(
 	}
 }
 
-cgpu::GraphicsPassContext::GraphicsPassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd, const DeviceSessionPtr& device_session, vk::CommandBuffer cmd_buf):
-	PassContext{rec, cmd},
+cgpu::GraphicsPassContext::GraphicsPassContext(CommandRecorder& rec, const DeviceSessionPtr& device_session, vk::CommandBuffer cmd_buf):
+	PassContext{rec},
 	m_device_session{device_session},
 	m_dispatcher{&device_session->getDispatcher()},
 	m_cmd_buf{cmd_buf}

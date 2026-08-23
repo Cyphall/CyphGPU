@@ -22,27 +22,55 @@ class GraphicsPassContext final : public PassContext
 {
 public:
 	[[nodiscard]]
-	SampledImageHandle getSampledImageDescriptor(const ImagePtr& image, GraphicsStages stages, const Image::SampledDescriptorOverrides& overrides = {});
+	SampledImageHandle getSampledImageDescriptor(
+		const ImagePtr& image,
+		GraphicsStages stages,
+		const Image::SampledDescriptorOverrides& overrides = {}
+	);
 
 	[[nodiscard]]
-	StorageImageHandle getStorageImageDescriptor(const ImagePtr& image, GraphicsStages stages, StorageAccess access, const Image::StorageDescriptorOverrides& overrides = {});
+	StorageImageHandle getStorageImageDescriptor(
+		const ImagePtr& image,
+		GraphicsStages stages,
+		StorageAccess access,
+		const Image::StorageDescriptorOverrides& overrides = {}
+	);
 
 	template<class T>
 	[[nodiscard]]
-	T* getBufferDevicePtr(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::DeviceSize offset = 0)
+	T* getBufferDevicePtr(
+		const BufferPtr& buffer,
+		GraphicsStages stages,
+		StorageAccess access,
+		vk::DeviceSize offset = 0
+	)
 	{
 		registerStorageBufferIndirectAccess(buffer, stages, access);
 		return buffer->getDevicePtrIndirect<T>(offset);
 	}
 
 	[[nodiscard]]
-	UniformTexelBufferHandle getUniformTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, vk::Format format, const Buffer::UniformTexelDescriptorOverrides& overrides = {});
+	UniformTexelBufferHandle getUniformTexelBufferDescriptor(
+		const BufferPtr& buffer,
+		GraphicsStages stages,
+		vk::Format format,
+		const Buffer::UniformTexelDescriptorOverrides& overrides = {}
+	);
 
 	[[nodiscard]]
-	StorageTexelBufferHandle getStorageTexelBufferDescriptor(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access, vk::Format format, const Buffer::StorageTexelDescriptorOverrides& overrides = {});
+	StorageTexelBufferHandle getStorageTexelBufferDescriptor(
+		const BufferPtr& buffer,
+		GraphicsStages stages,
+		StorageAccess access,
+		vk::Format format,
+		const Buffer::StorageTexelDescriptorOverrides& overrides = {}
+	);
 
 	[[nodiscard]]
-	vk::DeviceAddress getTLASDevicePtr(const TLASPtr& tlas, GraphicsStages stages);
+	vk::DeviceAddress getTLASDevicePtr(
+		const TLASPtr& tlas,
+		GraphicsStages stages
+	);
 
 	void registerSampledImageIndirectAccess(const ImagePtr& image, GraphicsStages stages);
 	void registerStorageImageIndirectAccess(const ImagePtr& image, GraphicsStages stages, StorageAccess access);
@@ -148,7 +176,7 @@ private:
 	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
 	vk::CommandBuffer m_cmd_buf;
 
-	explicit GraphicsPassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd, const DeviceSessionPtr& device_session, vk::CommandBuffer cmd_buf);
+	explicit GraphicsPassContext(CommandRecorder& rec, const DeviceSessionPtr& device_session, vk::CommandBuffer cmd_buf);
 
 	static vk::PipelineStageFlags2 toVk(GraphicsStages stages);
 

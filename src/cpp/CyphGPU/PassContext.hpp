@@ -17,9 +17,8 @@ class PassContext
 {
 protected:
 	CommandRecorder* m_rec;
-	CommandRecorder::CmdBase* m_cmd;
 
-	explicit PassContext(CommandRecorder& rec, CommandRecorder::CmdBase& cmd);
+	explicit PassContext(CommandRecorder& rec);
 
 	static vk::AccessFlags2 toVk(StorageAccess access);
 };

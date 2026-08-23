@@ -62,6 +62,8 @@ private:
 
 		vk::CommandBuffer createCommandBuffer(const QueuePtr& queue, vk::CommandBufferLevel level);
 
+		vk::Event createEvent();
+
 	private:
 		struct CommandPoolData
 		{
@@ -86,6 +88,9 @@ private:
 		vk::DeviceSize m_current_param_buf_offset{};
 
 		std::flat_map<vk::Semaphore, uint64_t> m_finished_signals{};
+
+		std::vector<vk::Event> m_available_events{};
+		std::vector<vk::Event> m_in_use_events{};
 	};
 
 	DeviceSessionPtr m_device_session;

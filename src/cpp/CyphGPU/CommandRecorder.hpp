@@ -467,23 +467,49 @@ private:
 	friend class ComputePassContext;
 	friend class ScopedDebugRegion;
 
-	struct GlobalResourceSync
-	{
-		// Stages that performed the last write
-		vk::PipelineStageFlags2 last_write_stages{};
-		// Accesses that happened during the last write
-		vk::AccessFlags2 last_write_accesses{};
-
-		// Which stages accessed the resource since the last write
-		vk::PipelineStageFlags2 stages_since_last_write{};
-		// Which accesses accessed the resource since the last write
-		vk::AccessFlags2 accesses_since_last_write{};
-	};
-
-	struct CmdResourceSync
+	struct AccessPoints
 	{
 		vk::PipelineStageFlags2 stages{};
 		vk::AccessFlags2 accesses{};
+
+		[[nodiscard]]
+		AccessPoints operator|(AccessPoints other) const
+		{
+			return {stages | other.stages, accesses | other.accesses};
+		}
+
+		AccessPoints& operator|=(AccessPoints other)
+		{
+			stages |= other.stages;
+			accesses |= other.accesses;
+			return *this;
+		}
+	};
+
+	struct Barrier
+	{
+		AccessPoints src;
+		AccessPoints dst;
+	};
+
+	struct SignalPoint
+	{
+		detail::BumpSegmentedUnorderedMap<Image*, Barrier> image_barriers;
+		detail::BumpSegmentedUnorderedMap<Buffer*, Barrier> buffer_barriers;
+
+		// Storage for submit-time recording
+		vk::Event event;
+		vk::PipelineStageFlags2 reset_stages;
+		detail::BumpVector<vk::ImageMemoryBarrier2> vk_image_barriers;
+		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffer_barriers;
+		vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
+
+		explicit SignalPoint(detail::BumpMemoryResource& bump_memory):
+			image_barriers{detail::BumpAllocator{bump_memory}},
+			buffer_barriers{detail::BumpAllocator{bump_memory}},
+			vk_image_barriers{detail::BumpAllocator{bump_memory}},
+			vk_buffer_barriers{detail::BumpAllocator{bump_memory}}
+		{}
 	};
 
 	struct CmdBase
@@ -492,12 +518,17 @@ private:
 
 		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
 
-		detail::BumpSegmentedUnorderedMap<Image*, CmdResourceSync> images;
-		detail::BumpSegmentedUnorderedMap<Buffer*, CmdResourceSync> buffers;
+		detail::BumpSegmentedUnorderedMap<Image*, AccessPoints> referenced_images;
+		detail::BumpSegmentedUnorderedMap<Buffer*, AccessPoints> referenced_buffers;
+
+		// Storage for submit-time recording
+		detail::BumpSegmentedUnorderedSet<CmdBase*> wait_cmds;
+		std::optional<SignalPoint> signal_point;
 
 		explicit CmdBase(detail::BumpMemoryResource& bump_memory):
-			images{detail::BumpAllocator{bump_memory}},
-			buffers{detail::BumpAllocator{bump_memory}}
+			referenced_images{detail::BumpAllocator{bump_memory}},
+			referenced_buffers{detail::BumpAllocator{bump_memory}},
+			wait_cmds{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 
@@ -510,19 +541,26 @@ private:
 		}
 	};
 
+	struct SyncPoint
+	{
+		CmdBase* cmd;
+		AccessPoints access_points;
+	};
+
+	struct ResourceAccess
+	{
+		std::optional<SyncPoint> last_write;
+		std::optional<SyncPoint> reads_since_last_write;
+	};
+
 	struct ReferencedContainers
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
-
-		detail::BumpSegmentedUnorderedMap<Image*, bool> images;
-		detail::BumpSegmentedUnorderedMap<Buffer*, bool> buffers;
 
 		detail::BumpList<std::unique_ptr<CmdBase, CmdDeleter>> cmd_list;
 
 		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
 			objects{detail::BumpAllocator{bump_memory}},
-			images{detail::BumpAllocator{bump_memory}},
-			buffers{detail::BumpAllocator{bump_memory}},
 			cmd_list{detail::BumpAllocator{bump_memory}}
 		{}
 	};
@@ -554,7 +592,7 @@ private:
 
 	template<class T>
 	requires(std::derived_from<T, cgpu::Resource>)
-	void addCmdResource(CmdBase& cmd, const std::shared_ptr<T>& resource, vk::PipelineStageFlags2 stages, vk::AccessFlags2 accesses);
+	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
 
 	template<class T, class... TArgs>
 	requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
