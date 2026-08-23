@@ -644,7 +644,7 @@ void cgpu::DeviceSession::createTracyCollectThread()
 			std::unique_lock lock{mutex};
 			while (!token.stop_requested())
 			{
-				cv.wait_for(lock, token, std::chrono::seconds{1}, [&token] { return token.stop_requested(); });
+				cv.wait_for(lock, token, std::chrono::milliseconds{100}, [&token] { return token.stop_requested(); });
 
 				m_main_queue->tracyCollect();
 				if (m_async_graphics_queue != m_main_queue)
