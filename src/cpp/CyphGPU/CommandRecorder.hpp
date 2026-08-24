@@ -526,11 +526,10 @@ private:
 
 		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
 
-		// If true, will not be taken into account when deciding between event vs barrier
-		bool is_stageless = false;
-
 		detail::BumpSegmentedUnorderedMap<Image*, AccessPoints> referenced_images;
 		detail::BumpSegmentedUnorderedMap<Buffer*, AccessPoints> referenced_buffers;
+
+		uint64_t stageful_index{};
 
 		// Storage for submit-time recording
 		detail::BumpSegmentedUnorderedSet<CmdBase*> wait_cmds;
@@ -584,6 +583,8 @@ private:
 
 	std::optional<ReferencedContainers> m_referenced_containers;
 
+	uint64_t m_next_stageful_index{0};
+
 #if !defined(NDEBUG)
 	bool m_submitted{false};
 #endif
@@ -605,9 +606,10 @@ private:
 	requires(std::derived_from<T, cgpu::Resource>)
 	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
 
+	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier
 	template<class T, class... TArgs>
 	requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
-	T& addCmd(TArgs&&... args);
+	T& addCmd(bool is_stageful, TArgs&&... args);
 
 	vk::DeviceAddress writeParameters(
 		const void* data,

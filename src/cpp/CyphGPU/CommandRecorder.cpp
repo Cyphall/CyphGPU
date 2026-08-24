@@ -186,12 +186,10 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	auto resolve_resources_sync =
 		[&]<class T>(
-			auto& it,
+			CmdBase& cmd,
 			const detail::BumpSegmentedUnorderedMap<T*, AccessPoints>& cmd_resources_accesses,
 			detail::BumpSegmentedUnorderedMap<T*, ResourceAccess>& global_resources_accesses
 		) {
-			auto& cmd = **it;
-
 			for (const auto& [resource, access_point] : cmd_resources_accesses)
 			{
 				ResourceAccess& global_resource_accesses = global_resources_accesses[resource];
@@ -234,17 +232,11 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						sync_point->cmd->signal_point.emplace(*m_bump_memory);
 						cmd.wait_cmds.emplace(sync_point->cmd);
 
-						// Lookback from current command to sync point command.
-						// If unrelated stageful commands are present between the two, use events instead of barriers.
-						for (auto lookback_it = std::prev(it); lookback_it->get() != sync_point->cmd; lookback_it--)
+						// If unrelated stageful commands are present between the two, use events instead of barriers
+						uint64_t num_stageful_cmds_between = cmd.stageful_index - sync_point->cmd->stageful_index - 1;
+						if (num_stageful_cmds_between > 0)
 						{
-							if ((*lookback_it)->is_stageless)
-							{
-								continue;
-							}
-
 							sync_point->cmd->signal_point->event.emplace(*m_bump_memory);
-							break;
 						}
 					}
 
@@ -264,10 +256,10 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> global_buffers_accesses{detail::BumpAllocator{*m_bump_memory}};
 	{
 		ZoneScopedN("Resolve sync");
-		for (auto it = m_referenced_containers->cmd_list.begin(); it != m_referenced_containers->cmd_list.end(); it++)
+		for (auto& cmd : m_referenced_containers->cmd_list)
 		{
-			resolve_resources_sync(it, (*it)->referenced_images, global_images_accesses);
-			resolve_resources_sync(it, (*it)->referenced_buffers, global_buffers_accesses);
+			resolve_resources_sync(*cmd, cmd->referenced_images, global_images_accesses);
+			resolve_resources_sync(*cmd, cmd->referenced_buffers, global_buffers_accesses);
 		}
 	}
 
@@ -734,7 +726,7 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_ranges));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_ranges));
 	cmd.image = (*params.image)->getHandle();
 	if (params.color_value)
 	{
@@ -841,7 +833,7 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_regions));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
 	cmd.info.srcImage = (*params.src_image)->getHandle();
 	cmd.info.srcImageLayout = vk::ImageLayout::eGeneral;
 	cmd.info.dstImage = (*params.dst_image)->getHandle();
@@ -935,7 +927,7 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_regions));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
 	cmd.info.image = (*params.dst_image)->getHandle();
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
@@ -1025,7 +1017,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_regions));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
 	cmd.info.image = (*params.src_image)->getHandle();
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
@@ -1108,7 +1100,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_regions));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
 
@@ -1198,7 +1190,7 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_regions));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
 	cmd.info.srcImage = (*params.src_image)->getHandle();
 	cmd.info.srcImageLayout = vk::ImageLayout::eGeneral;
 	cmd.info.dstImage = (*params.dst_image)->getHandle();
@@ -1501,7 +1493,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>();
+	auto& cmd = addCmd<Cmd>(true);
 
 	// With auto sync, we need to record which resources are used during the
 	// pass callback and then inject the barrier before the pass is executed.
@@ -1741,7 +1733,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(detail::BumpAllocator{*m_bump_memory});
+	auto& cmd = addCmd<Cmd>(true, detail::BumpAllocator{*m_bump_memory});
 
 	ComputePassContext ctx{*this, cmd.dispatch_cmds};
 	std::exception_ptr exception_ptr;
@@ -1790,7 +1782,7 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>();
+	auto& cmd = addCmd<Cmd>(true);
 
 	auto vertex_range = std::get<0>(resolveRange(*params.vertex_buffer->buffer, params.vertex_buffer->range.value_or(BufferRange{})));
 
@@ -1884,7 +1876,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>();
+	auto& cmd = addCmd<Cmd>(true);
 
 	cgpu::Range<vk::DeviceSize> instance_range;
 	if (params.instance_info)
@@ -1998,8 +1990,7 @@ void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>();
-	cmd.is_stageless = true;
+	auto& cmd = addCmd<Cmd>(false);
 
 	cmd.barrier.srcStageMask = params.src_stages ? *params.src_stages : vk::PipelineStageFlagBits2::eAllCommands;
 	cmd.barrier.srcAccessMask = params.src_accesses ? *params.src_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
@@ -2093,7 +2084,7 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(std::move(vk_regions));
+	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
 
 	auto& resolve_info = cmd.chain.get<vk::ResolveImageInfo2>();
 	resolve_info.srcImage = (*params.src_image)->getHandle();
@@ -2176,10 +2167,15 @@ template void cgpu::CommandRecorder::addCmdResource<cgpu::Buffer>(const std::sha
 
 template<class T, class... TArgs>
 requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
-T& cgpu::CommandRecorder::addCmd(TArgs&&... args)
+T& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
 {
 	void* memory = m_bump_memory->allocate(sizeof(T), alignof(T));
 	T* cmd = std::construct_at(static_cast<T*>(memory), *m_bump_memory, std::forward<TArgs>(args)...);
+
+	if (is_stageful)
+	{
+		cmd->stageful_index = m_next_stageful_index++;
+	}
 
 	m_referenced_containers->cmd_list.emplace_back(cmd);
 
@@ -2222,8 +2218,7 @@ void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 co
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(name);
-	cmd.is_stageless = true;
+	auto& cmd = addCmd<Cmd>(false, name);
 	cmd.info.pLabelName = cmd.name.c_str();
 	std::memcpy(cmd.info.color.data(), glm::value_ptr(color), sizeof(glm::vec4));
 }
@@ -2247,8 +2242,7 @@ void cgpu::CommandRecorder::endDebugRegion()
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>();
-	cmd.is_stageless = true;
+	addCmd<Cmd>(false);
 }
 
 cgpu::ScopedDebugRegion::ScopedDebugRegion(CommandRecorder& rec, std::string_view name, glm::vec4 color):
