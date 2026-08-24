@@ -59,7 +59,7 @@ using BumpVector = std::vector<T, BumpAllocator<T>>;
 template<class TKey, class TValue, class TCompare = std::less<TKey>>
 using BumpMap = std::map<TKey, TValue, TCompare, BumpAllocator<std::pair<const TKey, TValue>>>;
 
-template<class TKey, class TValue, class THash = std::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
+template<class TKey, class TValue, class THash = ankerl::unordered_dense::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
 using BumpUnorderedMap = std::unordered_map<TKey, TValue, THash, TKeyEqual, BumpAllocator<std::pair<const TKey, TValue>>>;
 
 template<class TKey, class TValue, class TCompare = std::less<TKey>>
@@ -68,7 +68,7 @@ using BumpFlatMap = std::flat_map<TKey, TValue, TCompare, BumpVector<TKey>, Bump
 template<class TKey, class TCompare = std::less<TKey>>
 using BumpSet = std::set<TKey, TCompare, BumpAllocator<TKey>>;
 
-template<class TKey, class THash = std::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
+template<class TKey, class THash = ankerl::unordered_dense::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
 using BumpUnorderedSet = std::unordered_set<TKey, THash, TKeyEqual, BumpAllocator<TKey>>;
 
 template<class TKey, class TCompare = std::less<TKey>>
@@ -77,9 +77,9 @@ using BumpFlatSet = std::flat_set<TKey, TCompare, BumpVector<TKey>>;
 template<class T>
 using BumpList = std::list<T, BumpAllocator<T>>;
 
-template<class TKey, class TValue, class THash = std::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
+template<class TKey, class TValue, class THash = ankerl::unordered_dense::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
 using BumpSegmentedUnorderedMap = ankerl::unordered_dense::segmented_map<TKey, TValue, THash, TKeyEqual, BumpAllocator<std::pair<TKey, TValue>>>;
 
-template<class TKey, class THash = std::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
+template<class TKey, class THash = ankerl::unordered_dense::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
 using BumpSegmentedUnorderedSet = ankerl::unordered_dense::segmented_set<TKey, THash, TKeyEqual, BumpAllocator<TKey>>;
 }
