@@ -59,6 +59,30 @@ constexpr auto& constexprSelect(TFirst& first, TSecond& second)
 	}
 }
 
+[[nodiscard]]
+constexpr bool hasWriteAccesses(vk::AccessFlags2 accesses)
+{
+	vk::AccessFlags2 write_accesses =
+		vk::AccessFlagBits2::eShaderWrite |
+		vk::AccessFlagBits2::eColorAttachmentWrite |
+		vk::AccessFlagBits2::eDepthStencilAttachmentWrite |
+		vk::AccessFlagBits2::eTransferWrite |
+		vk::AccessFlagBits2::eHostWrite |
+		vk::AccessFlagBits2::eMemoryWrite |
+		vk::AccessFlagBits2::eShaderStorageWrite |
+		vk::AccessFlagBits2::eVideoDecodeWriteKHR |
+		vk::AccessFlagBits2::eVideoEncodeWriteKHR |
+		vk::AccessFlagBits2::eShaderTileAttachmentWriteQCOM |
+		vk::AccessFlagBits2::eTransformFeedbackWriteEXT |
+		vk::AccessFlagBits2::eTransformFeedbackCounterWriteEXT |
+		vk::AccessFlagBits2::eCommandPreprocessWriteEXT |
+		vk::AccessFlagBits2::eAccelerationStructureWriteKHR |
+		vk::AccessFlagBits2::eMicromapWriteEXT |
+		vk::AccessFlagBits2::eOpticalFlowWriteNV;
+
+	return static_cast<bool>(accesses & write_accesses);
+}
+
 constexpr std::array CLEAR_IMAGE_DEFAULT_RANGE = {
 	cgpu::CommandRecorder::ImageLevelsLayersRange{},
 };
@@ -194,7 +218,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			{
 				ResourceAccess& global_resource_accesses = global_resources_accesses[resource];
 				std::optional<SyncPoint> sync_point;
-				if (!getWriteAccesses(access_point.accesses))
+				if (!hasWriteAccesses(access_point.accesses))
 				{
 					if (global_resource_accesses.last_write) // RaW
 					{
