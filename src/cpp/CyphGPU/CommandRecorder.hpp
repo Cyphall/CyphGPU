@@ -508,8 +508,8 @@ private:
 
 	struct SignalPoint
 	{
-		detail::BumpSegmentedUnorderedMap<Image*, Barrier> image_barriers;
-		detail::BumpSegmentedUnorderedMap<Buffer*, Barrier> buffer_barriers;
+		detail::BumpFlatMap<Image*, Barrier> image_barriers;
+		detail::BumpFlatMap<Buffer*, Barrier> buffer_barriers;
 
 		// Storage for submit-time recording
 		std::optional<Event> event;
@@ -526,13 +526,13 @@ private:
 
 		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
 
-		detail::BumpSegmentedUnorderedMap<Image*, AccessPoints> referenced_images;
-		detail::BumpSegmentedUnorderedMap<Buffer*, AccessPoints> referenced_buffers;
+		detail::BumpFlatMap<Image*, AccessPoints> referenced_images;
+		detail::BumpFlatMap<Buffer*, AccessPoints> referenced_buffers;
 
 		uint64_t stageful_index{};
 
 		// Storage for submit-time recording
-		detail::BumpSegmentedUnorderedSet<CmdBase*> wait_cmds;
+		detail::BumpFlatSet<CmdBase*> wait_cmds;
 		std::optional<SignalPoint> signal_point;
 
 		explicit CmdBase(detail::BumpMemoryResource& bump_memory):

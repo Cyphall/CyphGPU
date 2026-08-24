@@ -187,7 +187,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	auto resolve_resources_sync =
 		[&]<class T>(
 			CmdBase& cmd,
-			const detail::BumpSegmentedUnorderedMap<T*, AccessPoints>& cmd_resources_accesses,
+			const detail::BumpFlatMap<T*, AccessPoints>& cmd_resources_accesses,
 			detail::BumpSegmentedUnorderedMap<T*, ResourceAccess>& global_resources_accesses
 		) {
 			for (const auto& [resource, access_point] : cmd_resources_accesses)
@@ -351,8 +351,8 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	auto to_vk =
 		[&](
-			const detail::BumpSegmentedUnorderedMap<Image*, Barrier>& image_barriers,
-			const detail::BumpSegmentedUnorderedMap<Buffer*, Barrier>& buffer_barriers,
+			const detail::BumpFlatMap<Image*, Barrier>& image_barriers,
+			const detail::BumpFlatMap<Buffer*, Barrier>& buffer_barriers,
 			detail::BumpVector<vk::ImageMemoryBarrier2>& vk_image_barriers,
 			detail::BumpVector<vk::MemoryRangeBarrierKHR>& vk_buffer_barriers,
 			vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR>& vk_chain,
