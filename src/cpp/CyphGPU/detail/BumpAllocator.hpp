@@ -39,9 +39,8 @@ public:
 		return static_cast<T*>(m_resource->allocate(count * sizeof(T), alignof(T)));
 	}
 
-	void deallocate(T* ptr, size_t count)
+	void deallocate(T*, size_t)
 	{
-		m_resource->deallocate(ptr, count * sizeof(T), alignof(T));
 	}
 
 	bool operator==(const BumpAllocator& other) const = default;
