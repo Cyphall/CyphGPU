@@ -467,6 +467,23 @@ private:
 	friend class ComputePassContext;
 	friend class ScopedDebugRegion;
 
+	template<class T>
+	struct BumpDeleter
+	{
+		BumpDeleter() = default;
+
+		template<class TOther>
+		requires(std::is_convertible_v<TOther*, T*>)
+		BumpDeleter(const BumpDeleter<TOther>&)
+		{}
+
+		void operator()(T* ptr) const
+		{
+			std::destroy_at(ptr);
+			// Memory was allocated from a bump allocator, no need to free it
+		}
+	};
+
 	struct AccessPoints
 	{
 		vk::PipelineStageFlags2 stages{};
@@ -512,7 +529,7 @@ private:
 		detail::BumpFlatMap<Buffer*, Barrier> buffer_barriers;
 
 		// Storage for submit-time recording
-		std::optional<Event> event;
+		std::unique_ptr<Event, BumpDeleter<Event>> event; // Nullable, nullptr = empty
 
 		explicit SignalPoint(detail::BumpMemoryResource& bump_memory):
 			image_barriers{detail::BumpAllocator{bump_memory}},
@@ -542,15 +559,6 @@ private:
 		{}
 	};
 
-	struct CmdDeleter
-	{
-		void operator()(CmdBase* ptr) const
-		{
-			std::destroy_at(ptr);
-			// Memory was allocated from a bump allocator, no need to free it
-		}
-	};
-
 	struct SyncPoint
 	{
 		CmdBase* cmd;
@@ -567,7 +575,7 @@ private:
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
 
-		detail::BumpList<std::unique_ptr<CmdBase, CmdDeleter>> cmd_list;
+		detail::BumpList<std::unique_ptr<CmdBase, BumpDeleter<CmdBase>>> cmd_list;
 
 		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
 			objects{detail::BumpAllocator{bump_memory}},
@@ -594,6 +602,9 @@ private:
 		detail::BumpMemoryResource& bump_memory,
 		const QueuePtr& queue
 	);
+
+	template<class T, class... TArgs>
+	static std::unique_ptr<T, BumpDeleter<T>> makeUniqueBump(detail::BumpMemoryResource& bump_memory, TArgs&&... args);
 
 	template<class T>
 	requires(!std::derived_from<T, cgpu::Resource>)
