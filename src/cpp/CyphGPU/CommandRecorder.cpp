@@ -254,6 +254,9 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					if (!sync_point->cmd->signal_point)
 					{
 						sync_point->cmd->signal_point.emplace(*m_bump_memory);
+
+						// We have only one wait point per signal point, with the dst masks including
+						// all future reads until the next write.
 						cmd.wait_cmds.emplace(sync_point->cmd);
 
 						// If unrelated stageful commands are present between the two, use events instead of barriers
