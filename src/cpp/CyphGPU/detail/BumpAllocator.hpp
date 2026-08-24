@@ -53,6 +53,22 @@ private:
 };
 
 template<class T>
+struct BumpDeleter
+{
+	BumpDeleter() = default;
+
+	template<class TOther>
+	requires(std::is_convertible_v<TOther*, T*>)
+	BumpDeleter(const BumpDeleter<TOther>&)
+	{}
+
+	void operator()(T* ptr) const
+	{
+		std::destroy_at(ptr);
+	}
+};
+
+template<class T>
 using BumpVector = std::vector<T, BumpAllocator<T>>;
 
 template<class TKey, class TValue, class TCompare = std::less<TKey>>
@@ -81,4 +97,14 @@ using BumpSegmentedUnorderedMap = ankerl::unordered_dense::segmented_map<TKey, T
 
 template<class TKey, class THash = ankerl::unordered_dense::hash<TKey>, class TKeyEqual = std::equal_to<TKey>>
 using BumpSegmentedUnorderedSet = ankerl::unordered_dense::segmented_set<TKey, THash, TKeyEqual, BumpAllocator<TKey>>;
+
+template<class T>
+using BumpUniquePtr = std::unique_ptr<T, BumpDeleter<T>>;
+
+template<class T, class... TArgs>
+constexpr BumpUniquePtr<T> makeBumpUnique(detail::BumpMemoryResource& bump_memory, TArgs&&... args)
+{
+	void* memory = bump_memory.allocate(sizeof(T), alignof(T));
+	return BumpUniquePtr<T>{std::construct_at(static_cast<T*>(memory), std::forward<TArgs>(args)...)};
+}
 }

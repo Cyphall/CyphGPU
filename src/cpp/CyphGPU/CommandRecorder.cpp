@@ -263,7 +263,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						uint64_t num_stageful_cmds_between = cmd.stageful_index - sync_point->cmd->stageful_index - 1;
 						if (num_stageful_cmds_between > 0)
 						{
-							sync_point->cmd->signal_point->event = makeUniqueBump<Event>(*m_bump_memory, *m_bump_memory);
+							sync_point->cmd->signal_point->event = detail::makeBumpUnique<Event>(*m_bump_memory, *m_bump_memory);
 						}
 					}
 
@@ -2172,13 +2172,6 @@ cgpu::CommandRecorder::CommandRecorder(
 	addReferencedObject(m_slot);
 }
 
-template<class T, class... TArgs>
-std::unique_ptr<T, cgpu::CommandRecorder::BumpDeleter<T>> cgpu::CommandRecorder::makeUniqueBump(detail::BumpMemoryResource& bump_memory, TArgs&&... args)
-{
-	void* memory = bump_memory.allocate(sizeof(T), alignof(T));
-	return std::unique_ptr<T, cgpu::CommandRecorder::BumpDeleter<T>>{std::construct_at(static_cast<T*>(memory), std::forward<TArgs>(args)...)};
-}
-
 template<class T>
 requires(std::derived_from<T, cgpu::Resource>)
 void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point)
@@ -2203,7 +2196,7 @@ template<class T, class... TArgs>
 requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
 T& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
 {
-	auto& cmd = m_referenced_containers->cmd_list.emplace_back(makeUniqueBump<T>(*m_bump_memory, *m_bump_memory, std::forward<TArgs>(args)...));
+	auto& cmd = m_referenced_containers->cmd_list.emplace_back(detail::makeBumpUnique<T>(*m_bump_memory, *m_bump_memory, std::forward<TArgs>(args)...));
 
 	if (is_stageful)
 	{
