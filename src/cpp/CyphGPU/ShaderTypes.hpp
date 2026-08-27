@@ -14,6 +14,9 @@ namespace cgpu
                                                           \
 		name() = default;                                 \
                                                           \
+		name(std::nullptr_t)                              \
+		{}                                                \
+                                                          \
 	private:                                              \
 		friend class parent_name;                         \
                                                           \
