@@ -365,7 +365,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		[&](
 			uint32_t num_image_barriers,
 			uint32_t num_buffer_barriers,
-			const detail::BumpFlatMap<Resource*, Barrier>& resource_barriers,
+			const detail::BumpDenseUnorderedMap<Resource*, Barrier>& resource_barriers,
 			detail::BumpVector<vk::ImageMemoryBarrier2>& vk_image_barriers,
 			detail::BumpVector<vk::MemoryRangeBarrierKHR>& vk_buffer_barriers,
 			vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR>& vk_chain

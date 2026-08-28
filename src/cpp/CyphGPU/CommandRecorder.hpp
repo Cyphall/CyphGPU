@@ -507,7 +507,7 @@ private:
 
 	struct SignalPoint
 	{
-		detail::BumpFlatMap<Resource*, Barrier> resource_barriers;
+		detail::BumpDenseUnorderedMap<Resource*, Barrier> resource_barriers;
 		uint32_t num_image_barriers{0};
 		uint32_t num_buffer_barriers{0};
 
@@ -525,7 +525,7 @@ private:
 
 		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
 
-		detail::BumpFlatMap<Resource*, AccessPoints> referenced_resources;
+		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
 
 		uint64_t stageful_index{};
 
