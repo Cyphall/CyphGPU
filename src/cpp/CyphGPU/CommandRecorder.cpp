@@ -509,9 +509,9 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					barrier.image = image->getHandle();
 					barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
 					barrier.subresourceRange.baseMipLevel = 0;
-					barrier.subresourceRange.levelCount = image->getDesc().levels;
+					barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
 					barrier.subresourceRange.baseArrayLayer = 0;
-					barrier.subresourceRange.layerCount = image->getDesc().layers;
+					barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
 
 					image->setLayoutInitialized(true);
 				}
