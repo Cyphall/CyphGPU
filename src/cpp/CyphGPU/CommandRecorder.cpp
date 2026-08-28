@@ -217,12 +217,12 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			for (const auto& [resource, access_point] : cmd.referenced_resources)
 			{
 				ResourceAccess& global_resource_access = global_resource_accesses[resource];
-				std::optional<SyncPoint> sync_point;
+				std::optional<SyncPoint> dep_sync_point;
 				if (!hasWriteAccesses(access_point.accesses))
 				{
 					if (global_resource_access.last_write) // RaW
 					{
-						sync_point = *global_resource_access.last_write;
+						dep_sync_point = *global_resource_access.last_write;
 					}
 
 					if (!global_resource_access.reads_since_last_write)
@@ -236,11 +236,11 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				{
 					if (global_resource_access.reads_since_last_write) // WaR
 					{
-						sync_point = *global_resource_access.reads_since_last_write;
+						dep_sync_point = *global_resource_access.reads_since_last_write;
 					}
 					else if (global_resource_access.last_write) // WaW
 					{
-						sync_point = *global_resource_access.last_write;
+						dep_sync_point = *global_resource_access.last_write;
 					}
 
 					global_resource_access.reads_since_last_write = std::nullopt;
@@ -249,31 +249,31 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					global_resource_access.last_write->access_points = access_point;
 				}
 
-				if (sync_point)
+				if (dep_sync_point)
 				{
-					if (!sync_point->cmd->signal_point)
+					if (!dep_sync_point->cmd->signal_point)
 					{
-						sync_point->cmd->signal_point.emplace(*m_bump_memory);
+						dep_sync_point->cmd->signal_point.emplace(*m_bump_memory);
 
 						// We have only one wait point per signal point, with the dst masks including
 						// all future reads until the next write.
-						cmd.wait_cmds.emplace(sync_point->cmd);
+						cmd.wait_cmds.emplace(dep_sync_point->cmd);
 
 						// If unrelated stageful commands are present between the two, use events instead of barriers
-						uint64_t num_stageful_cmds_between = cmd.stageful_index - sync_point->cmd->stageful_index - 1;
+						uint64_t num_stageful_cmds_between = cmd.stageful_index - dep_sync_point->cmd->stageful_index - 1;
 						if (num_stageful_cmds_between > 0)
 						{
-							sync_point->cmd->signal_point->event = detail::makeBumpUnique<Event>(*m_bump_memory, *m_bump_memory);
+							dep_sync_point->cmd->signal_point->event = detail::makeBumpUnique<Event>(*m_bump_memory, *m_bump_memory);
 						}
 					}
 
-					auto [it, inserted] = sync_point->cmd->signal_point->resource_barriers.try_emplace(resource, sync_point->access_points, access_point);
+					auto [it, inserted] = dep_sync_point->cmd->signal_point->resource_barriers.try_emplace(resource, dep_sync_point->access_points, access_point);
 					if (inserted)
 					{
 						auto& counter =
 							resource->getType() == Resource::Type::eImage ?
-								sync_point->cmd->signal_point->num_image_barriers :
-								sync_point->cmd->signal_point->num_buffer_barriers;
+								dep_sync_point->cmd->signal_point->num_image_barriers :
+								dep_sync_point->cmd->signal_point->num_buffer_barriers;
 						counter++;
 					}
 					else
