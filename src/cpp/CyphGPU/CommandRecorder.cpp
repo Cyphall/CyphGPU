@@ -268,7 +268,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						sync_point->cmd->signal_point.emplace(*m_bump_memory);
 
 						// We have only one wait point per signal point, with the dst masks including
-						// all future reads until the next write.
+					    // all future reads until the next write.
 						cmd.wait_cmds.emplace(sync_point->cmd);
 
 						// If unrelated stageful commands are present between the two, use events instead of barriers
@@ -2184,15 +2184,21 @@ void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, A
 {
 	assert(!m_referenced_containers->cmd_list.empty());
 
-	m_referenced_containers->objects.emplace(resource);
-
 	auto& curr_cmd = m_referenced_containers->cmd_list.back();
 	auto& referenced_resources = constexprSelect<std::is_same_v<T, Image>>(
 		curr_cmd->referenced_images,
 		curr_cmd->referenced_buffers
 	);
 
-	referenced_resources[resource.get()] |= access_point;
+	auto [it, inserted] = referenced_resources.try_emplace(resource.get(), access_point);
+	if (inserted)
+	{
+		m_referenced_containers->objects.emplace(resource);
+	}
+	else
+	{
+		it->second |= access_point;
+	}
 }
 
 template void cgpu::CommandRecorder::addCmdResource<cgpu::Image>(const std::shared_ptr<cgpu::Image>& resource, AccessPoints access_point);
