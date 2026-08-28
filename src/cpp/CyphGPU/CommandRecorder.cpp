@@ -207,10 +207,11 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		std::optional<SyncPoint> reads_since_last_write{};
 	};
 
-	detail::BumpSegmentedUnorderedMap<Resource*, ResourceAccess> global_resource_accesses{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpDenseUnorderedMap<Resource*, ResourceAccess> global_resource_accesses{detail::BumpAllocator{*m_bump_memory}};
 	{
 		ZoneScopedN("Resolve sync");
 
+		global_resource_accesses.reserve(m_referenced_containers->num_resources);
 		for (auto& cmd : m_referenced_containers->cmd_list)
 		{
 			for (const auto& [resource, access_point] : cmd->referenced_resources)
@@ -2168,10 +2169,14 @@ void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, A
 	assert(!m_referenced_containers->cmd_list.empty());
 
 	auto& curr_cmd = m_referenced_containers->cmd_list.back();
-	auto [it, inserted] = curr_cmd->referenced_resources.try_emplace(resource.get(), access_point);
-	if (inserted)
+	auto [it, cmd_inserted] = curr_cmd->referenced_resources.try_emplace(resource.get(), access_point);
+	if (cmd_inserted)
 	{
-		m_referenced_containers->objects.emplace(resource);
+		bool global_inserted = m_referenced_containers->objects.emplace(resource).second;
+		if (global_inserted)
+		{
+			m_referenced_containers->num_resources++;
+		}
 	}
 	else
 	{

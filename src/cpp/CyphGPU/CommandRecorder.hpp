@@ -542,6 +542,7 @@ private:
 	struct ReferencedContainers
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
+		uint32_t num_resources{0};
 
 		detail::BumpList<detail::BumpUniquePtr<CmdBase>> cmd_list;
 
