@@ -36,3 +36,13 @@ void cgpu::Resource::unlock()
 {
 	m_mutex.unlock();
 }
+
+cgpu::Resource::Type cgpu::Resource::getType() const
+{
+	return m_type;
+}
+
+cgpu::Resource::Resource(Type type):
+	m_type{type}
+{
+}

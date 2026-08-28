@@ -10,6 +10,7 @@ cgpu::BufferPtr cgpu::Buffer::create(const DeviceSessionPtr& device_session, Des
 }
 
 cgpu::Buffer::Buffer(PrivateKey, const DeviceSessionPtr& device_session, Desc&& desc):
+	Resource{Type::eBuffer},
 	m_device_session{device_session},
 	m_desc{std::move(desc)}
 {

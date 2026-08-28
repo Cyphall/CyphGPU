@@ -11,6 +11,12 @@ namespace cgpu
 class Resource
 {
 public:
+	enum class Type : uint8_t
+	{
+		eImage,
+		eBuffer,
+	};
+
 	virtual ~Resource() = default;
 
 	Resource(const Resource&) = delete;
@@ -33,10 +39,15 @@ public:
 
 	void unlock();
 
+	[[nodiscard]]
+	Type getType() const;
+
 protected:
-	Resource() = default;
+	explicit Resource(Type type);
 
 private:
+	Type m_type;
+
 	std::flat_map<vk::Semaphore, uint64_t> m_read_signals{};
 	std::optional<Queue::Signal> m_read_write_signal{};
 

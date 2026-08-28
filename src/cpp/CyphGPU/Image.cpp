@@ -12,6 +12,7 @@ cgpu::ImagePtr cgpu::Image::create(const DeviceSessionPtr& device_session, Desc&
 }
 
 cgpu::Image::Image(PrivateKey, const DeviceSessionPtr& device_session, Desc&& desc):
+	Resource{Type::eImage},
 	m_device_session{device_session},
 	m_desc{std::move(desc)}
 {

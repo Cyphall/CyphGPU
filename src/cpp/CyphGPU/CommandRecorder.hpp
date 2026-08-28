@@ -507,15 +507,15 @@ private:
 
 	struct SignalPoint
 	{
-		detail::BumpFlatMap<Image*, Barrier> image_barriers;
-		detail::BumpFlatMap<Buffer*, Barrier> buffer_barriers;
+		detail::BumpFlatMap<Resource*, Barrier> resource_barriers;
+		uint32_t num_image_barriers{0};
+		uint32_t num_buffer_barriers{0};
 
 		// Storage for submit-time recording
 		detail::BumpUniquePtr<Event> event; // nullptr = barrier instead of event
 
 		explicit SignalPoint(detail::BumpMemoryResource& bump_memory):
-			image_barriers{detail::BumpAllocator{bump_memory}},
-			buffer_barriers{detail::BumpAllocator{bump_memory}}
+			resource_barriers{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 
@@ -525,8 +525,7 @@ private:
 
 		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
 
-		detail::BumpFlatMap<Image*, AccessPoints> referenced_images;
-		detail::BumpFlatMap<Buffer*, AccessPoints> referenced_buffers;
+		detail::BumpFlatMap<Resource*, AccessPoints> referenced_resources;
 
 		uint64_t stageful_index{};
 
@@ -535,8 +534,7 @@ private:
 		std::optional<SignalPoint> signal_point;
 
 		explicit CmdBase(detail::BumpMemoryResource& bump_memory):
-			referenced_images{detail::BumpAllocator{bump_memory}},
-			referenced_buffers{detail::BumpAllocator{bump_memory}},
+			referenced_resources{detail::BumpAllocator{bump_memory}},
 			wait_cmds{detail::BumpAllocator{bump_memory}}
 		{}
 	};

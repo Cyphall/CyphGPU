@@ -46,19 +46,6 @@ struct Overloaded : TOverloads...
 	using TOverloads::operator()...;
 };
 
-template<bool Condition, class TFirst, class TSecond>
-constexpr auto& constexprSelect(TFirst& first, TSecond& second)
-{
-	if constexpr (Condition)
-	{
-		return first;
-	}
-	else
-	{
-		return second;
-	}
-}
-
 [[nodiscard]]
 constexpr bool hasWriteAccesses(vk::AccessFlags2 accesses)
 {
@@ -220,45 +207,45 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		std::optional<SyncPoint> reads_since_last_write{};
 	};
 
-	auto resolve_resources_sync =
-		[&]<class T>(
-			CmdBase& cmd,
-			const detail::BumpFlatMap<T*, AccessPoints>& cmd_resources_accesses,
-			detail::BumpSegmentedUnorderedMap<T*, ResourceAccess>& global_resources_accesses
-		) {
-			for (const auto& [resource, access_point] : cmd_resources_accesses)
+	detail::BumpSegmentedUnorderedMap<Resource*, ResourceAccess> global_resource_accesses{detail::BumpAllocator{*m_bump_memory}};
+	{
+		ZoneScopedN("Resolve sync");
+
+		for (auto& cmd : m_referenced_containers->cmd_list)
+		{
+			for (const auto& [resource, access_point] : cmd->referenced_resources)
 			{
-				ResourceAccess& global_resource_accesses = global_resources_accesses[resource];
+				ResourceAccess& global_resource_access = global_resource_accesses[resource];
 				std::optional<SyncPoint> sync_point;
 				if (!hasWriteAccesses(access_point.accesses))
 				{
-					if (global_resource_accesses.last_write) // RaW
+					if (global_resource_access.last_write) // RaW
 					{
-						sync_point = *global_resource_accesses.last_write;
+						sync_point = *global_resource_access.last_write;
 					}
 
-					if (!global_resource_accesses.reads_since_last_write)
+					if (!global_resource_access.reads_since_last_write)
 					{
-						global_resource_accesses.reads_since_last_write.emplace();
+						global_resource_access.reads_since_last_write.emplace();
 					}
-					global_resource_accesses.reads_since_last_write->cmd = &cmd;
-					global_resource_accesses.reads_since_last_write->access_points |= access_point;
+					global_resource_access.reads_since_last_write->cmd = cmd.get();
+					global_resource_access.reads_since_last_write->access_points |= access_point;
 				}
 				else
 				{
-					if (global_resource_accesses.reads_since_last_write) // WaR
+					if (global_resource_access.reads_since_last_write) // WaR
 					{
-						sync_point = *global_resource_accesses.reads_since_last_write;
+						sync_point = *global_resource_access.reads_since_last_write;
 					}
-					else if (global_resource_accesses.last_write) // WaW
+					else if (global_resource_access.last_write) // WaW
 					{
-						sync_point = *global_resource_accesses.last_write;
+						sync_point = *global_resource_access.last_write;
 					}
 
-					global_resource_accesses.reads_since_last_write = std::nullopt;
-					global_resource_accesses.last_write.emplace();
-					global_resource_accesses.last_write->cmd = &cmd;
-					global_resource_accesses.last_write->access_points = access_point;
+					global_resource_access.reads_since_last_write = std::nullopt;
+					global_resource_access.last_write.emplace();
+					global_resource_access.last_write->cmd = cmd.get();
+					global_resource_access.last_write->access_points = access_point;
 				}
 
 				if (sync_point)
@@ -268,37 +255,32 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						sync_point->cmd->signal_point.emplace(*m_bump_memory);
 
 						// We have only one wait point per signal point, with the dst masks including
-					    // all future reads until the next write.
-						cmd.wait_cmds.emplace(sync_point->cmd);
+						// all future reads until the next write.
+						cmd->wait_cmds.emplace(sync_point->cmd);
 
 						// If unrelated stageful commands are present between the two, use events instead of barriers
-						uint64_t num_stageful_cmds_between = cmd.stageful_index - sync_point->cmd->stageful_index - 1;
+						uint64_t num_stageful_cmds_between = cmd->stageful_index - sync_point->cmd->stageful_index - 1;
 						if (num_stageful_cmds_between > 0)
 						{
 							sync_point->cmd->signal_point->event = detail::makeBumpUnique<Event>(*m_bump_memory, *m_bump_memory);
 						}
 					}
 
-					auto& resource_barriers = constexprSelect<std::is_same_v<T, Image>>(
-						sync_point->cmd->signal_point->image_barriers,
-						sync_point->cmd->signal_point->buffer_barriers
-					);
-
-					auto& barrier = resource_barriers[resource];
-					barrier.src = sync_point->access_points;
-					barrier.dst |= access_point;
+					auto [it, inserted] = sync_point->cmd->signal_point->resource_barriers.try_emplace(resource, sync_point->access_points, access_point);
+					if (inserted)
+					{
+						auto& counter =
+							resource->getType() == Resource::Type::eImage ?
+								sync_point->cmd->signal_point->num_image_barriers :
+								sync_point->cmd->signal_point->num_buffer_barriers;
+						counter++;
+					}
+					else
+					{
+						it->second.dst |= access_point;
+					}
 				}
 			}
-		};
-
-	detail::BumpSegmentedUnorderedMap<Image*, ResourceAccess> global_images_accesses{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpSegmentedUnorderedMap<Buffer*, ResourceAccess> global_buffers_accesses{detail::BumpAllocator{*m_bump_memory}};
-	{
-		ZoneScopedN("Resolve sync");
-		for (auto& cmd : m_referenced_containers->cmd_list)
-		{
-			resolve_resources_sync(*cmd, cmd->referenced_images, global_images_accesses);
-			resolve_resources_sync(*cmd, cmd->referenced_buffers, global_buffers_accesses);
 		}
 	}
 
@@ -311,48 +293,39 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 	};
 
-	auto resources_prologue =
-		[&]<class T>(
-			const detail::BumpSegmentedUnorderedMap<T*, ResourceAccess>& global_resources_accesses,
-			detail::BumpVector<std::pair<T*, bool>>& referenced_resources
-		) {
-			referenced_resources.reserve(global_resources_accesses.size());
-			for (auto& [resource, access] : global_resources_accesses)
-			{
-				referenced_resources.emplace_back(resource, access.last_write);
-			}
-
-			// Sort by pointer value to avoid any risk of deadlock with other concurrent submits
-			std::ranges::sort(referenced_resources, {}, &std::pair<T*, bool>::first);
-
-			for (auto& [resource, written] : referenced_resources)
-			{
-				resource->lock();
-
-				if (written)
-				{
-					for (const auto& [semaphore, value] : resource->getReadSignals())
-					{
-						add_signal_to_wait(semaphore, value);
-					}
-				}
-				else
-				{
-					const auto& signal = resource->tryGetReadWriteSignal();
-					if (signal)
-					{
-						add_signal_to_wait(signal->semaphore, signal->value);
-					}
-				}
-			}
-		};
-
-	detail::BumpVector<std::pair<Image*, bool>> referenced_images{detail::BumpAllocator{*m_bump_memory}};
-	detail::BumpVector<std::pair<Buffer*, bool>> referenced_buffers{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpVector<std::pair<Resource*, bool>> referenced_resources{detail::BumpAllocator{*m_bump_memory}};
 	{
 		ZoneScopedN("Resource prologue");
-		resources_prologue(global_images_accesses, referenced_images);
-		resources_prologue(global_buffers_accesses, referenced_buffers);
+
+		referenced_resources.reserve(global_resource_accesses.size());
+		for (auto& [resource, access] : global_resource_accesses)
+		{
+			referenced_resources.emplace_back(resource, access.last_write);
+		}
+
+		// Sort by pointer value to avoid any risk of deadlock with other concurrent submits
+		std::ranges::sort(referenced_resources, {}, &std::pair<Resource*, bool>::first);
+
+		for (auto& [resource, written] : referenced_resources)
+		{
+			resource->lock();
+
+			if (written)
+			{
+				for (const auto& [semaphore, value] : resource->getReadSignals())
+				{
+					add_signal_to_wait(semaphore, value);
+				}
+			}
+			else
+			{
+				const auto& signal = resource->tryGetReadWriteSignal();
+				if (signal)
+				{
+					add_signal_to_wait(signal->semaphore, signal->value);
+				}
+			}
+		}
 	}
 
 	vk::CommandBuffer cmd_buf = m_slot->createCommandBuffer(m_queue, vk::CommandBufferLevel::ePrimary);
@@ -390,45 +363,50 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	auto to_vk =
 		[&](
-			const detail::BumpFlatMap<Image*, Barrier>& image_barriers,
-			const detail::BumpFlatMap<Buffer*, Barrier>& buffer_barriers,
+			uint32_t num_image_barriers,
+			uint32_t num_buffer_barriers,
+			const detail::BumpFlatMap<Resource*, Barrier>& resource_barriers,
 			detail::BumpVector<vk::ImageMemoryBarrier2>& vk_image_barriers,
 			detail::BumpVector<vk::MemoryRangeBarrierKHR>& vk_buffer_barriers,
 			vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR>& vk_chain
 		) {
-			vk_image_barriers.reserve(image_barriers.size());
-			for (const auto& [image, barrier] : image_barriers)
+			vk_image_barriers.reserve(num_image_barriers);
+			vk_buffer_barriers.reserve(num_buffer_barriers);
+			for (const auto& [resource, barrier] : resource_barriers)
 			{
-				auto& vk_barrier = vk_image_barriers.emplace_back();
-				vk_barrier.srcStageMask = barrier.src.stages;
-				vk_barrier.srcAccessMask = barrier.src.accesses;
-				vk_barrier.dstStageMask = barrier.dst.stages;
-				vk_barrier.dstAccessMask = barrier.dst.accesses;
-				vk_barrier.oldLayout = vk::ImageLayout::eGeneral;
-				vk_barrier.newLayout = vk::ImageLayout::eGeneral;
-				vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.image = image->getHandle();
-				vk_barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
-				vk_barrier.subresourceRange.baseMipLevel = 0;
-				vk_barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
-				vk_barrier.subresourceRange.baseArrayLayer = 0;
-				vk_barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
-			}
-
-			vk_buffer_barriers.reserve(buffer_barriers.size());
-			for (const auto& [buffer, barrier] : buffer_barriers)
-			{
-				auto& vk_barrier = vk_buffer_barriers.emplace_back();
-				vk_barrier.srcStageMask = barrier.src.stages;
-				vk_barrier.srcAccessMask = barrier.src.accesses;
-				vk_barrier.dstStageMask = barrier.dst.stages;
-				vk_barrier.dstAccessMask = barrier.dst.accesses;
-				vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				vk_barrier.addressRange.address = buffer->getDevicePtr();
-				vk_barrier.addressRange.size = buffer->getDesc().size;
-				vk_barrier.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+				if (resource->getType() == Resource::Type::eImage)
+				{
+					auto& image = static_cast<Image&>(*resource);
+					auto& vk_barrier = vk_image_barriers.emplace_back();
+					vk_barrier.srcStageMask = barrier.src.stages;
+					vk_barrier.srcAccessMask = barrier.src.accesses;
+					vk_barrier.dstStageMask = barrier.dst.stages;
+					vk_barrier.dstAccessMask = barrier.dst.accesses;
+					vk_barrier.oldLayout = vk::ImageLayout::eGeneral;
+					vk_barrier.newLayout = vk::ImageLayout::eGeneral;
+					vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+					vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+					vk_barrier.image = image.getHandle();
+					vk_barrier.subresourceRange.aspectMask = getAspects(image.getDesc().format);
+					vk_barrier.subresourceRange.baseMipLevel = 0;
+					vk_barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
+					vk_barrier.subresourceRange.baseArrayLayer = 0;
+					vk_barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
+				}
+				else
+				{
+					auto& buffer = static_cast<Buffer&>(*resource);
+					auto& vk_barrier = vk_buffer_barriers.emplace_back();
+					vk_barrier.srcStageMask = barrier.src.stages;
+					vk_barrier.srcAccessMask = barrier.src.accesses;
+					vk_barrier.dstStageMask = barrier.dst.stages;
+					vk_barrier.dstAccessMask = barrier.dst.accesses;
+					vk_barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+					vk_barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+					vk_barrier.addressRange.address = buffer.getDevicePtr();
+					vk_barrier.addressRange.size = buffer.getDesc().size;
+					vk_barrier.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
+				}
 			}
 
 			auto& dep_info = vk_chain.get<vk::DependencyInfo>();
@@ -447,6 +425,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	{
 		ZoneScopedN("Command recording");
+
 		detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpList<vk::Event> reset_events_scratch{detail::BumpAllocator{*m_bump_memory}};
@@ -490,9 +469,16 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 			// Init image layouts
 			{
-				for (const auto& [image, access_point] : cmd->referenced_images)
+				for (const auto& [resource, access_point] : cmd->referenced_resources)
 				{
-					if (image->isLayoutInitialized())
+					if (resource->getType() != Resource::Type::eImage)
+					{
+						continue;
+					}
+
+					auto& image = static_cast<Image&>(*resource);
+
+					if (image.isLayoutInitialized())
 					{
 						continue;
 					}
@@ -506,14 +492,14 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					barrier.newLayout = vk::ImageLayout::eGeneral;
 					barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
 					barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-					barrier.image = image->getHandle();
-					barrier.subresourceRange.aspectMask = getAspects(image->getDesc().format);
+					barrier.image = image.getHandle();
+					barrier.subresourceRange.aspectMask = getAspects(image.getDesc().format);
 					barrier.subresourceRange.baseMipLevel = 0;
 					barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
 					barrier.subresourceRange.baseArrayLayer = 0;
 					barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
 
-					image->setLayoutInitialized(true);
+					image.setLayoutInitialized(true);
 				}
 
 				if (!images_init_barriers_scratch.empty())
@@ -550,8 +536,9 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					cmd->signal_point->event->vk_event = m_slot->createEvent();
 
 					to_vk(
-						cmd->signal_point->image_barriers,
-						cmd->signal_point->buffer_barriers,
+						cmd->signal_point->num_image_barriers,
+						cmd->signal_point->num_buffer_barriers,
+						cmd->signal_point->resource_barriers,
 						cmd->signal_point->event->vk_image_barriers,
 						cmd->signal_point->event->vk_buffer_barriers,
 						cmd->signal_point->event->vk_chain
@@ -570,8 +557,9 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				{
 					vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
 					to_vk(
-						cmd->signal_point->image_barriers,
-						cmd->signal_point->buffer_barriers,
+						cmd->signal_point->num_image_barriers,
+						cmd->signal_point->num_buffer_barriers,
+						cmd->signal_point->resource_barriers,
 						vk_images_barriers_scratch,
 						vk_buffers_barriers_scratch,
 						vk_chain
@@ -619,8 +607,10 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_containers->objects)
 	);
 
-	auto resources_epilogue = [&]<class T>(detail::BumpVector<std::pair<T*, bool>>& resources) {
-		for (auto& [resource, written] : resources)
+	{
+		ZoneScopedN("Resource epilogue");
+
+		for (auto& [resource, written] : referenced_resources)
 		{
 			written ?
 				resource->setReadWriteSignal(signal) :
@@ -628,12 +618,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 			resource->unlock();
 		}
-	};
-
-	{
-		ZoneScopedN("Resource epilogue");
-		resources_epilogue(referenced_images);
-		resources_epilogue(referenced_buffers);
 	}
 
 	m_slot->addFinishedSignal(signal);
@@ -2185,12 +2169,7 @@ void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, A
 	assert(!m_referenced_containers->cmd_list.empty());
 
 	auto& curr_cmd = m_referenced_containers->cmd_list.back();
-	auto& referenced_resources = constexprSelect<std::is_same_v<T, Image>>(
-		curr_cmd->referenced_images,
-		curr_cmd->referenced_buffers
-	);
-
-	auto [it, inserted] = referenced_resources.try_emplace(resource.get(), access_point);
+	auto [it, inserted] = curr_cmd->referenced_resources.try_emplace(resource.get(), access_point);
 	if (inserted)
 	{
 		m_referenced_containers->objects.emplace(resource);
