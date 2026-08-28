@@ -208,6 +208,18 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	m_submitted = true;
 #endif
 
+	struct SyncPoint
+	{
+		CmdBase* cmd{};
+		AccessPoints access_points{};
+	};
+
+	struct ResourceAccess
+	{
+		std::optional<SyncPoint> last_write{};
+		std::optional<SyncPoint> reads_since_last_write{};
+	};
+
 	auto resolve_resources_sync =
 		[&]<class T>(
 			CmdBase& cmd,

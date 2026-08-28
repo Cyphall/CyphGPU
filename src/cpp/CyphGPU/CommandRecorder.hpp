@@ -541,18 +541,6 @@ private:
 		{}
 	};
 
-	struct SyncPoint
-	{
-		CmdBase* cmd;
-		AccessPoints access_points;
-	};
-
-	struct ResourceAccess
-	{
-		std::optional<SyncPoint> last_write;
-		std::optional<SyncPoint> reads_since_last_write;
-	};
-
 	struct ReferencedContainers
 	{
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
