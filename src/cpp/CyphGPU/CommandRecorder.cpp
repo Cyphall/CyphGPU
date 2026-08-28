@@ -382,8 +382,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			const detail::BumpFlatMap<Buffer*, Barrier>& buffer_barriers,
 			detail::BumpVector<vk::ImageMemoryBarrier2>& vk_image_barriers,
 			detail::BumpVector<vk::MemoryRangeBarrierKHR>& vk_buffer_barriers,
-			vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR>& vk_chain,
-			vk::PipelineStageFlags2& vk_dst_stages
+			vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR>& vk_chain
 		) {
 			vk_image_barriers.reserve(image_barriers.size());
 			for (const auto& [image, barrier] : image_barriers)
@@ -403,8 +402,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				vk_barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
 				vk_barrier.subresourceRange.baseArrayLayer = 0;
 				vk_barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
-
-				vk_dst_stages |= barrier.dst.stages;
 			}
 
 			vk_buffer_barriers.reserve(buffer_barriers.size());
@@ -420,8 +417,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				vk_barrier.addressRange.address = buffer->getDevicePtr();
 				vk_barrier.addressRange.size = buffer->getDesc().size;
 				vk_barrier.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
-
-				vk_dst_stages |= barrier.dst.stages;
 			}
 
 			auto& dep_info = vk_chain.get<vk::DependencyInfo>();
@@ -442,7 +437,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		ZoneScopedN("Command recording");
 		detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
-		detail::BumpVector<vk::PipelineStageFlags2> wait_reset_stages_scratch{detail::BumpAllocator{*m_bump_memory}};
+		detail::BumpList<vk::Event> reset_events_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::ImageMemoryBarrier2> images_init_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
@@ -461,7 +456,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 					wait_events_scratch.emplace_back(wait_cmd->signal_point->event->vk_event);
 					wait_chains_scratch.emplace_back(wait_cmd->signal_point->event->vk_chain.get());
-					wait_reset_stages_scratch.emplace_back(wait_cmd->signal_point->event->reset_stages);
 				}
 
 				if (!wait_events_scratch.empty())
@@ -475,19 +469,10 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						);
 					}
 
-					for (size_t i = 0; i < wait_events_scratch.size(); i++)
-					{
-						VULKAN_CALL(vkCmdResetEvent2);
-						cmd_buf.resetEvent2(
-							wait_events_scratch[i],
-							wait_reset_stages_scratch[i],
-							*m_dispatcher
-						);
-					}
+					reset_events_scratch.append_range(wait_events_scratch);
 
 					wait_events_scratch.clear();
 					wait_chains_scratch.clear();
-					wait_reset_stages_scratch.clear();
 				}
 			}
 
@@ -557,8 +542,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						cmd->signal_point->buffer_barriers,
 						cmd->signal_point->event->vk_image_barriers,
 						cmd->signal_point->event->vk_buffer_barriers,
-						cmd->signal_point->event->vk_chain,
-						cmd->signal_point->event->reset_stages
+						cmd->signal_point->event->vk_chain
 					);
 
 					{
@@ -573,14 +557,12 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				else
 				{
 					vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
-					vk::PipelineStageFlags2 unused;
 					to_vk(
 						cmd->signal_point->image_barriers,
 						cmd->signal_point->buffer_barriers,
 						vk_images_barriers_scratch,
 						vk_buffers_barriers_scratch,
-						vk_chain,
-						unused
+						vk_chain
 					);
 
 					{
@@ -595,6 +577,18 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					vk_buffers_barriers_scratch.clear();
 				}
 			}
+		}
+
+		// We can't reset events right after their wait because some drivers don't respect the
+		// absence of a second sync scope in vkCmdResetEvent2 and would stall the next command
+		for (auto event : reset_events_scratch)
+		{
+			VULKAN_CALL(vkCmdResetEvent2);
+			cmd_buf.resetEvent2(
+				event,
+				vk::PipelineStageFlagBits2::eAllCommands,
+				*m_dispatcher
+			);
 		}
 	}
 

@@ -498,7 +498,6 @@ private:
 		detail::BumpVector<vk::ImageMemoryBarrier2> vk_image_barriers;
 		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffer_barriers;
 		vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
-		vk::PipelineStageFlags2 reset_stages;
 
 		explicit Event(detail::BumpMemoryResource& bump_memory):
 			vk_image_barriers{detail::BumpAllocator{bump_memory}},
