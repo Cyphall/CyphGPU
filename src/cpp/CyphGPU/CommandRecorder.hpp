@@ -511,7 +511,7 @@ private:
 		detail::BumpFlatMap<Buffer*, Barrier> buffer_barriers;
 
 		// Storage for submit-time recording
-		detail::BumpUniquePtr<Event> event; // Nullable, nullptr = empty
+		detail::BumpUniquePtr<Event> event; // nullptr = barrier instead of event
 
 		explicit SignalPoint(detail::BumpMemoryResource& bump_memory):
 			image_barriers{detail::BumpAllocator{bump_memory}},
