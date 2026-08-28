@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <flat_map>
 #include <flat_set>
+#include <forward_list>
 #include <list>
 #include <map>
 #include <set>
@@ -110,6 +111,10 @@ using BumpFlatSet = std::flat_set<TKey, TCompare, BumpVector<TKey>>;
 template<
 	class T>
 using BumpList = std::list<T, BumpAllocator<T>>;
+
+template<
+	class T>
+using BumpForwardList = std::forward_list<T, BumpAllocator<T>>;
 
 template<
 	class TKey,
