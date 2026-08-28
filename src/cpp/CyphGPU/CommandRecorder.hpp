@@ -519,21 +519,26 @@ private:
 		{}
 	};
 
-	struct CmdBase
+	struct CmdCallbackBase
 	{
-		virtual ~CmdBase() = default;
+		virtual ~CmdCallbackBase() = default;
 
-		virtual void execute(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
+		virtual void operator()(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
+	};
+
+	struct Cmd
+	{
+		detail::BumpUniquePtr<CmdCallbackBase> callback;
 
 		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
 
 		uint64_t stageful_index{};
 
 		// Storage for submit-time recording
-		detail::BumpFlatSet<CmdBase*> wait_cmds;
+		detail::BumpFlatSet<Cmd*> wait_cmds;
 		std::optional<SignalPoint> signal_point;
 
-		explicit CmdBase(detail::BumpMemoryResource& bump_memory):
+		explicit Cmd(detail::BumpMemoryResource& bump_memory):
 			referenced_resources{detail::BumpAllocator{bump_memory}},
 			wait_cmds{detail::BumpAllocator{bump_memory}}
 		{}
@@ -544,7 +549,7 @@ private:
 		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
 		uint32_t num_resources{0};
 
-		detail::BumpList<detail::BumpUniquePtr<CmdBase>> cmd_list;
+		detail::BumpList<Cmd> cmd_list;
 
 		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
 			objects{detail::BumpAllocator{bump_memory}},
@@ -584,9 +589,9 @@ private:
 	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
 
 	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier
-	template<class T, class... TArgs>
-	requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
-	T& addCmd(bool is_stageful, TArgs&&... args);
+	template<class TCallback, class... TArgs>
+	requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
+	TCallback& addCmd(bool is_stageful, TArgs&&... args);
 
 	vk::DeviceAddress writeParameters(
 		const void* data,

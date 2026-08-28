@@ -197,7 +197,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	struct SyncPoint
 	{
-		CmdBase* cmd{};
+		Cmd* cmd{};
 		AccessPoints access_points{};
 	};
 
@@ -214,7 +214,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		global_resource_accesses.reserve(m_referenced_containers->num_resources);
 		for (auto& cmd : m_referenced_containers->cmd_list)
 		{
-			for (const auto& [resource, access_point] : cmd->referenced_resources)
+			for (const auto& [resource, access_point] : cmd.referenced_resources)
 			{
 				ResourceAccess& global_resource_access = global_resource_accesses[resource];
 				std::optional<SyncPoint> sync_point;
@@ -229,7 +229,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					{
 						global_resource_access.reads_since_last_write.emplace();
 					}
-					global_resource_access.reads_since_last_write->cmd = cmd.get();
+					global_resource_access.reads_since_last_write->cmd = &cmd;
 					global_resource_access.reads_since_last_write->access_points |= access_point;
 				}
 				else
@@ -245,7 +245,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 					global_resource_access.reads_since_last_write = std::nullopt;
 					global_resource_access.last_write.emplace();
-					global_resource_access.last_write->cmd = cmd.get();
+					global_resource_access.last_write->cmd = &cmd;
 					global_resource_access.last_write->access_points = access_point;
 				}
 
@@ -257,10 +257,10 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 						// We have only one wait point per signal point, with the dst masks including
 						// all future reads until the next write.
-						cmd->wait_cmds.emplace(sync_point->cmd);
+						cmd.wait_cmds.emplace(sync_point->cmd);
 
 						// If unrelated stageful commands are present between the two, use events instead of barriers
-						uint64_t num_stageful_cmds_between = cmd->stageful_index - sync_point->cmd->stageful_index - 1;
+						uint64_t num_stageful_cmds_between = cmd.stageful_index - sync_point->cmd->stageful_index - 1;
 						if (num_stageful_cmds_between > 0)
 						{
 							sync_point->cmd->signal_point->event = detail::makeBumpUnique<Event>(*m_bump_memory, *m_bump_memory);
@@ -435,9 +435,9 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		for (auto& cmd : m_referenced_containers->cmd_list)
 		{
 			// Wait events
-			if (!cmd->wait_cmds.empty())
+			if (!cmd.wait_cmds.empty())
 			{
-				for (CmdBase* wait_cmd : cmd->wait_cmds)
+				for (Cmd* wait_cmd : cmd.wait_cmds)
 				{
 					if (!wait_cmd->signal_point->event)
 					{
@@ -469,7 +469,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 			// Init image layouts
 			{
-				for (const auto& [resource, access_point] : cmd->referenced_resources)
+				for (const auto& [resource, access_point] : cmd.referenced_resources)
 				{
 					if (resource->getType() != Resource::Type::eImage)
 					{
@@ -526,29 +526,29 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			}
 
 			// Execute command
-			cmd->execute(m_queue, cmd_buf, *m_dispatcher);
+			(*cmd.callback)(m_queue, cmd_buf, *m_dispatcher);
 
 			// Signal event
-			if (cmd->signal_point)
+			if (cmd.signal_point)
 			{
-				if (cmd->signal_point->event)
+				if (cmd.signal_point->event)
 				{
-					cmd->signal_point->event->vk_event = m_slot->createEvent();
+					cmd.signal_point->event->vk_event = m_slot->createEvent();
 
 					to_vk(
-						cmd->signal_point->num_image_barriers,
-						cmd->signal_point->num_buffer_barriers,
-						cmd->signal_point->resource_barriers,
-						cmd->signal_point->event->vk_image_barriers,
-						cmd->signal_point->event->vk_buffer_barriers,
-						cmd->signal_point->event->vk_chain
+						cmd.signal_point->num_image_barriers,
+						cmd.signal_point->num_buffer_barriers,
+						cmd.signal_point->resource_barriers,
+						cmd.signal_point->event->vk_image_barriers,
+						cmd.signal_point->event->vk_buffer_barriers,
+						cmd.signal_point->event->vk_chain
 					);
 
 					{
 						VULKAN_CALL(vkCmdSetEvent2);
 						cmd_buf.setEvent2(
-							cmd->signal_point->event->vk_event,
-							cmd->signal_point->event->vk_chain.get(),
+							cmd.signal_point->event->vk_event,
+							cmd.signal_point->event->vk_chain.get(),
 							*m_dispatcher
 						);
 					}
@@ -557,9 +557,9 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				{
 					vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
 					to_vk(
-						cmd->signal_point->num_image_barriers,
-						cmd->signal_point->num_buffer_barriers,
-						cmd->signal_point->resource_barriers,
+						cmd.signal_point->num_image_barriers,
+						cmd.signal_point->num_buffer_barriers,
+						cmd.signal_point->resource_barriers,
 						vk_images_barriers_scratch,
 						vk_buffers_barriers_scratch,
 						vk_chain
@@ -699,19 +699,18 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::ImageSubresourceRange> ranges;
 		vk::Image image;
 		std::optional<vk::ClearColorValue> color_value;
 		std::optional<vk::ClearDepthStencilValue> depth_stencil_value;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
 			ranges{std::move(ranges)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(clearImage)
 
@@ -743,7 +742,7 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_ranges));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
 	cmd.image = (*params.image)->getHandle();
 	if (params.color_value)
 	{
@@ -824,17 +823,16 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::ImageCopy2> regions;
 		vk::CopyImageInfo2 info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::ImageCopy2>&& regions):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::ImageCopy2>&& regions):
 			regions{std::move(regions)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyImageToImage)
 
@@ -850,7 +848,7 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 	cmd.info.srcImage = (*params.src_image)->getHandle();
 	cmd.info.srcImageLayout = vk::ImageLayout::eGeneral;
 	cmd.info.dstImage = (*params.dst_image)->getHandle();
@@ -918,17 +916,16 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::DeviceMemoryImageCopyKHR> regions;
 		vk::CopyDeviceMemoryImageInfoKHR info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::DeviceMemoryImageCopyKHR>&& regions):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::DeviceMemoryImageCopyKHR>&& regions):
 			regions{std::move(regions)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyBufferToImage)
 
@@ -944,7 +941,7 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 	cmd.info.image = (*params.dst_image)->getHandle();
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
@@ -1008,17 +1005,16 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::DeviceMemoryImageCopyKHR> regions;
 		vk::CopyDeviceMemoryImageInfoKHR info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::DeviceMemoryImageCopyKHR>&& regions):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::DeviceMemoryImageCopyKHR>&& regions):
 			regions{std::move(regions)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyImageToBuffer)
 
@@ -1034,7 +1030,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 	cmd.info.image = (*params.src_image)->getHandle();
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
@@ -1091,17 +1087,16 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::DeviceMemoryCopyKHR> regions;
 		vk::CopyDeviceMemoryInfoKHR info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::DeviceMemoryCopyKHR>&& regions):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::DeviceMemoryCopyKHR>&& regions):
 			regions{std::move(regions)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(copyBufferToBuffer)
 
@@ -1117,7 +1112,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
 
@@ -1181,17 +1176,16 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::ImageBlit2> regions;
 		vk::BlitImageInfo2 info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::ImageBlit2>&& regions):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::ImageBlit2>&& regions):
 			regions{std::move(regions)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(blit)
 
@@ -1207,7 +1201,7 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 	cmd.info.srcImage = (*params.src_image)->getHandle();
 	cmd.info.srcImageLayout = vk::ImageLayout::eGeneral;
 	cmd.info.dstImage = (*params.dst_image)->getHandle();
@@ -1486,15 +1480,11 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		vk::CommandBuffer pass_cmd_buf;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			CmdBase{bump_memory}
-		{}
-
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(graphicsPass)
 
@@ -1510,7 +1500,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true);
+	auto& cmd = addCmd<CmdCallback>(true);
 
 	// With auto sync, we need to record which resources are used during the
 	// pass callback and then inject the barrier before the pass is executed.
@@ -1688,16 +1678,15 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 {
 	COMMAND_PARSE
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpList<ComputePassContext::DispatchCmd> dispatch_cmds;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, const detail::BumpAllocator<>& alloc):
-			CmdBase{bump_memory},
-			dispatch_cmds{alloc}
+		explicit CmdCallback(detail::BumpMemoryResource& bump_memory):
+			dispatch_cmds{detail::BumpAllocator{bump_memory}}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(computePass)
 
@@ -1750,7 +1739,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, detail::BumpAllocator{*m_bump_memory});
+	auto& cmd = addCmd<CmdCallback>(true, *m_bump_memory);
 
 	ComputePassContext ctx{*this, cmd.dispatch_cmds};
 	std::exception_ptr exception_ptr;
@@ -1773,16 +1762,12 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 {
 	COMMAND_PARSE
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		BLAS::VkStructs vk_structs;
 		vk::AccelerationStructureBuildRangeInfoKHR range_info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			CmdBase{bump_memory}
-		{}
-
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(buildBLAS)
 
@@ -1799,7 +1784,7 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true);
+	auto& cmd = addCmd<CmdCallback>(true);
 
 	auto vertex_range = std::get<0>(resolveRange(*params.vertex_buffer->buffer, params.vertex_buffer->range.value_or(BufferRange{})));
 
@@ -1867,16 +1852,12 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 {
 	COMMAND_PARSE
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		TLAS::VkStructs vk_structs;
 		vk::AccelerationStructureBuildRangeInfoKHR range_info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			CmdBase{bump_memory}
-		{}
-
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(buildTLAS)
 
@@ -1893,7 +1874,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true);
+	auto& cmd = addCmd<CmdCallback>(true);
 
 	cgpu::Range<vk::DeviceSize> instance_range;
 	if (params.instance_info)
@@ -1982,16 +1963,12 @@ void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 {
 	COMMAND_PARSE
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		vk::MemoryBarrier2 barrier;
 		vk::DependencyInfo info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			CmdBase{bump_memory}
-		{}
-
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(debugBarrier)
 
@@ -2007,7 +1984,7 @@ void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(false);
+	auto& cmd = addCmd<CmdCallback>(false);
 
 	cmd.barrier.srcStageMask = params.src_stages ? *params.src_stages : vk::PipelineStageFlagBits2::eAllCommands;
 	cmd.barrier.srcAccessMask = params.src_accesses ? *params.src_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
@@ -2072,7 +2049,7 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 		return;
 	}
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		detail::BumpVector<vk::ImageResolve2> regions;
 		vk::StructureChain<
@@ -2080,12 +2057,11 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 			vk::ResolveImageModeInfoKHR>
 			chain;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, detail::BumpVector<vk::ImageResolve2>&& regions):
-			CmdBase{bump_memory},
+		explicit CmdCallback(detail::BumpVector<vk::ImageResolve2>&& regions):
 			regions{std::move(regions)}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			REGIONED_COMMAND_EXECUTE_BEGIN(resolve)
 
@@ -2101,7 +2077,7 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(true, std::move(vk_regions));
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 
 	auto& resolve_info = cmd.chain.get<vk::ResolveImageInfo2>();
 	resolve_info.srcImage = (*params.src_image)->getHandle();
@@ -2169,7 +2145,7 @@ void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, A
 	assert(!m_referenced_containers->cmd_list.empty());
 
 	auto& curr_cmd = m_referenced_containers->cmd_list.back();
-	auto [it, cmd_inserted] = curr_cmd->referenced_resources.try_emplace(resource.get(), access_point);
+	auto [it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);
 	if (cmd_inserted)
 	{
 		bool global_inserted = m_referenced_containers->objects.emplace(resource).second;
@@ -2187,18 +2163,19 @@ void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, A
 template void cgpu::CommandRecorder::addCmdResource<cgpu::Image>(const std::shared_ptr<cgpu::Image>& resource, AccessPoints access_point);
 template void cgpu::CommandRecorder::addCmdResource<cgpu::Buffer>(const std::shared_ptr<cgpu::Buffer>& resource, AccessPoints access_point);
 
-template<class T, class... TArgs>
-requires(std::derived_from<T, cgpu::CommandRecorder::CmdBase>)
-T& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
+template<class TCallback, class... TArgs>
+requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
+TCallback& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
 {
-	auto& cmd = m_referenced_containers->cmd_list.emplace_back(detail::makeBumpUnique<T>(*m_bump_memory, *m_bump_memory, std::forward<TArgs>(args)...));
+	Cmd& cmd = m_referenced_containers->cmd_list.emplace_back(*m_bump_memory);
+	cmd.callback = detail::makeBumpUnique<TCallback>(*m_bump_memory, std::forward<TArgs>(args)...);
 
 	if (is_stageful)
 	{
-		cmd->stageful_index = m_next_stageful_index++;
+		cmd.stageful_index = m_next_stageful_index++;
 	}
 
-	return static_cast<T&>(*cmd);
+	return static_cast<TCallback&>(*cmd.callback);
 }
 
 vk::DeviceAddress cgpu::CommandRecorder::writeParameters(
@@ -2217,17 +2194,16 @@ void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 co
 {
 	COMMAND_PARSE
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
 		std::string name;
 		vk::DebugUtilsLabelEXT info;
 
-		explicit Cmd(detail::BumpMemoryResource& bump_memory, std::string_view name):
-			CmdBase{bump_memory},
+		explicit CmdCallback(std::string_view name):
 			name{name}
 		{}
 
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			VULKAN_CALL(vkCmdBeginDebugUtilsLabelEXT);
 			cmd_buf.beginDebugUtilsLabelEXT(
@@ -2237,7 +2213,7 @@ void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 co
 		}
 	};
 
-	auto& cmd = addCmd<Cmd>(false, name);
+	auto& cmd = addCmd<CmdCallback>(false, name);
 	cmd.info.pLabelName = cmd.name.c_str();
 	std::memcpy(cmd.info.color.data(), glm::value_ptr(color), sizeof(glm::vec4));
 }
@@ -2246,13 +2222,9 @@ void cgpu::CommandRecorder::endDebugRegion()
 {
 	COMMAND_PARSE
 
-	struct Cmd final : CmdBase
+	struct CmdCallback final : CmdCallbackBase
 	{
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			CmdBase{bump_memory}
-		{}
-
-		void execute([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
 			VULKAN_CALL(vkCmdEndDebugUtilsLabelEXT);
 			cmd_buf.endDebugUtilsLabelEXT(
@@ -2261,7 +2233,7 @@ void cgpu::CommandRecorder::endDebugRegion()
 		}
 	};
 
-	addCmd<Cmd>(false);
+	addCmd<CmdCallback>(false);
 }
 
 cgpu::ScopedDebugRegion::ScopedDebugRegion(CommandRecorder& rec, std::string_view name, glm::vec4 color):
