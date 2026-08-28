@@ -429,7 +429,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpList<vk::Event> reset_events_scratch{detail::BumpAllocator{*m_bump_memory}};
-		detail::BumpVector<vk::ImageMemoryBarrier2> images_init_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		for (auto& cmd : m_referenced_containers->cmd_list)
@@ -483,7 +482,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						continue;
 					}
 
-					auto& barrier = images_init_barriers_scratch.emplace_back();
+					auto& barrier = vk_images_barriers_scratch.emplace_back();
 					barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
 					barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
 					barrier.dstStageMask = access_point.stages;
@@ -502,7 +501,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					image.setLayoutInitialized(true);
 				}
 
-				if (!images_init_barriers_scratch.empty())
+				if (!vk_images_barriers_scratch.empty())
 				{
 					vk::DependencyInfo dep_info;
 					dep_info.dependencyFlags = {};
@@ -510,8 +509,8 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 					// dep_info.pMemoryBarriers;
 					dep_info.bufferMemoryBarrierCount = 0;
 					// dep_info.pBufferMemoryBarriers;
-					dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(images_init_barriers_scratch.size());
-					dep_info.pImageMemoryBarriers = images_init_barriers_scratch.data();
+					dep_info.imageMemoryBarrierCount = static_cast<uint32_t>(vk_images_barriers_scratch.size());
+					dep_info.pImageMemoryBarriers = vk_images_barriers_scratch.data();
 
 					{
 						VULKAN_CALL(vkCmdPipelineBarrier2);
@@ -521,7 +520,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 						);
 					}
 
-					images_init_barriers_scratch.clear();
+					vk_images_barriers_scratch.clear();
 				}
 			}
 
