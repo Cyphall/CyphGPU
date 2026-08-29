@@ -195,7 +195,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	m_submitted = true;
 #endif
 
-	constexpr uint32_t INVALID_IDX = std::numeric_limits<uint32_t>::max();
+	static constexpr uint32_t INVALID_IDX = std::numeric_limits<uint32_t>::max();
 
 	struct LastResourceAccess
 	{
@@ -265,6 +265,8 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 		last_resource_accesses.reserve(m_referenced_containers->num_resources);
 		cmd_syncs.resize(m_referenced_containers->cmd_list.size());
+		deps.reserve(m_referenced_containers->cmd_list.size());
+		barriers.reserve(m_referenced_containers->num_resource_barriers);
 		uint32_t cmd_idx = 0;
 		uint32_t next_cmd_stageful_idx = 0;
 		for (auto& cmd : m_referenced_containers->cmd_list)
@@ -755,12 +757,21 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		);
 	}
 
+	std::vector<std::shared_ptr<void>> referenced_objects;
+	referenced_objects.reserve(m_referenced_containers->objects.size());
+	for (auto& object : m_referenced_containers->objects | std::views::keys)
+	{
+		referenced_objects.emplace_back(std::move(object));
+	}
+
+	m_referenced_containers->objects.clear();
+
 	Queue::Signal signal = m_queue->submit(
 		*m_bump_memory,
 		{{cmd_buf}},
 		signals_to_wait.keys(),
 		signals_to_wait.values(),
-		std::ranges::to<std::vector<std::shared_ptr<void>>>(m_referenced_containers->objects)
+		std::move(referenced_objects)
 	);
 
 	{
@@ -2301,18 +2312,30 @@ void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, A
 	assert(!m_referenced_containers->cmd_list.empty());
 
 	auto& curr_cmd = m_referenced_containers->cmd_list.back();
-	auto [it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);
+	auto [cmd_it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);
 	if (cmd_inserted)
 	{
-		bool global_inserted = m_referenced_containers->objects.emplace(resource).second;
+		bool has_write_access = hasWriteAccesses(access_point.accesses);
+
+		auto [global_it, global_inserted] = m_referenced_containers->objects.try_emplace(resource, has_write_access);
 		if (global_inserted)
 		{
 			m_referenced_containers->num_resources++;
 		}
+		else
+		{
+			bool& was_previously_written = global_it->second;
+			if (was_previously_written || has_write_access)
+			{
+				m_referenced_containers->num_resource_barriers++;
+			}
+
+			was_previously_written |= has_write_access;
+		}
 	}
 	else
 	{
-		it->second |= access_point;
+		cmd_it->second |= access_point;
 	}
 }
 

@@ -508,8 +508,10 @@ private:
 
 	struct ReferencedContainers
 	{
-		detail::BumpSegmentedUnorderedSet<std::shared_ptr<void>> objects;
+		// bool: true if it is a resource and it is written
+		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> objects;
 		uint32_t num_resources{0};
+		uint32_t num_resource_barriers{0};
 
 		detail::BumpList<Cmd> cmd_list;
 
@@ -541,7 +543,7 @@ private:
 	requires(!std::derived_from<T, cgpu::Resource>)
 	void addReferencedObject(const std::shared_ptr<T>& object)
 	{
-		m_referenced_containers->objects.emplace(object);
+		m_referenced_containers->objects.try_emplace(object, false);
 	}
 
 	template<class T>
