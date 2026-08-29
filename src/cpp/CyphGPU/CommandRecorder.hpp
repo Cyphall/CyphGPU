@@ -486,39 +486,6 @@ private:
 		}
 	};
 
-	struct Barrier
-	{
-		AccessPoints src;
-		AccessPoints dst;
-	};
-
-	struct Event
-	{
-		vk::Event vk_event;
-		detail::BumpVector<vk::ImageMemoryBarrier2> vk_image_barriers;
-		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffer_barriers;
-		vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
-
-		explicit Event(detail::BumpMemoryResource& bump_memory):
-			vk_image_barriers{detail::BumpAllocator{bump_memory}},
-			vk_buffer_barriers{detail::BumpAllocator{bump_memory}}
-		{}
-	};
-
-	struct SignalPoint
-	{
-		detail::BumpDenseUnorderedMap<Resource*, Barrier> resource_barriers;
-		uint32_t num_image_barriers{0};
-		uint32_t num_buffer_barriers{0};
-
-		// Storage for submit-time recording
-		detail::BumpUniquePtr<Event> event; // nullptr = barrier instead of event
-
-		explicit SignalPoint(detail::BumpMemoryResource& bump_memory):
-			resource_barriers{detail::BumpAllocator{bump_memory}}
-		{}
-	};
-
 	struct CmdCallbackBase
 	{
 		virtual ~CmdCallbackBase() = default;
@@ -530,17 +497,12 @@ private:
 	{
 		detail::BumpUniquePtr<CmdCallbackBase> callback;
 
+		bool is_stageful{};
+
 		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
 
-		uint64_t stageful_index{};
-
-		// Storage for submit-time recording
-		detail::BumpFlatSet<Cmd*> wait_cmds;
-		std::optional<SignalPoint> signal_point;
-
 		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			referenced_resources{detail::BumpAllocator{bump_memory}},
-			wait_cmds{detail::BumpAllocator{bump_memory}}
+			referenced_resources{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 
@@ -564,8 +526,6 @@ private:
 	QueuePtr m_queue;
 
 	std::optional<ReferencedContainers> m_referenced_containers;
-
-	uint64_t m_next_stageful_index{0};
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};
