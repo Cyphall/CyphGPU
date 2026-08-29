@@ -376,23 +376,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRSwapchainExtensionName,
 			vk::KHRSwapchainMutableFormatExtensionName,
 			vk::KHRSwapchainMaintenance1ExtensionName,
-			vk::KHRPresentId2ExtensionName,
-			vk::KHRPresentWait2ExtensionName,
 		},
 		[](detail::DynamicFeatureChain& chain) {
 			{
 				auto& features = chain.get<vk::PhysicalDeviceSwapchainMaintenance1FeaturesKHR>();
 				features.swapchainMaintenance1 = vk::True;
-			}
-
-			{
-				auto& features = chain.get<vk::PhysicalDevicePresentId2FeaturesKHR>();
-				features.presentId2 = vk::True;
-			}
-
-			{
-				auto& features = chain.get<vk::PhysicalDevicePresentWait2FeaturesKHR>();
-				features.presentWait2 = vk::True;
 			}
 		}
 	};

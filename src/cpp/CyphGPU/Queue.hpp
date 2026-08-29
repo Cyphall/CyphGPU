@@ -98,12 +98,6 @@ private:
 #endif
 
 	[[nodiscard]]
-	Signal binaryToSignal(
-		const SwapchainPtr& swapchain,
-		vk::Semaphore semaphore
-	);
-
-	[[nodiscard]]
 	Signal signalToBinary(
 		const SwapchainPtr& swapchain,
 		vk::Semaphore semaphore,
@@ -113,7 +107,7 @@ private:
 	);
 
 	[[nodiscard]]
-	vk::Result swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id);
+	vk::Result swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore);
 
 	[[nodiscard]]
 	vk::Fence acquireFence();

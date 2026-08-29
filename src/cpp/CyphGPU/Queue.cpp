@@ -102,54 +102,6 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 }
 #endif
 
-cgpu::Queue::Signal cgpu::Queue::binaryToSignal(
-	const SwapchainPtr& swapchain,
-	vk::Semaphore semaphore
-)
-{
-	std::unique_lock lock{m_mutex};
-
-	clearCompletedPayloads();
-
-	std::array wait_infos{
-		vk::SemaphoreSubmitInfo{
-			.semaphore = semaphore,
-			.value = 0,
-			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
-			.deviceIndex = 0,
-		},
-	};
-
-	std::array signal_infos{
-		vk::SemaphoreSubmitInfo{
-			.semaphore = m_semaphore,
-			.value = m_next_index++,
-			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
-			.deviceIndex = 0,
-		},
-	};
-
-	vk::SubmitInfo2 info;
-	info.flags = {};
-	info.waitSemaphoreInfoCount = static_cast<uint32_t>(wait_infos.size());
-	info.pWaitSemaphoreInfos = wait_infos.data();
-	info.commandBufferInfoCount = 0;
-	// info.pCommandBufferInfos;
-	info.signalSemaphoreInfoCount = static_cast<uint32_t>(signal_infos.size());
-	info.pSignalSemaphoreInfos = signal_infos.data();
-
-	m_handle.submit2(info, nullptr, m_device_session->getDispatcher());
-
-	SubmitPayload& payload = m_submit_payloads.emplace_back();
-	payload.objects.emplace_back(swapchain);
-	payload.semaphore_value = signal_infos[0].value;
-
-	return {
-		.semaphore = signal_infos[0].semaphore,
-		.value = signal_infos[0].value,
-	};
-}
-
 cgpu::Queue::Signal cgpu::Queue::signalToBinary(
 	const SwapchainPtr& swapchain,
 	vk::Semaphore semaphore,
@@ -217,7 +169,7 @@ cgpu::Queue::Signal cgpu::Queue::signalToBinary(
 	};
 }
 
-vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore, uint64_t present_id)
+vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore)
 {
 	std::unique_lock lock{m_mutex};
 
@@ -227,8 +179,7 @@ vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t
 
 	vk::StructureChain<
 		vk::PresentInfoKHR,
-		vk::SwapchainPresentFenceInfoKHR,
-		vk::PresentId2KHR>
+		vk::SwapchainPresentFenceInfoKHR>
 		chain;
 
 	auto& present_info = chain.get<vk::PresentInfoKHR>();
@@ -242,10 +193,6 @@ vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t
 	auto& present_fence_info = chain.get<vk::SwapchainPresentFenceInfoKHR>();
 	present_fence_info.swapchainCount = 1;
 	present_fence_info.pFences = &fence;
-
-	auto& present_id_info = chain.get<vk::PresentId2KHR>();
-	present_id_info.swapchainCount = 1;
-	present_id_info.pPresentIds = &present_id;
 
 	vk::Result result{};
 	try

@@ -35,6 +35,8 @@ public:
 
 	void setReadWriteSignal(const Queue::Signal& signal);
 
+	void clearSignals();
+
 	void lock();
 
 	void unlock();

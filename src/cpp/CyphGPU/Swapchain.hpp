@@ -71,13 +71,6 @@ public:
 	void presentImage();
 
 private:
-	struct AcquireSyncData
-	{
-		vk::Semaphore semaphore{};
-		vk::Fence fence{};
-		bool signal_pending{};
-	};
-
 	struct ImageData
 	{
 		std::unique_ptr<Image> image;
@@ -95,9 +88,8 @@ private:
 	vk::SwapchainKHR m_handle{};
 	std::vector<ImageData> m_image_data{};
 
-	std::vector<AcquireSyncData> m_acquire_sync_data{};
+	vk::Fence m_acquire_fence{};
 
-	uint64_t m_current_frame_index{0};
 	uint32_t m_acquired_image{};
 	vk::Result m_status{vk::Result::eSuccess};
 
@@ -105,15 +97,11 @@ private:
 	std::vector<vk::CommandBuffer> m_present_layout_change_init_cmd_bufs{};
 	std::vector<vk::CommandBuffer> m_present_layout_change_no_init_cmd_bufs{};
 
-	vk::Semaphore createSemaphore();
-	vk::Fence createFence();
-
 	void createSwapchain();
-	void createAcquireSyncObjects();
+	void createAcquireFence();
 	void createLayoutChangeObjects();
 
 	void performAcquire();
-	void throttle();
 	void performPresent();
 };
 }

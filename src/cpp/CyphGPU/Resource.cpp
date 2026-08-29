@@ -27,6 +27,12 @@ void cgpu::Resource::setReadWriteSignal(const Queue::Signal& signal)
 	m_read_signals.emplace(signal.semaphore, signal.value);
 }
 
+void cgpu::Resource::clearSignals()
+{
+	m_read_write_signal = std::nullopt;
+	m_read_signals.clear();
+}
+
 void cgpu::Resource::lock()
 {
 	m_mutex.lock();
