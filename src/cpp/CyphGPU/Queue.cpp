@@ -98,7 +98,7 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 		m_device_session->getDispatcher().vkGetDeviceProcAddr
 	);
 
-	TracyVkContextName(m_tracy_context, name.data(), name.size());
+	TracyVkContextName(m_tracy_context, name.data(), static_cast<uint16_t>(name.size()));
 }
 #endif
 
