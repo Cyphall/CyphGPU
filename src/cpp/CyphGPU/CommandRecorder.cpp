@@ -263,13 +263,13 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	{
 		ZoneScopedN("Resolve sync");
 
-		last_resource_accesses.reserve(m_referenced_containers->num_resources);
-		cmd_syncs.resize(m_referenced_containers->cmd_list.size());
-		deps.reserve(m_referenced_containers->cmd_list.size());
-		barriers.reserve(m_referenced_containers->num_resource_barriers);
+		last_resource_accesses.reserve(m_num_resources);
+		cmd_syncs.resize(m_containers->cmd_list.size());
+		deps.reserve(m_containers->cmd_list.size());
+		barriers.reserve(m_num_resource_barriers);
 		uint32_t cmd_idx = 0;
 		uint32_t next_cmd_stageful_idx = 0;
-		for (auto& cmd : m_referenced_containers->cmd_list)
+		for (auto& cmd : m_containers->cmd_list)
 		{
 			uint32_t cmd_stageful_index = next_cmd_stageful_idx;
 			if (cmd.is_stageful)
@@ -551,7 +551,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		uint32_t cmd_idx = 0;
-		for (auto& cmd : m_referenced_containers->cmd_list)
+		for (auto& cmd : m_containers->cmd_list)
 		{
 			// Wait events
 			if (cmd_syncs[cmd_idx].dep_begin != cmd_syncs[cmd_idx].dep_end)
@@ -758,13 +758,13 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	}
 
 	std::vector<std::shared_ptr<void>> referenced_objects;
-	referenced_objects.reserve(m_referenced_containers->objects.size());
-	for (auto& object : m_referenced_containers->objects | std::views::keys)
+	referenced_objects.reserve(m_containers->referenced_objects.size());
+	for (auto& object : m_containers->referenced_objects | std::views::keys)
 	{
 		referenced_objects.emplace_back(std::move(object));
 	}
 
-	m_referenced_containers->objects.clear();
+	m_containers->referenced_objects.clear();
 
 	Queue::Signal signal = m_queue->submit(
 		*m_bump_memory,
@@ -789,7 +789,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	m_slot->addFinishedSignal(signal);
 
-	m_referenced_containers.reset();
+	m_containers.reset();
 
 	return {m_slot->getDeviceSession(), signal};
 }
@@ -2298,7 +2298,7 @@ cgpu::CommandRecorder::CommandRecorder(
 	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
 	m_bump_memory{&bump_memory},
 	m_queue{queue},
-	m_referenced_containers{bump_memory}
+	m_containers{bump_memory}
 {
 	ZoneScoped;
 
@@ -2309,25 +2309,25 @@ template<class T>
 requires(std::derived_from<T, cgpu::Resource>)
 void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point)
 {
-	assert(!m_referenced_containers->cmd_list.empty());
+	assert(!m_containers->cmd_list.empty());
 
-	auto& curr_cmd = m_referenced_containers->cmd_list.back();
+	auto& curr_cmd = m_containers->cmd_list.back();
 	auto [cmd_it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);
 	if (cmd_inserted)
 	{
 		bool has_write_access = hasWriteAccesses(access_point.accesses);
 
-		auto [global_it, global_inserted] = m_referenced_containers->objects.try_emplace(resource, has_write_access);
+		auto [global_it, global_inserted] = m_containers->referenced_objects.try_emplace(resource, has_write_access);
 		if (global_inserted)
 		{
-			m_referenced_containers->num_resources++;
+			m_num_resources++;
 		}
 		else
 		{
 			bool& was_previously_written = global_it->second;
 			if (was_previously_written || has_write_access)
 			{
-				m_referenced_containers->num_resource_barriers++;
+				m_num_resource_barriers++;
 			}
 
 			was_previously_written |= has_write_access;
@@ -2346,7 +2346,7 @@ template<class TCallback, class... TArgs>
 requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
 TCallback& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
 {
-	Cmd& cmd = m_referenced_containers->cmd_list.emplace_back(*m_bump_memory);
+	Cmd& cmd = m_containers->cmd_list.emplace_back(*m_bump_memory);
 	cmd.callback = detail::makeBumpUnique<TCallback>(*m_bump_memory, std::forward<TArgs>(args)...);
 	cmd.is_stageful = is_stageful;
 

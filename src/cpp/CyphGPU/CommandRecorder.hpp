@@ -506,17 +506,15 @@ private:
 		{}
 	};
 
-	struct ReferencedContainers
+	struct Containers
 	{
 		// bool: true if it is a resource and it is written
-		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> objects;
-		uint32_t num_resources{0};
-		uint32_t num_resource_barriers{0};
+		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> referenced_objects;
 
 		detail::BumpList<Cmd> cmd_list;
 
-		explicit ReferencedContainers(detail::BumpMemoryResource& bump_memory):
-			objects{detail::BumpAllocator{bump_memory}},
+		explicit Containers(detail::BumpMemoryResource& bump_memory):
+			referenced_objects{detail::BumpAllocator{bump_memory}},
 			cmd_list{detail::BumpAllocator{bump_memory}}
 		{}
 	};
@@ -527,7 +525,10 @@ private:
 
 	QueuePtr m_queue;
 
-	std::optional<ReferencedContainers> m_referenced_containers;
+	uint32_t m_num_resources{0};
+	uint32_t m_num_resource_barriers{0};
+
+	std::optional<Containers> m_containers;
 
 #if !defined(NDEBUG)
 	bool m_submitted{false};
@@ -543,7 +544,7 @@ private:
 	requires(!std::derived_from<T, cgpu::Resource>)
 	void addReferencedObject(const std::shared_ptr<T>& object)
 	{
-		m_referenced_containers->objects.try_emplace(object, false);
+		m_containers->referenced_objects.try_emplace(object, false);
 	}
 
 	template<class T>
