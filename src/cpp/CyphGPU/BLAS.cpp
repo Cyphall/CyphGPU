@@ -91,7 +91,7 @@ void cgpu::BLAS::createBLAS()
 {
 	auto range = m_desc.buffer_range ? *m_desc.buffer_range : Range<vk::DeviceSize>{0, m_buffer->getDesc().size};
 
-	assert(range.offset % 256 == 0);
+	assert((m_buffer->getDevicePtr() + range.offset) % 256 == 0);
 	assert(range.size == m_desc.sizes.accelerationStructureSize);
 
 	vk::AccelerationStructureCreateInfo2KHR as_info;

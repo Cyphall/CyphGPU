@@ -49,7 +49,7 @@ public:
 		vk::AccelerationStructureBuildSizesInfoKHR sizes;
 
 		// Optional
-		/// Must be aligned to 256 bytes.
+		/// Final address must be aligned to 256 bytes.
 		std::optional<Range<vk::DeviceSize>> buffer_range{};
 	};
 
