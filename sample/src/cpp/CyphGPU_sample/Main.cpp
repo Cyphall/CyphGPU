@@ -4,6 +4,7 @@
 #include <boost/scope/scope_exit.hpp>
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContext.hpp>
+#include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/Context.hpp>
 #include <CyphGPU/ContextSession.hpp>
 #include <CyphGPU/Device.hpp>
@@ -21,7 +22,6 @@
 #include <tracy/Tracy.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <CyphGPU/CommandRecorder.hpp>
 #include <stb_image.h>
 
 using namespace cgpu::shader_types;
