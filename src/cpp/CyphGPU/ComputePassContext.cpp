@@ -131,6 +131,13 @@ void cgpu::ComputePassContext::dispatch(
 	m_rec->addReferencedObject(compute_shader_state);
 }
 
+void cgpu::ComputePassContext::dispatch(const ComputeShaderStatePtr& compute_shader_state, const glm::uvec3& thread_count, const glm::uvec3& group_size, const void* data, size_t size, size_t alignment)
+{
+	// NOLINTNEXTLINE(*-suspicious-call-argument)
+	glm::uvec3 group_count = alignUp(thread_count, group_size) / group_size;
+	dispatch(compute_shader_state, group_count, data, size, alignment);
+}
+
 cgpu::ComputePassContext::ComputePassContext(CommandRecorder& rec, detail::BumpList<DispatchCmd>& dispatch_cmds):
 	PassContext{rec},
 	m_dispatch_cmds{&dispatch_cmds}

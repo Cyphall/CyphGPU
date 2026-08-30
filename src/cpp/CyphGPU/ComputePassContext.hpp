@@ -90,6 +90,33 @@ public:
 		);
 	}
 
+	void dispatch(
+		const ComputeShaderStatePtr& compute_shader_state,
+		const glm::uvec3& thread_count,
+		const glm::uvec3& group_size,
+		const void* data,
+		size_t size,
+		size_t alignment
+	);
+
+	template<class T>
+	void dispatch(
+		const ComputeShaderStatePtr& compute_shader_state,
+		const glm::uvec3& thread_count,
+		const glm::uvec3& group_size,
+		const T& data
+	)
+	{
+		dispatch(
+			compute_shader_state,
+			thread_count,
+			group_size,
+			&data,
+			sizeof(T),
+			alignof(T)
+		);
+	}
+
 private:
 	friend class CommandRecorder;
 
