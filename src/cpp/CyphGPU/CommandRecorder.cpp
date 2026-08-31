@@ -546,8 +546,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		detail::BumpVector<vk::Event> wait_events_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::DependencyInfo> wait_chains_scratch{detail::BumpAllocator{*m_bump_memory}};
 
-		detail::BumpList<vk::Event> reset_events_scratch{detail::BumpAllocator{*m_bump_memory}};
-
 		detail::BumpVector<vk::ImageMemoryBarrier2> vk_images_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		detail::BumpVector<vk::MemoryRangeBarrierKHR> vk_buffers_barriers_scratch{detail::BumpAllocator{*m_bump_memory}};
 		uint32_t cmd_idx = 0;
@@ -590,8 +588,6 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 							*m_dispatcher
 						);
 					}
-
-					reset_events_scratch.append_range(wait_events_scratch);
 
 					wait_events_scratch.clear();
 					wait_chains_scratch.clear();
@@ -739,11 +735,11 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 		// We can't reset events right after their wait because some drivers don't respect the
 		// absence of a second sync scope in vkCmdResetEvent2 and would stall the next command
-		for (auto event : reset_events_scratch)
+		for (const auto& event : events)
 		{
 			VULKAN_CALL(vkCmdResetEvent2);
 			cmd_buf.resetEvent2(
-				event,
+				event.vk_event,
 				vk::PipelineStageFlagBits2::eAllCommands,
 				*m_dispatcher
 			);
