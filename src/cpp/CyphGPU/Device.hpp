@@ -5,6 +5,7 @@
 
 #include <boost/optional.hpp>
 #include <mutex>
+#include <shared_mutex>
 #include <vulkan/vulkan.hpp>
 
 namespace cgpu
@@ -144,7 +145,7 @@ private:
 	std::string m_driver_info{};
 
 	mutable std::unordered_map<vk::StructureType, std::shared_ptr<void>> m_properties_structs{};
-	mutable std::mutex m_properties_mutex{};
+	mutable std::shared_mutex m_properties_mutex{};
 
 	[[nodiscard]]
 	static boost::optional<const CapabilityData&> getCapabilityData(Capability capability);

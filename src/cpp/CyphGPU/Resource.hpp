@@ -3,7 +3,7 @@
 #include <CyphGPU/Queue.hpp>
 
 #include <flat_map>
-#include <mutex>
+#include <shared_mutex>
 #include <optional>
 
 namespace cgpu
@@ -53,6 +53,6 @@ private:
 	std::flat_map<vk::Semaphore, uint64_t> m_read_signals{};
 	std::optional<Queue::Signal> m_read_write_signal{};
 
-	std::mutex m_mutex{};
+	std::shared_mutex m_mutex{};
 };
 }

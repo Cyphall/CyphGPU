@@ -12,7 +12,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
-#include <mutex>
+#include <shared_mutex>
 #include <queue>
 #include <thread>
 #include <unordered_map>
@@ -105,7 +105,7 @@ private:
 		vk::DeviceSize descriptor_size{};
 		vk::BindHeapInfoEXT bind_heap_info{};
 		std::vector<uint32_t> available_indices{};
-		std::mutex mutex{};
+		std::shared_mutex mutex{};
 
 		[[nodiscard]]
 		std::pair<uint32_t, vk::HostAddressRangeEXT> reserveIndex();
@@ -124,7 +124,7 @@ private:
 
 	private:
 		std::unordered_map<typename T::Desc, std::unique_ptr<T>> m_map{};
-		std::mutex m_mutex{};
+		std::shared_mutex m_mutex{};
 	};
 
 	struct GraphicsPipelineKey
@@ -182,9 +182,9 @@ private:
 		std::unique_ptr<GraphicsPipelineValue>,
 		GraphicsPipelineKeyHasher>
 		m_graphics_pipeline_cache{};
-	std::mutex m_graphics_pipeline_cache_mutex{};
+	std::shared_mutex m_graphics_pipeline_cache_mutex{};
 
-	std::mutex m_graphics_pipeline_opt_mutex{};
+	std::shared_mutex m_graphics_pipeline_opt_mutex{};
 	std::condition_variable_any m_graphics_pipeline_opt_cv{};
 	std::queue<std::pair<GraphicsPipelineKey, GraphicsPipelineValue*>> m_graphics_pipeline_opt_queue{};
 	std::jthread m_graphics_pipeline_opt_thread{};

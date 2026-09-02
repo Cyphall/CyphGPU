@@ -10,6 +10,7 @@
 
 #include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
+#include <mutex>
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
@@ -639,7 +640,7 @@ void cgpu::DeviceSession::createTracyCollectThread()
 		[&](std::stop_token token) {
 			tracy::SetThreadName("Tracy Vulkan collect");
 
-			std::mutex mutex{};
+			std::shared_mutex mutex{};
 			std::condition_variable_any cv{};
 			std::unique_lock lock{mutex};
 			while (!token.stop_requested())
