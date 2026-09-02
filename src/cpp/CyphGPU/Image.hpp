@@ -168,8 +168,8 @@ private:
 	vk::ImageViewType m_default_view_type{};
 	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};
 
-	std::flat_map<SampledDescriptorInfo, uint32_t> m_sampled_cache;
-	std::flat_map<StorageDescriptorInfo, uint32_t> m_storage_cache;
+	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_cache;
+	std::vector<std::pair<StorageDescriptorInfo, uint32_t>> m_storage_cache;
 
 	//TODO: remove once we have an extension to remove image views from attachments
 	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;

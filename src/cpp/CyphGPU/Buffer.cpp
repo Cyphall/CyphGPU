@@ -65,8 +65,8 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 	info.format = format;
 	info.byte_range = overrides.byte_range.value_or(Range<vk::DeviceSize>{0, m_desc.size});
 
-	auto [it, inserted] = m_uniform_texel_cache.try_emplace(info);
-	if (inserted)
+	auto it = std::ranges::find(m_uniform_texel_cache, info, &std::pair<UniformTexelDescriptorInfo, uint32_t>::first);
+	if (it == m_uniform_texel_cache.end())
 	{
 		vk::TexelBufferDescriptorInfoEXT typed_info;
 		typed_info.format = info.format;
@@ -77,7 +77,8 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 		desc_info.type = vk::DescriptorType::eUniformTexelBuffer;
 		desc_info.data.pTexelBuffer = &typed_info;
 
-		it->second = m_device_session->createResourceDescriptor(desc_info);
+		m_uniform_texel_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_uniform_texel_cache.end() - 1;
 	}
 
 	return it->second;
@@ -89,8 +90,8 @@ cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(v
 	info.format = format;
 	info.byte_range = overrides.byte_range.value_or(Range<vk::DeviceSize>{0, m_desc.size});
 
-	auto [it, inserted] = m_storage_texel_cache.try_emplace(info);
-	if (inserted)
+	auto it = std::ranges::find(m_storage_texel_cache, info, &std::pair<StorageTexelDescriptorInfo, uint32_t>::first);
+	if (it == m_storage_texel_cache.end())
 	{
 		vk::TexelBufferDescriptorInfoEXT typed_info;
 		typed_info.format = info.format;
@@ -101,7 +102,8 @@ cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(v
 		desc_info.type = vk::DescriptorType::eStorageTexelBuffer;
 		desc_info.data.pTexelBuffer = &typed_info;
 
-		it->second = m_device_session->createResourceDescriptor(desc_info);
+		m_storage_texel_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_storage_texel_cache.end() - 1;
 	}
 
 	return it->second;

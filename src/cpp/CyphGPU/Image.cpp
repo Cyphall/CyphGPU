@@ -65,8 +65,8 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	info.aspect = overrides.aspect.or_else([&] { return m_default_view_aspect; }).value();
 	info.swizzle = overrides.swizzle.value_or(vk::ComponentMapping{});
 
-	auto [it, inserted] = m_sampled_cache.try_emplace(info);
-	if (inserted)
+	auto it = std::ranges::find(m_sampled_cache, info, &std::pair<SampledDescriptorInfo, uint32_t>::first);
+	if (it == m_sampled_cache.end())
 	{
 		vk::ImageViewCreateInfo view_info;
 		view_info.flags = {};
@@ -88,7 +88,8 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 		desc_info.type = vk::DescriptorType::eSampledImage;
 		desc_info.data.pImage = &typed_info;
 
-		it->second = m_device_session->createResourceDescriptor(desc_info);
+		m_sampled_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_sampled_cache.end() - 1;
 	}
 
 	return it->second;
@@ -103,8 +104,8 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	info.layers = overrides.layers.value_or(Range<uint32_t>{0, calcDefaultLayerCount(info.type)});
 	info.aspect = overrides.aspect.or_else([&] { return m_default_view_aspect; }).value();
 
-	auto [it, inserted] = m_storage_cache.try_emplace(info);
-	if (inserted)
+	auto it = std::ranges::find(m_storage_cache, info, &std::pair<StorageDescriptorInfo, uint32_t>::first);
+	if (it == m_storage_cache.end())
 	{
 		vk::ImageViewCreateInfo view_info;
 		view_info.flags = {};
@@ -126,7 +127,8 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 		desc_info.type = vk::DescriptorType::eStorageImage;
 		desc_info.data.pImage = &typed_info;
 
-		it->second = m_device_session->createResourceDescriptor(desc_info);
+		m_storage_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_storage_cache.end() - 1;
 	}
 
 	return it->second;

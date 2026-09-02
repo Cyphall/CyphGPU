@@ -127,8 +127,8 @@ private:
 	vk::DeviceAddress m_device_ptr{};
 	std::optional<std::byte*> m_host_ptr{};
 
-	std::flat_map<UniformTexelDescriptorInfo, uint32_t> m_uniform_texel_cache;
-	std::flat_map<StorageTexelDescriptorInfo, uint32_t> m_storage_texel_cache;
+	std::vector<std::pair<UniformTexelDescriptorInfo, uint32_t>> m_uniform_texel_cache;
+	std::vector<std::pair<StorageTexelDescriptorInfo, uint32_t>> m_storage_texel_cache;
 
 	void createBuffer();
 };
