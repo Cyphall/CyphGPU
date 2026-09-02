@@ -167,6 +167,7 @@ private:
 
 	vk::ImageViewType m_default_view_type{};
 	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};
+	vk::Format m_default_view_linear_format{};
 
 	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_cache;
 	std::vector<std::pair<StorageDescriptorInfo, uint32_t>> m_storage_cache;

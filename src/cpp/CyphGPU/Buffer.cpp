@@ -63,7 +63,7 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 {
 	UniformTexelDescriptorInfo info;
 	info.format = format;
-	info.byte_range = overrides.byte_range.value_or(Range<vk::DeviceSize>{0, m_desc.size});
+	info.byte_range = overrides.byte_range ? *overrides.byte_range : Range<vk::DeviceSize>{0, m_desc.size};
 
 	auto it = std::ranges::find(m_uniform_texel_cache, info, &std::pair<UniformTexelDescriptorInfo, uint32_t>::first);
 	if (it == m_uniform_texel_cache.end())
@@ -88,7 +88,7 @@ cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(v
 {
 	StorageTexelDescriptorInfo info;
 	info.format = format;
-	info.byte_range = overrides.byte_range.value_or(Range<vk::DeviceSize>{0, m_desc.size});
+	info.byte_range = overrides.byte_range ? *overrides.byte_range : Range<vk::DeviceSize>{0, m_desc.size};
 
 	auto it = std::ranges::find(m_storage_texel_cache, info, &std::pair<StorageTexelDescriptorInfo, uint32_t>::first);
 	if (it == m_storage_texel_cache.end())
