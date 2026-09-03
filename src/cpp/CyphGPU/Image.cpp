@@ -62,7 +62,7 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	info.format = overrides.format ? *overrides.format : m_desc.format;
 	info.levels = overrides.levels ? *overrides.levels : Range<uint32_t>{0, m_desc.levels};
 	info.layers = overrides.layers ? *overrides.layers : Range<uint32_t>{0, calcDefaultLayerCount(info.type)};
-	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect.value();
+	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
 	info.swizzle = overrides.swizzle ? *overrides.swizzle : vk::ComponentMapping{};
 
 	auto it = std::ranges::find(m_sampled_cache, info, &std::pair<SampledDescriptorInfo, uint32_t>::first);
@@ -102,7 +102,7 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	info.format = overrides.format ? getLinearEquivalent(*overrides.format) : m_default_view_linear_format;
 	info.level = overrides.level ? *overrides.level : 0;
 	info.layers = overrides.layers ? *overrides.layers : Range<uint32_t>{0, calcDefaultLayerCount(info.type)};
-	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect.value();
+	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
 
 	auto it = std::ranges::find(m_storage_cache, info, &std::pair<StorageDescriptorInfo, uint32_t>::first);
 	if (it == m_storage_cache.end())
@@ -245,10 +245,10 @@ void cgpu::Image::createImage()
 	}
 
 	vk::ImageAspectFlags aspects = getAspects(m_desc.format);
-	if (std::has_single_bit(static_cast<vk::ImageAspectFlags::MaskType>(aspects)))
-	{
-		m_default_view_aspect = std::bit_cast<vk::ImageAspectFlagBits>(aspects);
-	}
+	m_default_view_aspect =
+		std::has_single_bit(static_cast<vk::ImageAspectFlags::MaskType>(aspects)) ?
+			std::bit_cast<vk::ImageAspectFlagBits>(aspects) :
+			vk::ImageAspectFlagBits::eDepth;
 
 	m_default_view_linear_format = getLinearEquivalent(m_desc.format);
 }

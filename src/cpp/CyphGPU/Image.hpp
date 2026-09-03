@@ -24,7 +24,7 @@ struct SampledImageDescriptorOverrides
 	std::optional<Range<uint32_t>> levels{};
 	/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
 	std::optional<Range<uint32_t>> layers{};
-	/// Default: Main aspect. For multi-aspect formats, this field must be set.
+	/// Default: Main aspect. For depth-stencil formats, the default aspect is depth.
 	std::optional<vk::ImageAspectFlagBits> aspect{};
 	/// Default: Identity.
 	std::optional<vk::ComponentMapping> swizzle{};
@@ -43,7 +43,7 @@ struct StorageImageDescriptorOverrides
 	std::optional<uint32_t> level{};
 	/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
 	std::optional<Range<uint32_t>> layers{};
-	/// Default: Main aspect. For multi-aspect formats, this field must be set.
+	/// Default: Main aspect. For depth-stencil formats, the default aspect is depth.
 	std::optional<vk::ImageAspectFlagBits> aspect{};
 };
 
@@ -166,7 +166,7 @@ private:
 	bool m_layout_initialized{false};
 
 	vk::ImageViewType m_default_view_type{};
-	std::optional<vk::ImageAspectFlagBits> m_default_view_aspect{};
+	vk::ImageAspectFlagBits m_default_view_aspect{};
 	vk::Format m_default_view_linear_format{};
 
 	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_cache;
