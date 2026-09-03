@@ -104,10 +104,10 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 
 void cgpu::Queue::timelineToBinary(
 	const SwapchainPtr& swapchain,
-	vk::Semaphore semaphore,
-	vk::CommandBuffer cmd_buf,
 	std::span<const vk::Semaphore> wait_semaphores,
-	std::span<const uint64_t> wait_values
+	std::span<const uint64_t> wait_values,
+	vk::CommandBuffer cmd_buf,
+	vk::Semaphore signal_semaphore
 )
 {
 	std::unique_lock lock{m_mutex};
@@ -141,7 +141,7 @@ void cgpu::Queue::timelineToBinary(
 			.deviceIndex = 0,
 		},
 		vk::SemaphoreSubmitInfo{
-			.semaphore = semaphore,
+			.semaphore = signal_semaphore,
 			.value = 0,
 			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 			.deviceIndex = 0,

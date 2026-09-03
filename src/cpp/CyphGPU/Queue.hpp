@@ -99,10 +99,10 @@ private:
 
 	void timelineToBinary(
 		const SwapchainPtr& swapchain,
-		vk::Semaphore semaphore,
-		vk::CommandBuffer cmd_buf,
 		std::span<const vk::Semaphore> wait_semaphores,
-		std::span<const uint64_t> wait_values
+		std::span<const uint64_t> wait_values,
+		vk::CommandBuffer cmd_buf,
+		vk::Semaphore signal_semaphore
 	);
 
 	[[nodiscard]]

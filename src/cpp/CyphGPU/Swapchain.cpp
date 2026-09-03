@@ -365,10 +365,10 @@ void cgpu::Swapchain::performPresent()
 
 			m_device_session->getMainQueue()->timelineToBinary(
 				shared_from_this(),
-				image_data.semaphore,
-				m_present_layout_change_cmd_bufs[m_acquired_image],
 				image_data.image->getReadSignals().keys(),
-				image_data.image->getReadSignals().values()
+				image_data.image->getReadSignals().values(),
+				m_present_layout_change_cmd_bufs[m_acquired_image],
+				image_data.semaphore
 			);
 		}
 
