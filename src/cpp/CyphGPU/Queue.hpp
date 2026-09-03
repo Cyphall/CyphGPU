@@ -67,7 +67,7 @@ private:
 
 	struct PresentPayload
 	{
-		std::vector<std::shared_ptr<void>> objects;
+		SwapchainPtr swapchain;
 		vk::Fence fence;
 	};
 

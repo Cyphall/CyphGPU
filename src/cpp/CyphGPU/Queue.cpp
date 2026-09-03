@@ -203,7 +203,7 @@ vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t
 
 	// Objects are still considered in-use if presentKHR() throws OutOfDate
 	PresentPayload& payload = m_present_payloads.emplace_back();
-	payload.objects.emplace_back(swapchain);
+	payload.swapchain = swapchain;
 	payload.fence = fence;
 
 	return result;
