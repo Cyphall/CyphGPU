@@ -7,6 +7,7 @@
 #include <CyphGPU/Swapchain.hpp>
 
 #include <boost/container/small_vector.hpp>
+#include <ranges>
 #include <tracy/Tracy.hpp>
 
 cgpu::Queue::Queue(PrivateKey, DeviceSession& device_session, vk::Queue queue, uint32_t family, vk::QueueFlags caps, std::string_view name):
@@ -114,16 +115,17 @@ void cgpu::Queue::timelineToBinary(
 
 	clearCompletedPayloads();
 
-	std::vector<vk::SemaphoreSubmitInfo> wait_infos;
-	wait_infos.resize(wait_semaphores.size());
-	for (size_t i = 0; i < wait_infos.size(); i++)
+	// Should not be possible to have more than 4 semaphores
+	// since we only have 4 queues.
+	boost::container::static_vector<vk::SemaphoreSubmitInfo, 4> wait_infos;
+	for (const auto& [semaphore, value] : std::views::zip(wait_semaphores, wait_values))
 	{
-		wait_infos[i] = vk::SemaphoreSubmitInfo{
-			.semaphore = wait_semaphores[i],
-			.value = wait_values[i],
+		wait_infos.push_back({
+			.semaphore = semaphore,
+			.value = value,
 			.stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 			.deviceIndex = 0,
-		};
+		});
 	}
 
 	std::array cmd_buf_infos{
