@@ -259,58 +259,52 @@ void cgpu::Swapchain::createLayoutChangeObjects()
 		info.level = vk::CommandBufferLevel::ePrimary;
 		info.commandBufferCount = static_cast<uint32_t>(m_image_data.size());
 
-		m_present_layout_change_init_cmd_bufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
-		m_present_layout_change_no_init_cmd_bufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
+		m_present_layout_change_cmd_bufs = m_device_session->getHandle().allocateCommandBuffers(info, m_device_session->getDispatcher());
 	}
 
-	auto record_cmd_bufs = [&](const std::vector<vk::CommandBuffer>& cmd_bufs, vk::ImageLayout src_layout, vk::ImageLayout dst_layout) {
-		for (size_t i = 0; i < m_image_data.size(); i++)
+	for (size_t i = 0; i < m_image_data.size(); i++)
+	{
 		{
-			{
-				vk::CommandBufferBeginInfo info;
-				info.flags = {};
-				// info.pInheritanceInfo;
+			vk::CommandBufferBeginInfo info;
+			info.flags = {};
+			// info.pInheritanceInfo;
 
-				cmd_bufs[i].begin(info, m_device_session->getDispatcher());
-			}
-
-			{
-				vk::ImageMemoryBarrier2 barrier;
-				barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
-				barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
-				barrier.dstStageMask = vk::PipelineStageFlagBits2::eNone;
-				barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
-				barrier.oldLayout = src_layout;
-				barrier.newLayout = dst_layout;
-				barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-				barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-				barrier.image = m_image_data[i].image->getHandle();
-				barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
-				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
-
-				vk::DependencyInfo info;
-				info.dependencyFlags = {};
-				info.memoryBarrierCount = 0;
-				// info.pMemoryBarriers;
-				info.bufferMemoryBarrierCount = 0;
-				// info.pBufferMemoryBarriers;
-				info.imageMemoryBarrierCount = 1;
-				info.pImageMemoryBarriers = &barrier;
-
-				cmd_bufs[i].pipelineBarrier2(info, m_device_session->getDispatcher());
-			}
-
-			{
-				cmd_bufs[i].end(m_device_session->getDispatcher());
-			}
+			m_present_layout_change_cmd_bufs[i].begin(info, m_device_session->getDispatcher());
 		}
-	};
 
-	record_cmd_bufs(m_present_layout_change_init_cmd_bufs, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR);
-	record_cmd_bufs(m_present_layout_change_no_init_cmd_bufs, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR);
+		{
+			vk::ImageMemoryBarrier2 barrier;
+			barrier.srcStageMask = vk::PipelineStageFlagBits2::eNone;
+			barrier.srcAccessMask = vk::AccessFlagBits2::eNone;
+			barrier.dstStageMask = vk::PipelineStageFlagBits2::eNone;
+			barrier.dstAccessMask = vk::AccessFlagBits2::eNone;
+			barrier.oldLayout = vk::ImageLayout::eGeneral;
+			barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
+			barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+			barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+			barrier.image = m_image_data[i].image->getHandle();
+			barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
+
+			vk::DependencyInfo info;
+			info.dependencyFlags = {};
+			info.memoryBarrierCount = 0;
+			// info.pMemoryBarriers;
+			info.bufferMemoryBarrierCount = 0;
+			// info.pBufferMemoryBarriers;
+			info.imageMemoryBarrierCount = 1;
+			info.pImageMemoryBarriers = &barrier;
+
+			m_present_layout_change_cmd_bufs[i].pipelineBarrier2(info, m_device_session->getDispatcher());
+		}
+
+		{
+			m_present_layout_change_cmd_bufs[i].end(m_device_session->getDispatcher());
+		}
+	}
 }
 
 void cgpu::Swapchain::performAcquire()
@@ -351,7 +345,6 @@ void cgpu::Swapchain::performAcquire()
 
 	m_image_data[m_acquired_image].image->lock();
 	m_image_data[m_acquired_image].image->clearSignals();
-	m_image_data[m_acquired_image].image->setLayoutInitialized(false);
 	m_image_data[m_acquired_image].image->unlock();
 }
 
@@ -366,36 +359,49 @@ void cgpu::Swapchain::performPresent()
 
 	auto& image_data = m_image_data[m_acquired_image];
 
+	if (image_data.image->isLayoutInitialized())
 	{
-		ZoneScopedN("Timeline -> Binary + layout change");
+		{
+			ZoneScopedN("Timeline -> Binary + layout change");
 
-		image_data.image->lock();
+			image_data.image->lock();
 
-		auto present_layout_change_cmd_buf =
-			image_data.image->isLayoutInitialized() ?
-				m_present_layout_change_init_cmd_bufs[m_acquired_image] :
-				m_present_layout_change_no_init_cmd_bufs[m_acquired_image];
+			image_data.image->setReadWriteSignal(
+				m_device_session->getMainQueue()->signalToBinary(
+					shared_from_this(),
+					image_data.semaphore,
+					m_present_layout_change_cmd_bufs[m_acquired_image],
+					image_data.image->getReadSignals().keys(),
+					image_data.image->getReadSignals().values()
+				)
+			);
 
-		image_data.image->setReadWriteSignal(
-			m_device_session->getMainQueue()->signalToBinary(
+			image_data.image->setLayoutInitialized(false);
+
+			image_data.image->unlock();
+		}
+
+		{
+			ZoneScopedN("Present");
+
+			m_status = m_device_session->getMainQueue()->swapchainPresent(
 				shared_from_this(),
-				image_data.semaphore,
-				present_layout_change_cmd_buf,
-				image_data.image->getReadSignals().keys(),
-				image_data.image->getReadSignals().values()
-			)
-		);
-
-		image_data.image->unlock();
+				m_acquired_image,
+				image_data.semaphore
+			);
+		}
 	}
-
+	else
 	{
-		ZoneScopedN("Present");
+		vk::ReleaseSwapchainImagesInfoKHR info;
+		info.swapchain = m_handle;
+		info.imageIndexCount = 1;
+		info.pImageIndices = &m_acquired_image;
 
-		m_status = m_device_session->getMainQueue()->swapchainPresent(
-			shared_from_this(),
-			m_acquired_image,
-			image_data.semaphore
-		);
+		{
+			ZoneScopedN("Release");
+
+			m_device_session->getHandle().releaseSwapchainImagesKHR(info, m_device_session->getDispatcher());
+		}
 	}
 }
