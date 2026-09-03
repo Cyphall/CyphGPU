@@ -287,9 +287,9 @@ void cgpu::Swapchain::createLayoutChangeObjects()
 				barrier.image = m_image_data[i].image->getHandle();
 				barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.levelCount = vk::RemainingMipLevels;
 				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = m_image_data[i].image->getDesc().layers;
+				barrier.subresourceRange.layerCount = vk::RemainingArrayLayers;
 
 				vk::DependencyInfo info;
 				info.dependencyFlags = {};
