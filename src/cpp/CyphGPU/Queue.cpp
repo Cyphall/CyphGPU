@@ -237,35 +237,30 @@ void cgpu::Queue::clearCompletedPayloads()
 {
 	std::unique_lock lock{m_mutex};
 
-	while (!m_submit_payloads.empty())
+	if (!m_submit_payloads.empty())
 	{
-		vk::SemaphoreWaitInfo info;
-		info.flags = {};
-		info.semaphoreCount = 1;
-		info.pSemaphores = &m_semaphore;
-		info.pValues = &m_submit_payloads.front().semaphore_value;
-
-		if (m_device_session->getHandle().waitSemaphores(info, 0, m_device_session->getDispatcher()) != vk::Result::eSuccess)
+		uint64_t cur_value = m_device_session->getHandle().getSemaphoreCounterValue(m_semaphore, m_device_session->getDispatcher());
+		while (!m_submit_payloads.empty() && m_submit_payloads.front().semaphore_value <= cur_value)
 		{
-			break;
+			m_submit_payloads.pop_front();
 		}
-
-		m_submit_payloads.pop_front();
 	}
 
-	while (!m_present_payloads.empty())
+	if (!m_present_payloads.empty())
 	{
-		vk::Fence fence = m_present_payloads.front().fence;
-
-		if (m_device_session->getHandle().waitForFences(fence, vk::True, 0, m_device_session->getDispatcher()) != vk::Result::eSuccess)
+		boost::container::small_vector<vk::Fence, 8> fences;
+		while (!m_present_payloads.empty() &&
+		       m_device_session->getHandle().waitForFences(m_present_payloads.front().fence, vk::True, 0, m_device_session->getDispatcher()) == vk::Result::eSuccess)
 		{
-			break;
+			fences.emplace_back(m_present_payloads.front().fence);
+			m_present_payloads.pop_front();
 		}
 
-		m_device_session->getHandle().resetFences(fence, m_device_session->getDispatcher());
-		releaseFences({{fence}});
-
-		m_present_payloads.pop_front();
+		if (!fences.empty())
+		{
+			m_device_session->getHandle().resetFences(fences, m_device_session->getDispatcher());
+			releaseFences(fences);
+		}
 	}
 }
 
