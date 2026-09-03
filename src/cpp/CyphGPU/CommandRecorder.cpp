@@ -1905,20 +1905,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 	auto& cmd = addCmd<CmdCallback>(true, *m_bump_memory);
 
 	ComputePassContext ctx{*this, cmd.dispatch_cmds};
-	std::exception_ptr exception_ptr;
-	try
-	{
-		(*params.callback)(ctx);
-	}
-	catch (...)
-	{
-		exception_ptr = std::current_exception();
-	}
-
-	if (exception_ptr)
-	{
-		std::rethrow_exception(exception_ptr);
-	}
+	(*params.callback)(ctx);
 }
 
 void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
