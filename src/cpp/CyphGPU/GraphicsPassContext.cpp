@@ -19,7 +19,7 @@
 cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(
 	const ImagePtr& image,
 	GraphicsStages stages,
-	const Image::SampledDescriptorOverrides& overrides
+	const SampledImageDescriptorOverrides& overrides
 )
 {
 	registerSampledImageIndirectAccess(image, stages);
@@ -30,7 +30,7 @@ cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(
 	const ImagePtr& image,
 	GraphicsStages stages,
 	StorageAccess access,
-	const Image::StorageDescriptorOverrides& overrides
+	const StorageImageDescriptorOverrides& overrides
 )
 {
 	registerStorageImageIndirectAccess(image, stages, access);
@@ -41,7 +41,7 @@ cgpu::UniformTexelBufferHandle cgpu::GraphicsPassContext::getUniformTexelBufferD
 	const BufferPtr& buffer,
 	GraphicsStages stages,
 	vk::Format format,
-	const Buffer::UniformTexelDescriptorOverrides& overrides
+	const UniformTexelBufferDescriptorOverrides& overrides
 )
 {
 	registerSampledBufferIndirectAccess(buffer, stages);
@@ -53,7 +53,7 @@ cgpu::StorageTexelBufferHandle cgpu::GraphicsPassContext::getStorageTexelBufferD
 	GraphicsStages stages,
 	StorageAccess access,
 	vk::Format format,
-	const Buffer::StorageTexelDescriptorOverrides& overrides
+	const StorageTexelBufferDescriptorOverrides& overrides
 )
 {
 	registerStorageBufferIndirectAccess(buffer, stages, access);

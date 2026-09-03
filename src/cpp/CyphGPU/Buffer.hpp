@@ -13,6 +13,18 @@
 
 namespace cgpu
 {
+struct UniformTexelBufferDescriptorOverrides
+{
+	/// Default: Whole range.
+	std::optional<Range<vk::DeviceSize>> byte_range{};
+};
+
+struct StorageTexelBufferDescriptorOverrides
+{
+	/// Default: Whole range.
+	std::optional<Range<vk::DeviceSize>> byte_range{};
+};
+
 class Buffer final : public Resource
 {
 	class PrivateKey
@@ -38,18 +50,6 @@ public:
 		vk::DeviceSize min_alignment{1};
 		/// Other desc parameters must still match what the buffer was created with.
 		std::optional<ExistingHandle> existing_handle{};
-	};
-
-	struct UniformTexelDescriptorOverrides
-	{
-		/// Default: Whole range.
-		std::optional<Range<vk::DeviceSize>> byte_range;
-	};
-
-	struct StorageTexelDescriptorOverrides
-	{
-		/// Default: Whole range.
-		std::optional<Range<vk::DeviceSize>> byte_range;
 	};
 
 	[[nodiscard]]
@@ -95,10 +95,10 @@ public:
 	}
 
 	[[nodiscard]]
-	UniformTexelBufferHandle getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelDescriptorOverrides& overrides = {});
+	UniformTexelBufferHandle getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelBufferDescriptorOverrides& overrides = {});
 
 	[[nodiscard]]
-	StorageTexelBufferHandle getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelDescriptorOverrides& overrides = {});
+	StorageTexelBufferHandle getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelBufferDescriptorOverrides& overrides = {});
 
 private:
 	struct UniformTexelDescriptorInfo

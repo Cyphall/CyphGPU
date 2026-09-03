@@ -16,14 +16,14 @@ public:
 	[[nodiscard]]
 	SampledImageHandle getSampledImageDescriptor(
 		const ImagePtr& image,
-		const Image::SampledDescriptorOverrides& overrides = {}
+		const SampledImageDescriptorOverrides& overrides = {}
 	);
 
 	[[nodiscard]]
 	StorageImageHandle getStorageImageDescriptor(
 		const ImagePtr& image,
 		StorageAccess access,
-		const Image::StorageDescriptorOverrides& overrides = {}
+		const StorageImageDescriptorOverrides& overrides = {}
 	);
 
 	template<class T>
@@ -42,7 +42,7 @@ public:
 	UniformTexelBufferHandle getUniformTexelBufferDescriptor(
 		const BufferPtr& buffer,
 		vk::Format format,
-		const Buffer::UniformTexelDescriptorOverrides& overrides = {}
+		const UniformTexelBufferDescriptorOverrides& overrides = {}
 	);
 
 	[[nodiscard]]
@@ -50,7 +50,7 @@ public:
 		const BufferPtr& buffer,
 		StorageAccess access,
 		vk::Format format,
-		const Buffer::StorageTexelDescriptorOverrides& overrides = {}
+		const StorageTexelBufferDescriptorOverrides& overrides = {}
 	);
 
 	[[nodiscard]]

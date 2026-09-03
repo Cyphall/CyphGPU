@@ -59,7 +59,7 @@ std::byte* cgpu::Buffer::getHostPtr(vk::DeviceSize offset)
 	return m_host_ptr.value() + offset;
 }
 
-cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelDescriptorOverrides& overrides)
+cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelBufferDescriptorOverrides& overrides)
 {
 	UniformTexelDescriptorInfo info;
 	info.format = format;
@@ -84,7 +84,7 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 	return it->second;
 }
 
-cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelDescriptorOverrides& overrides)
+cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelBufferDescriptorOverrides& overrides)
 {
 	StorageTexelDescriptorInfo info;
 	info.format = format;
