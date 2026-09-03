@@ -64,7 +64,9 @@ public:
 	[[nodiscard]]
 	const vk::SwapchainKHR& getHandle();
 
-	// If std::nullopt is returned, the swapchain has become out-of-date or suboptimal and must be recreated
+	/// If std::nullopt is returned, the swapchain has become out-of-date or suboptimal and must be recreated.
+	///
+	/// Images other than the current image must not be accessed.
 	[[nodiscard]]
 	std::optional<ImagePtr> tryGetImage();
 

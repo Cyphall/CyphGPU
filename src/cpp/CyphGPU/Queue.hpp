@@ -97,8 +97,7 @@ private:
 	void createTracyContext(std::string_view name);
 #endif
 
-	[[nodiscard]]
-	Signal timelineToBinary(
+	void timelineToBinary(
 		const SwapchainPtr& swapchain,
 		vk::Semaphore semaphore,
 		vk::CommandBuffer cmd_buf,

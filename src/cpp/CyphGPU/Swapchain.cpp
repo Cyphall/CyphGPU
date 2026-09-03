@@ -343,9 +343,8 @@ void cgpu::Swapchain::performAcquire()
 		m_device_session->getHandle().resetFences(m_acquire_fence, m_device_session->getDispatcher());
 	}
 
-	m_image_data[m_acquired_image].image->lock();
 	m_image_data[m_acquired_image].image->clearSignals();
-	m_image_data[m_acquired_image].image->unlock();
+	m_image_data[m_acquired_image].image->setLayoutInitialized(false);
 }
 
 void cgpu::Swapchain::performPresent()
@@ -364,21 +363,13 @@ void cgpu::Swapchain::performPresent()
 		{
 			ZoneScopedN("Timeline -> Binary + layout change");
 
-			image_data.image->lock();
-
-			image_data.image->setReadWriteSignal(
-				m_device_session->getMainQueue()->timelineToBinary(
-					shared_from_this(),
-					image_data.semaphore,
-					m_present_layout_change_cmd_bufs[m_acquired_image],
-					image_data.image->getReadSignals().keys(),
-					image_data.image->getReadSignals().values()
-				)
+			m_device_session->getMainQueue()->timelineToBinary(
+				shared_from_this(),
+				image_data.semaphore,
+				m_present_layout_change_cmd_bufs[m_acquired_image],
+				image_data.image->getReadSignals().keys(),
+				image_data.image->getReadSignals().values()
 			);
-
-			image_data.image->setLayoutInitialized(false);
-
-			image_data.image->unlock();
 		}
 
 		{

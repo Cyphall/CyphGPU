@@ -102,7 +102,7 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 }
 #endif
 
-cgpu::Queue::Signal cgpu::Queue::timelineToBinary(
+void cgpu::Queue::timelineToBinary(
 	const SwapchainPtr& swapchain,
 	vk::Semaphore semaphore,
 	vk::CommandBuffer cmd_buf,
@@ -162,11 +162,6 @@ cgpu::Queue::Signal cgpu::Queue::timelineToBinary(
 	SubmitPayload& payload = m_submit_payloads.emplace_back();
 	payload.objects.emplace_back(swapchain);
 	payload.semaphore_value = signal_infos[0].value;
-
-	return {
-		.semaphore = signal_infos[0].semaphore,
-		.value = signal_infos[0].value,
-	};
 }
 
 vk::Result cgpu::Queue::swapchainPresent(const SwapchainPtr& swapchain, uint32_t index, vk::Semaphore semaphore)
