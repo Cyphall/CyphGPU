@@ -167,7 +167,7 @@ void cgpu::Image::createImage()
 	if (m_desc.existing_handle)
 	{
 		m_handle = m_desc.existing_handle->image;
-		m_layout_initialized = true;
+		m_layout_initialized = m_desc.existing_handle->layout_initialized;
 	}
 	else
 	{

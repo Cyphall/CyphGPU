@@ -24,8 +24,9 @@ public:
 	{
 		struct ExistingHandle
 		{
-			/// The image must be in the GENERAL layout
 			vk::Image image;
+			/// true if the image is already in the GENERAL layout
+			bool layout_initialized{false};
 		};
 
 		// Required
