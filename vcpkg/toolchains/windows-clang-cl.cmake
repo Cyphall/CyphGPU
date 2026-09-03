@@ -2,8 +2,8 @@ set(CMAKE_C_COMPILER clang-cl.exe)
 set(CMAKE_CXX_COMPILER clang-cl.exe)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(VCPKG_C_FLAGS "/Zc:__cplusplus /utf-8")
-set(VCPKG_CXX_FLAGS "/Zc:__cplusplus /utf-8")
+set(VCPKG_C_FLAGS "/Zc:__cplusplus /utf-8 /arch:AVX2")
+set(VCPKG_CXX_FLAGS "/Zc:__cplusplus /utf-8 /arch:AVX2")
 
 if (Z_VCPKG_ROOT_DIR)
 	set(VCPKG_ROOT ${Z_VCPKG_ROOT_DIR})
