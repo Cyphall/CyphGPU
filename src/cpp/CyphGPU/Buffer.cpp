@@ -59,14 +59,21 @@ std::byte* cgpu::Buffer::getHostPtr(vk::DeviceSize offset)
 	return m_host_ptr.value() + offset;
 }
 
-cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelBufferDescriptorOverrides& overrides)
+cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(vk::Format format)
+{
+	// Can't do the same opt as with images as there is no
+	// sensible "default descriptor" for texel buffers.
+	return getUniformTexelDescriptorIndirect(format, {});
+}
+
+cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(vk::Format format, const UniformTexelDescriptorOverrides& overrides)
 {
 	UniformTexelDescriptorInfo info;
 	info.format = format;
 	info.byte_range = overrides.byte_range ? *overrides.byte_range : Range<vk::DeviceSize>{0, m_desc.size};
 
 	auto it = std::ranges::find(m_uniform_texel_cache, info, &std::pair<UniformTexelDescriptorInfo, uint32_t>::first);
-	if (it == m_uniform_texel_cache.end())
+	if (it == m_uniform_texel_cache.end()) [[unlikely]]
 	{
 		vk::TexelBufferDescriptorInfoEXT typed_info;
 		typed_info.format = info.format;
@@ -84,14 +91,21 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 	return it->second;
 }
 
-cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelBufferDescriptorOverrides& overrides)
+cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(vk::Format format)
+{
+	// Can't do the same opt as with images as there is no
+	// sensible "default descriptor" for texel buffers.
+	return getStorageTexelDescriptorIndirect(format, {});
+}
+
+cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelDescriptorOverrides& overrides)
 {
 	StorageTexelDescriptorInfo info;
 	info.format = format;
 	info.byte_range = overrides.byte_range ? *overrides.byte_range : Range<vk::DeviceSize>{0, m_desc.size};
 
 	auto it = std::ranges::find(m_storage_texel_cache, info, &std::pair<StorageTexelDescriptorInfo, uint32_t>::first);
-	if (it == m_storage_texel_cache.end())
+	if (it == m_storage_texel_cache.end()) [[unlikely]]
 	{
 		vk::TexelBufferDescriptorInfoEXT typed_info;
 		typed_info.format = info.format;

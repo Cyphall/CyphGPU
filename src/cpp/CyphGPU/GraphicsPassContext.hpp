@@ -24,8 +24,21 @@ public:
 	[[nodiscard]]
 	SampledImageHandle getSampledImageDescriptor(
 		const ImagePtr& image,
+		GraphicsStages stages
+	);
+
+	[[nodiscard]]
+	SampledImageHandle getSampledImageDescriptor(
+		const ImagePtr& image,
 		GraphicsStages stages,
-		const SampledImageDescriptorOverrides& overrides = {}
+		const Image::SampledDescriptorOverrides& overrides
+	);
+
+	[[nodiscard]]
+	StorageImageHandle getStorageImageDescriptor(
+		const ImagePtr& image,
+		GraphicsStages stages,
+		StorageAccess access
 	);
 
 	[[nodiscard]]
@@ -33,7 +46,7 @@ public:
 		const ImagePtr& image,
 		GraphicsStages stages,
 		StorageAccess access,
-		const StorageImageDescriptorOverrides& overrides = {}
+		const Image::StorageDescriptorOverrides& overrides
 	);
 
 	template<class T>
@@ -53,8 +66,23 @@ public:
 	UniformTexelBufferHandle getUniformTexelBufferDescriptor(
 		const BufferPtr& buffer,
 		GraphicsStages stages,
+		vk::Format format
+	);
+
+	[[nodiscard]]
+	UniformTexelBufferHandle getUniformTexelBufferDescriptor(
+		const BufferPtr& buffer,
+		GraphicsStages stages,
 		vk::Format format,
-		const UniformTexelBufferDescriptorOverrides& overrides = {}
+		const Buffer::UniformTexelDescriptorOverrides& overrides
+	);
+
+	[[nodiscard]]
+	StorageTexelBufferHandle getStorageTexelBufferDescriptor(
+		const BufferPtr& buffer,
+		GraphicsStages stages,
+		StorageAccess access,
+		vk::Format format
 	);
 
 	[[nodiscard]]
@@ -63,7 +91,7 @@ public:
 		GraphicsStages stages,
 		StorageAccess access,
 		vk::Format format,
-		const StorageTexelBufferDescriptorOverrides& overrides = {}
+		const Buffer::StorageTexelDescriptorOverrides& overrides
 	);
 
 	[[nodiscard]]

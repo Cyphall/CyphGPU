@@ -5,8 +5,16 @@
 #include <CyphGPU/TLAS.hpp>
 
 cgpu::SampledImageHandle cgpu::ComputePassContext::getSampledImageDescriptor(
+	const ImagePtr& image
+)
+{
+	registerSampledImageIndirectAccess(image);
+	return image->getSampledDescriptorIndirect();
+}
+
+cgpu::SampledImageHandle cgpu::ComputePassContext::getSampledImageDescriptor(
 	const ImagePtr& image,
-	const SampledImageDescriptorOverrides& overrides
+	const Image::SampledDescriptorOverrides& overrides
 )
 {
 	registerSampledImageIndirectAccess(image);
@@ -15,8 +23,17 @@ cgpu::SampledImageHandle cgpu::ComputePassContext::getSampledImageDescriptor(
 
 cgpu::StorageImageHandle cgpu::ComputePassContext::getStorageImageDescriptor(
 	const ImagePtr& image,
+	StorageAccess access
+)
+{
+	registerStorageImageIndirectAccess(image, access);
+	return image->getStorageDescriptorIndirect();
+}
+
+cgpu::StorageImageHandle cgpu::ComputePassContext::getStorageImageDescriptor(
+	const ImagePtr& image,
 	StorageAccess access,
-	const StorageImageDescriptorOverrides& overrides
+	const Image::StorageDescriptorOverrides& overrides
 )
 {
 	registerStorageImageIndirectAccess(image, access);
@@ -25,8 +42,17 @@ cgpu::StorageImageHandle cgpu::ComputePassContext::getStorageImageDescriptor(
 
 cgpu::UniformTexelBufferHandle cgpu::ComputePassContext::getUniformTexelBufferDescriptor(
 	const BufferPtr& buffer,
+	vk::Format format
+)
+{
+	registerSampledBufferIndirectAccess(buffer);
+	return buffer->getUniformTexelDescriptorIndirect(format);
+}
+
+cgpu::UniformTexelBufferHandle cgpu::ComputePassContext::getUniformTexelBufferDescriptor(
+	const BufferPtr& buffer,
 	vk::Format format,
-	const UniformTexelBufferDescriptorOverrides& overrides
+	const Buffer::UniformTexelDescriptorOverrides& overrides
 )
 {
 	registerSampledBufferIndirectAccess(buffer);
@@ -36,8 +62,18 @@ cgpu::UniformTexelBufferHandle cgpu::ComputePassContext::getUniformTexelBufferDe
 cgpu::StorageTexelBufferHandle cgpu::ComputePassContext::getStorageTexelBufferDescriptor(
 	const BufferPtr& buffer,
 	StorageAccess access,
+	vk::Format format
+)
+{
+	registerStorageBufferIndirectAccess(buffer, access);
+	return buffer->getStorageTexelDescriptorIndirect(format);
+}
+
+cgpu::StorageTexelBufferHandle cgpu::ComputePassContext::getStorageTexelBufferDescriptor(
+	const BufferPtr& buffer,
+	StorageAccess access,
 	vk::Format format,
-	const StorageTexelBufferDescriptorOverrides& overrides
+	const Buffer::StorageTexelDescriptorOverrides& overrides
 )
 {
 	registerStorageBufferIndirectAccess(buffer, access);

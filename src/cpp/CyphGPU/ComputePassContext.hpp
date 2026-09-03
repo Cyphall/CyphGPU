@@ -15,15 +15,26 @@ class ComputePassContext final : public PassContext
 public:
 	[[nodiscard]]
 	SampledImageHandle getSampledImageDescriptor(
+		const ImagePtr& image
+	);
+
+	[[nodiscard]]
+	SampledImageHandle getSampledImageDescriptor(
 		const ImagePtr& image,
-		const SampledImageDescriptorOverrides& overrides = {}
+		const Image::SampledDescriptorOverrides& overrides
+	);
+
+	[[nodiscard]]
+	StorageImageHandle getStorageImageDescriptor(
+		const ImagePtr& image,
+		StorageAccess access
 	);
 
 	[[nodiscard]]
 	StorageImageHandle getStorageImageDescriptor(
 		const ImagePtr& image,
 		StorageAccess access,
-		const StorageImageDescriptorOverrides& overrides = {}
+		const Image::StorageDescriptorOverrides& overrides
 	);
 
 	template<class T>
@@ -41,8 +52,21 @@ public:
 	[[nodiscard]]
 	UniformTexelBufferHandle getUniformTexelBufferDescriptor(
 		const BufferPtr& buffer,
+		vk::Format format
+	);
+
+	[[nodiscard]]
+	UniformTexelBufferHandle getUniformTexelBufferDescriptor(
+		const BufferPtr& buffer,
 		vk::Format format,
-		const UniformTexelBufferDescriptorOverrides& overrides = {}
+		const Buffer::UniformTexelDescriptorOverrides& overrides
+	);
+
+	[[nodiscard]]
+	StorageTexelBufferHandle getStorageTexelBufferDescriptor(
+		const BufferPtr& buffer,
+		StorageAccess access,
+		vk::Format format
 	);
 
 	[[nodiscard]]
@@ -50,7 +74,7 @@ public:
 		const BufferPtr& buffer,
 		StorageAccess access,
 		vk::Format format,
-		const StorageTexelBufferDescriptorOverrides& overrides = {}
+		const Buffer::StorageTexelDescriptorOverrides& overrides
 	);
 
 	[[nodiscard]]

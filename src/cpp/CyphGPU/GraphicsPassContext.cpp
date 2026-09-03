@@ -18,8 +18,17 @@
 
 cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(
 	const ImagePtr& image,
+	GraphicsStages stages
+)
+{
+	registerSampledImageIndirectAccess(image, stages);
+	return image->getSampledDescriptorIndirect();
+}
+
+cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(
+	const ImagePtr& image,
 	GraphicsStages stages,
-	const SampledImageDescriptorOverrides& overrides
+	const Image::SampledDescriptorOverrides& overrides
 )
 {
 	registerSampledImageIndirectAccess(image, stages);
@@ -29,8 +38,18 @@ cgpu::SampledImageHandle cgpu::GraphicsPassContext::getSampledImageDescriptor(
 cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(
 	const ImagePtr& image,
 	GraphicsStages stages,
+	StorageAccess access
+)
+{
+	registerStorageImageIndirectAccess(image, stages, access);
+	return image->getStorageDescriptorIndirect();
+}
+
+cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(
+	const ImagePtr& image,
+	GraphicsStages stages,
 	StorageAccess access,
-	const StorageImageDescriptorOverrides& overrides
+	const Image::StorageDescriptorOverrides& overrides
 )
 {
 	registerStorageImageIndirectAccess(image, stages, access);
@@ -40,8 +59,18 @@ cgpu::StorageImageHandle cgpu::GraphicsPassContext::getStorageImageDescriptor(
 cgpu::UniformTexelBufferHandle cgpu::GraphicsPassContext::getUniformTexelBufferDescriptor(
 	const BufferPtr& buffer,
 	GraphicsStages stages,
+	vk::Format format
+)
+{
+	registerSampledBufferIndirectAccess(buffer, stages);
+	return buffer->getUniformTexelDescriptorIndirect(format);
+}
+
+cgpu::UniformTexelBufferHandle cgpu::GraphicsPassContext::getUniformTexelBufferDescriptor(
+	const BufferPtr& buffer,
+	GraphicsStages stages,
 	vk::Format format,
-	const UniformTexelBufferDescriptorOverrides& overrides
+	const Buffer::UniformTexelDescriptorOverrides& overrides
 )
 {
 	registerSampledBufferIndirectAccess(buffer, stages);
@@ -52,8 +81,19 @@ cgpu::StorageTexelBufferHandle cgpu::GraphicsPassContext::getStorageTexelBufferD
 	const BufferPtr& buffer,
 	GraphicsStages stages,
 	StorageAccess access,
+	vk::Format format
+)
+{
+	registerStorageBufferIndirectAccess(buffer, stages, access);
+	return buffer->getStorageTexelDescriptorIndirect(format);
+}
+
+cgpu::StorageTexelBufferHandle cgpu::GraphicsPassContext::getStorageTexelBufferDescriptor(
+	const BufferPtr& buffer,
+	GraphicsStages stages,
+	StorageAccess access,
 	vk::Format format,
-	const StorageTexelBufferDescriptorOverrides& overrides
+	const Buffer::StorageTexelDescriptorOverrides& overrides
 )
 {
 	registerStorageBufferIndirectAccess(buffer, stages, access);

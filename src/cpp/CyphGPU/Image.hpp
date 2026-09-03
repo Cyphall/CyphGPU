@@ -14,39 +14,6 @@
 
 namespace cgpu
 {
-struct SampledImageDescriptorOverrides
-{
-	/// Default: Same as image type.
-	std::optional<vk::ImageViewType> type{};
-	/// Default: Image format.
-	std::optional<vk::Format> format{};
-	/// Default: All levels.
-	std::optional<Range<uint32_t>> levels{};
-	/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
-	std::optional<Range<uint32_t>> layers{};
-	/// Default: Main aspect. For depth-stencil formats, the default aspect is depth.
-	std::optional<vk::ImageAspectFlagBits> aspect{};
-	/// Default: Identity.
-	std::optional<vk::ComponentMapping> swizzle{};
-};
-
-struct StorageImageDescriptorOverrides
-{
-	/// Default: Same as image type.
-	std::optional<vk::ImageViewType> type{};
-	/// Default: Image format.
-	///
-	/// Storage descriptors do not support sRGB formats.
-	/// If the format is an sRGB format, the equivalent linear format will be used instead.
-	std::optional<vk::Format> format{};
-	/// Default: 0.
-	std::optional<uint32_t> level{};
-	/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
-	std::optional<Range<uint32_t>> layers{};
-	/// Default: Main aspect. For depth-stencil formats, the default aspect is depth.
-	std::optional<vk::ImageAspectFlagBits> aspect{};
-};
-
 class Image final : public Resource
 {
 	class PrivateKey
@@ -84,6 +51,39 @@ public:
 		std::optional<ExistingHandle> existing_handle{};
 	};
 
+	struct SampledDescriptorOverrides
+	{
+		/// Default: Same as image type.
+		std::optional<vk::ImageViewType> type{};
+		/// Default: Image format.
+		std::optional<vk::Format> format{};
+		/// Default: All levels.
+		std::optional<Range<uint32_t>> levels{};
+		/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
+		std::optional<Range<uint32_t>> layers{};
+		/// Default: Main aspect. For depth-stencil formats, the default aspect is depth.
+		std::optional<vk::ImageAspectFlagBits> aspect{};
+		/// Default: Identity.
+		std::optional<vk::ComponentMapping> swizzle{};
+	};
+
+	struct StorageDescriptorOverrides
+	{
+		/// Default: Same as image type.
+		std::optional<vk::ImageViewType> type{};
+		/// Default: Image format.
+		///
+		/// Storage descriptors do not support sRGB formats.
+		/// If the format is an sRGB format, the equivalent linear format will be used instead.
+		std::optional<vk::Format> format{};
+		/// Default: 0.
+		std::optional<uint32_t> level{};
+		/// Default: First layer = 0. Layer count = 6 if type is Cube, all layers if type is *Array, 1 otherwise.
+		std::optional<Range<uint32_t>> layers{};
+		/// Default: Main aspect. For depth-stencil formats, the default aspect is depth.
+		std::optional<vk::ImageAspectFlagBits> aspect{};
+	};
+
 	[[nodiscard]]
 	static ImagePtr create(const DeviceSessionPtr& device_session, Desc&& desc);
 
@@ -107,10 +107,16 @@ public:
 	const vk::Image& getHandle();
 
 	[[nodiscard]]
-	SampledImageHandle getSampledDescriptorIndirect(const SampledImageDescriptorOverrides& overrides = {});
+	SampledImageHandle getSampledDescriptorIndirect();
 
 	[[nodiscard]]
-	StorageImageHandle getStorageDescriptorIndirect(const StorageImageDescriptorOverrides& overrides = {});
+	SampledImageHandle getSampledDescriptorIndirect(const SampledDescriptorOverrides& overrides);
+
+	[[nodiscard]]
+	StorageImageHandle getStorageDescriptorIndirect();
+
+	[[nodiscard]]
+	StorageImageHandle getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides);
 
 	[[nodiscard]]
 	glm::uvec3 calcLevelExtent(uint32_t level) const;
@@ -156,6 +162,8 @@ private:
 		auto operator<=>(const AttachmentViewInfo&) const = default;
 	};
 
+	static constexpr uint32_t INVALID_DESCRIPTOR_IDX = ~0u;
+
 	DeviceSessionPtr m_device_session;
 
 	Desc m_desc;
@@ -171,6 +179,9 @@ private:
 
 	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_cache;
 	std::vector<std::pair<StorageDescriptorInfo, uint32_t>> m_storage_cache;
+
+	uint32_t m_default_sampled_descriptor_idx{INVALID_DESCRIPTOR_IDX};
+	uint32_t m_default_storage_descriptor_idx{INVALID_DESCRIPTOR_IDX};
 
 	//TODO: remove once we have an extension to remove image views from attachments
 	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;

@@ -55,7 +55,16 @@ const vk::Image& cgpu::Image::getHandle()
 	return m_handle;
 }
 
-cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const SampledImageDescriptorOverrides& overrides)
+cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect()
+{
+	if (m_default_sampled_descriptor_idx == INVALID_DESCRIPTOR_IDX) [[unlikely]]
+	{
+		m_default_sampled_descriptor_idx = getSampledDescriptorIndirect({}).index;
+	}
+	return m_default_sampled_descriptor_idx;
+}
+
+cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const SampledDescriptorOverrides& overrides)
 {
 	SampledDescriptorInfo info;
 	info.type = overrides.type ? *overrides.type : m_default_view_type;
@@ -66,7 +75,7 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	info.swizzle = overrides.swizzle ? *overrides.swizzle : vk::ComponentMapping{};
 
 	auto it = std::ranges::find(m_sampled_cache, info, &std::pair<SampledDescriptorInfo, uint32_t>::first);
-	if (it == m_sampled_cache.end())
+	if (it == m_sampled_cache.end()) [[unlikely]]
 	{
 		vk::ImageViewCreateInfo view_info;
 		view_info.flags = {};
@@ -95,7 +104,16 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	return it->second;
 }
 
-cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const StorageImageDescriptorOverrides& overrides)
+cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect()
+{
+	if (m_default_storage_descriptor_idx == INVALID_DESCRIPTOR_IDX) [[unlikely]]
+	{
+		m_default_storage_descriptor_idx = getStorageDescriptorIndirect({}).index;
+	}
+	return m_default_storage_descriptor_idx;
+}
+
+cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides)
 {
 	StorageDescriptorInfo info;
 	info.type = overrides.type ? *overrides.type : m_default_view_type;
@@ -105,7 +123,7 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
 
 	auto it = std::ranges::find(m_storage_cache, info, &std::pair<StorageDescriptorInfo, uint32_t>::first);
-	if (it == m_storage_cache.end())
+	if (it == m_storage_cache.end()) [[unlikely]]
 	{
 		vk::ImageViewCreateInfo view_info;
 		view_info.flags = {};
