@@ -367,7 +367,7 @@ void cgpu::Swapchain::performPresent()
 			image_data.image->lock();
 
 			image_data.image->setReadWriteSignal(
-				m_device_session->getMainQueue()->signalToBinary(
+				m_device_session->getMainQueue()->timelineToBinary(
 					shared_from_this(),
 					image_data.semaphore,
 					m_present_layout_change_cmd_bufs[m_acquired_image],

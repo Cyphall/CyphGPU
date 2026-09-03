@@ -98,7 +98,7 @@ private:
 #endif
 
 	[[nodiscard]]
-	Signal signalToBinary(
+	Signal timelineToBinary(
 		const SwapchainPtr& swapchain,
 		vk::Semaphore semaphore,
 		vk::CommandBuffer cmd_buf,

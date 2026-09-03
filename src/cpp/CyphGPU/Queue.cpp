@@ -102,7 +102,7 @@ void cgpu::Queue::createTracyContext(std::string_view name)
 }
 #endif
 
-cgpu::Queue::Signal cgpu::Queue::signalToBinary(
+cgpu::Queue::Signal cgpu::Queue::timelineToBinary(
 	const SwapchainPtr& swapchain,
 	vk::Semaphore semaphore,
 	vk::CommandBuffer cmd_buf,
