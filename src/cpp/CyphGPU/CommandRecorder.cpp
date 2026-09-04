@@ -697,12 +697,13 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 				}
 				else
 				{
-					vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
 					barriers_to_vk(
 						cmd_sync,
 						vk_images_barriers_scratch,
 						vk_buffers_barriers_scratch
 					);
+
+					vk::StructureChain<vk::DependencyInfo, vk::MemoryRangeBarriersInfoKHR> vk_chain;
 
 					auto& dep_info = vk_chain.get<vk::DependencyInfo>();
 					dep_info.dependencyFlags = {};
