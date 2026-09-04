@@ -8,6 +8,7 @@
 
 #include <flat_map>
 #include <optional>
+#include <shared_mutex>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -135,6 +136,8 @@ private:
 
 	std::vector<std::pair<UniformTexelDescriptorInfo, uint32_t>> m_uniform_texel_cache;
 	std::vector<std::pair<StorageTexelDescriptorInfo, uint32_t>> m_storage_texel_cache;
+
+	std::shared_mutex m_cache_mutex{};
 
 	void createBuffer();
 };

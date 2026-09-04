@@ -6,9 +6,11 @@
 #include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <atomic>
 #include <flat_map>
 #include <glm/glm.hpp>
 #include <optional>
+#include <shared_mutex>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -181,8 +183,10 @@ private:
 	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_cache;
 	std::vector<std::pair<StorageDescriptorInfo, uint32_t>> m_storage_cache;
 
-	uint32_t m_default_sampled_descriptor_idx{INVALID_DESCRIPTOR_IDX};
-	uint32_t m_default_storage_descriptor_idx{INVALID_DESCRIPTOR_IDX};
+	std::atomic_uint m_default_sampled_descriptor_idx{INVALID_DESCRIPTOR_IDX};
+	std::atomic_uint m_default_storage_descriptor_idx{INVALID_DESCRIPTOR_IDX};
+
+	std::shared_mutex m_cache_mutex{};
 
 	//TODO: remove once we have an extension to remove image views from attachments
 	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;

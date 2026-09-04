@@ -57,11 +57,13 @@ const vk::Image& cgpu::Image::getHandle()
 
 cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect()
 {
-	if (m_default_sampled_descriptor_idx == INVALID_DESCRIPTOR_IDX) [[unlikely]]
+	uint32_t idx = m_default_sampled_descriptor_idx.load(std::memory_order_acquire);
+	if (idx == INVALID_DESCRIPTOR_IDX) [[unlikely]]
 	{
-		m_default_sampled_descriptor_idx = getSampledDescriptorIndirect({}).index;
+		idx = getSampledDescriptorIndirect({}).index;
+		m_default_sampled_descriptor_idx.store(idx, std::memory_order_release);
 	}
-	return m_default_sampled_descriptor_idx;
+	return idx;
 }
 
 cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const SampledDescriptorOverrides& overrides)
@@ -73,6 +75,8 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	info.layers = overrides.layers ? *overrides.layers : Range<uint32_t>{0, calcDefaultLayerCount(info.type)};
 	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
 	info.swizzle = overrides.swizzle ? *overrides.swizzle : vk::ComponentMapping{};
+
+	std::unique_lock lock{m_cache_mutex};
 
 	auto it = std::ranges::find(m_sampled_cache, info, &std::pair<SampledDescriptorInfo, uint32_t>::first);
 	if (it == m_sampled_cache.end()) [[unlikely]]
@@ -106,11 +110,13 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 
 cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect()
 {
-	if (m_default_storage_descriptor_idx == INVALID_DESCRIPTOR_IDX) [[unlikely]]
+	uint32_t idx = m_default_storage_descriptor_idx.load(std::memory_order_acquire);
+	if (idx == INVALID_DESCRIPTOR_IDX) [[unlikely]]
 	{
-		m_default_storage_descriptor_idx = getStorageDescriptorIndirect({}).index;
+		idx = getStorageDescriptorIndirect({}).index;
+		m_default_storage_descriptor_idx.store(idx, std::memory_order_release);
 	}
-	return m_default_storage_descriptor_idx;
+	return idx;
 }
 
 cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const StorageDescriptorOverrides& overrides)
@@ -121,6 +127,8 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	info.level = overrides.level ? *overrides.level : 0;
 	info.layers = overrides.layers ? *overrides.layers : Range<uint32_t>{0, calcDefaultLayerCount(info.type)};
 	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
+
+	std::unique_lock lock{m_cache_mutex};
 
 	auto it = std::ranges::find(m_storage_cache, info, &std::pair<StorageDescriptorInfo, uint32_t>::first);
 	if (it == m_storage_cache.end()) [[unlikely]]
@@ -292,6 +300,8 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	info.layers = layers;
 	info.aspects = aspects;
 	info.usage = usage;
+
+	std::unique_lock lock{m_cache_mutex};
 
 	auto [it, inserted] = m_attachment_cache.try_emplace(info);
 	if (inserted)
