@@ -189,7 +189,7 @@ private:
 	std::shared_mutex m_cache_mutex{};
 
 	//TODO: remove once we have an extension to remove image views from attachments
-	std::flat_map<AttachmentViewInfo, vk::ImageView> m_attachment_cache;
+	std::vector<std::pair<AttachmentViewInfo, vk::ImageView>> m_attachment_cache;
 
 	void createImage();
 

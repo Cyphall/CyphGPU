@@ -303,8 +303,8 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 
 	std::unique_lock lock{m_cache_mutex};
 
-	auto [it, inserted] = m_attachment_cache.try_emplace(info);
-	if (inserted)
+	auto it = std::ranges::find(m_attachment_cache, info, &std::pair<AttachmentViewInfo, vk::ImageView>::first);
+	if (it == m_attachment_cache.end()) [[unlikely]]
 	{
 		vk::StructureChain<
 			vk::ImageViewCreateInfo,
@@ -326,7 +326,8 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 		auto& view_usage_info = chain.get<vk::ImageViewUsageCreateInfo>();
 		view_usage_info.usage = usage;
 
-		it->second = m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher());
+		m_attachment_cache.emplace_back(info, m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher()));
+		it = m_attachment_cache.end() - 1;
 	}
 
 	return it->second;
