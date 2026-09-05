@@ -5,6 +5,7 @@
 #include <bit>
 #include <flat_set>
 #include <ranges>
+#include <vulkan/vulkan_format_traits.hpp>
 
 cgpu::ImagePtr cgpu::Image::create(const DeviceSessionPtr& device_session, Desc&& desc)
 {
@@ -197,11 +198,17 @@ void cgpu::Image::createImage()
 
 		std::flat_set<vk::Format> view_formats_set;
 		view_formats_set.emplace(getLinearEquivalent(m_desc.format));
-		view_formats_set.emplace(getSrgbEquivalent(m_desc.format));
+		if (vk::componentCount(m_desc.format) >= 3)
+		{
+			view_formats_set.emplace(getSrgbEquivalent(m_desc.format));
+		}
 		for (vk::Format format : m_desc.additional_view_formats)
 		{
 			view_formats_set.emplace(getLinearEquivalent(format));
-			view_formats_set.emplace(getSrgbEquivalent(format));
+			if (vk::componentCount(format) >= 3)
+			{
+				view_formats_set.emplace(getSrgbEquivalent(format));
+			}
 		}
 
 		std::vector<vk::Format> view_formats = std::move(view_formats_set).extract();

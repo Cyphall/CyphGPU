@@ -9,6 +9,7 @@
 
 #include <flat_set>
 #include <tracy/Tracy.hpp>
+#include <vulkan/vulkan_format_traits.hpp>
 
 cgpu::SwapchainPtr cgpu::Swapchain::create(const DeviceSessionPtr& device_session, const SurfacePtr& surface, Desc&& desc)
 {
@@ -101,11 +102,17 @@ void cgpu::Swapchain::createSwapchain()
 {
 	std::flat_set<vk::Format> view_formats_set;
 	view_formats_set.emplace(getLinearEquivalent(m_desc.format.format));
-	view_formats_set.emplace(getSrgbEquivalent(m_desc.format.format));
+	if (vk::componentCount(m_desc.format.format) >= 3)
+	{
+		view_formats_set.emplace(getSrgbEquivalent(m_desc.format.format));
+	}
 	for (vk::Format format : m_desc.additional_view_formats)
 	{
 		view_formats_set.emplace(getLinearEquivalent(format));
-		view_formats_set.emplace(getSrgbEquivalent(format));
+		if (vk::componentCount(format) >= 3)
+		{
+			view_formats_set.emplace(getSrgbEquivalent(format));
+		}
 	}
 
 	std::vector<vk::Format> view_formats = std::move(view_formats_set).extract();
