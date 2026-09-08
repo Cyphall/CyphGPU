@@ -71,7 +71,7 @@ void cgpu::BLAS::fillVkStructs(const ASInfo& as_info, VkStructs& vk_structs)
 	vk_structs.geometry_info.geometry.triangles.vertexFormat = as_info.vertex_buffer.format;
 	vk_structs.geometry_info.geometry.triangles.vertexData.deviceAddress = 0;
 	vk_structs.geometry_info.geometry.triangles.vertexStride = as_info.vertex_buffer.stride ? *as_info.vertex_buffer.stride : vk::blockSize(as_info.vertex_buffer.format);
-	vk_structs.geometry_info.geometry.triangles.maxVertex = as_info.vertex_buffer.count;
+	vk_structs.geometry_info.geometry.triangles.maxVertex = as_info.vertex_buffer.count - 1;
 	vk_structs.geometry_info.geometry.triangles.indexType = as_info.index_buffer ? as_info.index_buffer->type : vk::IndexType::eNoneKHR;
 	vk_structs.geometry_info.geometry.triangles.indexData.deviceAddress = 0;
 	vk_structs.geometry_info.geometry.triangles.transformData.deviceAddress = 0;
