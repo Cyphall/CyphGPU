@@ -71,7 +71,7 @@ install(
 
 # ---- Dependency: CyphGPU ----
 
-target_link_libraries(CyphGPU_sample PRIVATE CyphGPU)
+target_link_libraries(CyphGPU_sample PRIVATE CyphGPU::CyphGPU)
 
 # ---- Dependency: boostorg/scope ----
 

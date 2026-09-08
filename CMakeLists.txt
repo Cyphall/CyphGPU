@@ -78,6 +78,7 @@ find_package(boost_container CONFIG REQUIRED)
 # ---- Library ----
 
 add_library(CyphGPU)
+add_library(CyphGPU::CyphGPU ALIAS CyphGPU)
 
 target_sources(CyphGPU PRIVATE
 	"src/cpp/CyphGPU/Utils.cpp"
@@ -202,6 +203,7 @@ if (CYPHGPU_INSTALL)
 	install(
 		EXPORT CyphGPUTargets
 		DESTINATION "lib/cmake/CyphGPU"
+		NAMESPACE CyphGPU::
 	)
 
 	include(CMakePackageConfigHelpers)
