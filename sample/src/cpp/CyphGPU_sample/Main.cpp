@@ -127,7 +127,7 @@ void recreateSwapchain(
 		{
 			.name = "Depth image",
 			.format = vk::Format::eD32Sfloat,
-			.extent = {extent, 1},
+			.extent = {swapchain->getExtent(), 1},
 			.usages = vk::ImageUsageFlagBits::eDepthStencilAttachment,
 		}
 	);
