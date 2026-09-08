@@ -64,7 +64,12 @@ const vk::DeviceAddress& cgpu::BLAS::getDevicePtr() const
 
 void cgpu::BLAS::fillVkStructs(const ASInfo& as_info, VkStructs& vk_structs)
 {
-	vk_structs.primitive_count = as_info.vertex_buffer.count / 3;
+	uint32_t vertex_count =
+		as_info.index_buffer ?
+			as_info.index_buffer->count :
+			as_info.vertex_buffer.count;
+
+	vk_structs.primitive_count = vertex_count / 3;
 
 	vk_structs.geometry_info.geometryType = vk::GeometryTypeKHR::eTriangles;
 	vk_structs.geometry_info.geometry.triangles = vk::AccelerationStructureGeometryTrianglesDataKHR{};
