@@ -92,6 +92,8 @@ const cgpu::DeviceSessionPtr& cgpu::CommandContext::Slot::getDeviceSession() con
 
 cgpu::CommandContext::Slot::ParameterMemory cgpu::CommandContext::Slot::allocParameterMemory(vk::DeviceSize size, vk::DeviceSize alignment)
 {
+	alignment = std::max(alignment, m_min_param_buf_alloc_alignment);
+
 	if (size > PARAMETER_BUFFER_SIZE)
 	{
 		throw std::logic_error(std::format("Cannot allocate parameter memory with size > {}", PARAMETER_BUFFER_SIZE));
@@ -102,7 +104,6 @@ cgpu::CommandContext::Slot::ParameterMemory cgpu::CommandContext::Slot::allocPar
 		throw std::logic_error(std::format("Cannot allocate parameter memory with alignment > {}", PARAMETER_BUFFER_ALIGNMENT));
 	}
 
-	alignment = std::max(alignment, m_min_param_buf_alloc_alignment);
 	m_current_param_buf_offset = alignUp(m_current_param_buf_offset, alignment);
 	if (m_current_param_buf_offset + size > PARAMETER_BUFFER_SIZE || m_used_param_bufs.empty())
 	{
