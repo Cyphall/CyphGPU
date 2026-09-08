@@ -188,7 +188,9 @@ void cgpu::Swapchain::createSwapchain()
 	swapchain_info.imageExtent = std::bit_cast<vk::Extent2D>(m_extent);
 	swapchain_info.imageArrayLayers = m_layers;
 	swapchain_info.imageUsage = m_desc.usages;
-	swapchain_info.imageSharingMode = vk::SharingMode::eConcurrent;
+	// Swapchains are not included in maintenance11 on purpose.
+	// https://github.com/KhronosGroup/Vulkan-Docs/issues/2811
+	swapchain_info.imageSharingMode = queue_families.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
 	swapchain_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
 	swapchain_info.pQueueFamilyIndices = queue_families.data();
 	swapchain_info.preTransform = surface_caps.surfaceCapabilities.currentTransform;
