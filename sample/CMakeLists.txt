@@ -28,12 +28,12 @@ cgpu_target_shader_pipelines(CyphGPU_sample shaders "src/slang"
 	"src/slang/shader.slang"
 )
 
-set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD 23)
-set_target_properties(CyphGPU_sample PROPERTIES CXX_STANDARD_REQUIRED ON)
 set_target_properties(CyphGPU_sample PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(CyphGPU_sample PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 set_target_properties(CyphGPU_sample PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 set_target_properties(CyphGPU_sample PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+
+target_compile_features(CyphGPU_sample PRIVATE cxx_std_23)
 
 # Enable all warnings + warning-as-error in Release
 if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")

@@ -167,12 +167,12 @@ endif ()
 
 target_precompile_headers(CyphGPU PRIVATE <vulkan/vulkan.hpp>)
 
-set_target_properties(CyphGPU PROPERTIES CXX_STANDARD 23)
-set_target_properties(CyphGPU PROPERTIES CXX_STANDARD_REQUIRED ON)
 set_target_properties(CyphGPU PROPERTIES CXX_EXTENSIONS OFF)
 set_target_properties(CyphGPU PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 set_target_properties(CyphGPU PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 set_target_properties(CyphGPU PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+
+target_compile_features(CyphGPU PUBLIC cxx_std_23)
 
 # Enable all warnings + warning-as-error in Release
 if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
