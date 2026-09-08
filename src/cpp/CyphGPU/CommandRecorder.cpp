@@ -9,6 +9,7 @@
 
 #include <bit>
 #include <boost/container/static_vector.hpp>
+#include <cassert>
 #include <exception>
 #include <ranges>
 #include <tracy/Tracy.hpp>
@@ -948,20 +949,9 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
 		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
 
-		if (src_vk_range.layerCount != dst_vk_range.layerCount)
-		{
-			throw std::logic_error("Image ranges must have the same number of layers.");
-		}
-
-		if (src_pixel_range.size != dst_pixel_range.size)
-		{
-			throw std::logic_error("Image ranges must have the same pixel region size.");
-		}
-
-		if (src_byte_size != dst_byte_size)
-		{
-			throw std::logic_error("Image ranges must have the same byte size.");
-		}
+		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
+		assert(src_pixel_range.size == dst_pixel_range.size && "Image ranges must have the same pixel region size.");
+		assert(src_byte_size == dst_byte_size && "Image ranges must have the same byte size.");
 
 		if (dst_byte_size == 0)
 		{
@@ -1049,10 +1039,7 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
 		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
 
-		if (src_byte_size != dst_byte_size)
-		{
-			throw std::logic_error("Image range and buffer range must have the same byte size.");
-		}
+		assert(src_byte_size == dst_byte_size && "Image range and buffer range must have the same byte size.");
 
 		if (dst_byte_size == 0)
 		{
@@ -1138,10 +1125,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
 		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dst_buffer, range.dst.value_or(BufferRange{}));
 
-		if (src_byte_size != dst_byte_size)
-		{
-			throw std::logic_error("Image range and buffer range must have the same byte size.");
-		}
+		assert(src_byte_size == dst_byte_size && "Image range and buffer range must have the same byte size.");
 
 		if (dst_byte_size == 0)
 		{
@@ -1227,10 +1211,7 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
 		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dst_buffer, range.dst.value_or(BufferRange{}));
 
-		if (src_byte_size != dst_byte_size)
-		{
-			throw std::logic_error("Buffer ranges must have the same byte size.");
-		}
+		assert(src_byte_size == dst_byte_size && "Buffer ranges must have the same byte size.");
 
 		if (dst_byte_size == 0)
 		{
@@ -1308,10 +1289,7 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 		auto [src_vk_range, src_top_left, src_bottom_right, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsRectRange{}));
 		auto [dst_vk_range, dst_top_left, dst_bottom_right, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsRectRange{}));
 
-		if (src_vk_range.layerCount != dst_vk_range.layerCount)
-		{
-			throw std::logic_error("Image ranges must have the same number of layers.");
-		}
+		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
 
 		if (dst_byte_size == 0)
 		{
@@ -1624,14 +1602,8 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	}
 	else
 	{
-		if (!implicit_extent)
-		{
-			throw std::logic_error("If there is no attachment, render_area must be set.");
-		}
-		if (different_extents)
-		{
-			throw std::logic_error("If attachments have different extents, render_area must be set");
-		}
+		assert(implicit_extent && "If there is no attachment, render_area must be set.");
+		assert(!different_extents && "If attachments have different extents, render_area must be set.");
 
 		render_area.offset.x = 0;
 		render_area.offset.y = 0;
@@ -2164,15 +2136,8 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
 		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
 
-		if (src_vk_range.layerCount != dst_vk_range.layerCount)
-		{
-			throw std::logic_error("Image ranges must have the same number of layers.");
-		}
-
-		if (src_vk_range.aspectMask != dst_vk_range.aspectMask)
-		{
-			throw std::logic_error("Image ranges must have the same aspects.");
-		}
+		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
+		assert(src_vk_range.aspectMask == dst_vk_range.aspectMask && "Image ranges must have the same aspects.");
 
 		if (dst_byte_size == 0)
 		{

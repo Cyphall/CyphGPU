@@ -4,6 +4,7 @@
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/TLAS.hpp>
 
+#include <cassert>
 #include <tracy/Tracy.hpp>
 
 #define PROFILE_COMMANDS

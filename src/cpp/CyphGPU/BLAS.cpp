@@ -3,6 +3,7 @@
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 
+#include <cassert>
 #include <vulkan/vulkan_format_traits.hpp>
 
 vk::AccelerationStructureBuildSizesInfoKHR cgpu::BLAS::calcSizes(const DeviceSessionPtr& device_session, const ASInfo& info)

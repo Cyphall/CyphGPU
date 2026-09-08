@@ -7,6 +7,7 @@
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Surface.hpp>
 
+#include <cassert>
 #include <flat_set>
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
@@ -23,10 +24,10 @@ cgpu::Swapchain::Swapchain(PrivateKey, const DeviceSessionPtr& device_session, c
 	m_surface{surface},
 	m_desc{std::move(desc)}
 {
-	if (!(m_device_session->getDevice()->getCapabilities() & Device::Capability::eSwapchain))
-	{
-		throw std::logic_error("Cannot create swapchain when device capability Swapchain is not supported.");
-	}
+	assert(
+		m_device_session->getDevice()->getCapabilities() & Device::Capability::eSwapchain &&
+		"Cannot create swapchain when device capability Swapchain is not supported."
+	);
 
 	createSwapchain();
 	createAcquireFence();

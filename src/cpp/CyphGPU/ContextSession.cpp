@@ -4,6 +4,7 @@
 #include <CyphGPU/Device.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <cassert>
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
@@ -47,10 +48,10 @@ cgpu::ContextSession::ContextSession(PrivateKey, const ContextPtr& context, Desc
 	m_desc{std::move(desc)},
 	m_dispatcher{context->getDispatcher()}
 {
-	if (!(m_context->getCapabilities() & Context::Capability::eCore))
-	{
-		throw std::logic_error("Cannot create a session for a context that does not support the Core capability.");
-	}
+	assert(
+		m_context->getCapabilities() & Context::Capability::eCore &&
+		"Cannot create a session for a context that does not support the Core capability."
+	);
 
 	createInstance();
 	createDebugMessenger();

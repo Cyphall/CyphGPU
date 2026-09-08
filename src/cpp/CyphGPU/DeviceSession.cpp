@@ -8,6 +8,7 @@
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <cassert>
 #include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
 #include <mutex>
@@ -90,10 +91,10 @@ cgpu::DeviceSession::DeviceSession(PrivateKey, const DevicePtr& device, Desc&& d
 	m_desc{std::move(desc)},
 	m_dispatcher{device->getContextSession()->getDispatcher()}
 {
-	if (!(m_device->getCapabilities() & Device::Capability::eCore))
-	{
-		throw std::logic_error("Cannot create a session for a device that does not support the Core capability.");
-	}
+	assert(
+		m_device->getCapabilities() & Device::Capability::eCore &&
+		"Cannot create a session for a device that does not support the Core capability."
+	);
 
 	if (!(m_device->getCapabilities() & Device::Capability::eUnifiedImageLayouts))
 	{

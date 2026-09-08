@@ -7,6 +7,7 @@
 #include <CyphGPU/Swapchain.hpp>
 
 #include <boost/container/small_vector.hpp>
+#include <cassert>
 #include <ranges>
 #include <tracy/Tracy.hpp>
 

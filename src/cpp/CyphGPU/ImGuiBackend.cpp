@@ -7,7 +7,9 @@
 #include <CyphGPU/GraphicsPassContext.hpp>
 #include <CyphGPU/Sampler.hpp>
 
+#include <cassert>
 #include <magic_enum/magic_enum.hpp>
+#include <utility>
 #include <vector>
 
 using namespace cgpu::shader_types;
@@ -160,7 +162,7 @@ void ImGui_ImplCyphGPU_UpdateTexture(cgpu::CommandRecorder& cmd_rec, ImTextureDa
 		texture.SetStatus(ImTextureStatus_Destroyed);
 		break;
 	default:
-		throw std::logic_error(std::format("Unhandled texture state: {}", magic_enum::enum_name(texture.Status)));
+		std::unreachable();
 	}
 }
 

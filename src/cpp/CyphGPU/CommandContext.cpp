@@ -6,6 +6,7 @@
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/Queue.hpp>
 
+#include <cassert>
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
@@ -94,15 +95,8 @@ cgpu::CommandContext::Slot::ParameterMemory cgpu::CommandContext::Slot::allocPar
 {
 	alignment = std::max(alignment, m_min_param_buf_alloc_alignment);
 
-	if (size > PARAMETER_BUFFER_SIZE)
-	{
-		throw std::logic_error(std::format("Cannot allocate parameter memory with size > {}", PARAMETER_BUFFER_SIZE));
-	}
-
-	if (alignment > PARAMETER_BUFFER_ALIGNMENT)
-	{
-		throw std::logic_error(std::format("Cannot allocate parameter memory with alignment > {}", PARAMETER_BUFFER_ALIGNMENT));
-	}
+	assert(size <= PARAMETER_BUFFER_SIZE && "Cannot allocate parameter memory with size > PARAMETER_BUFFER_SIZE");
+	assert(alignment <= PARAMETER_BUFFER_ALIGNMENT && "Cannot allocate parameter memory with alignment > PARAMETER_BUFFER_ALIGNMENT");
 
 	m_current_param_buf_offset = alignUp(m_current_param_buf_offset, alignment);
 	if (m_current_param_buf_offset + size > PARAMETER_BUFFER_SIZE || m_used_param_bufs.empty())

@@ -3,6 +3,8 @@
 #include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 
+#include <cassert>
+
 vk::AccelerationStructureBuildSizesInfoKHR cgpu::TLAS::calcSizes(const DeviceSessionPtr& device_session, const ASInfo& info)
 {
 	VkStructs vk_structs;
