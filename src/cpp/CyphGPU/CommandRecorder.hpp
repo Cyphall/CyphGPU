@@ -1,10 +1,9 @@
 #pragma once
 
-#include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/CommandContext.hpp>
 #include <CyphGPU/detail/BumpAllocator.hpp>
+#include <CyphGPU/detail/Resource.hpp>
 #include <CyphGPU/fwd.hpp>
-#include <CyphGPU/Image.hpp>
 #include <CyphGPU/Utils.hpp>
 
 #include <boost/container/static_vector.hpp>

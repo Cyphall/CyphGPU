@@ -1,9 +1,11 @@
 #include "CommandRecorder.hpp"
 
 #include <CyphGPU/BLAS.hpp>
+#include <CyphGPU/Buffer.hpp>
 #include <CyphGPU/ComputePassContext.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/GraphicsPassContext.hpp>
+#include <CyphGPU/Image.hpp>
 #include <CyphGPU/Queue.hpp>
 #include <CyphGPU/TLAS.hpp>
 
