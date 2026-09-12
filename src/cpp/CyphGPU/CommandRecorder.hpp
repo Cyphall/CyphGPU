@@ -134,6 +134,10 @@ public:
 		Opt<Range<vk::DeviceSize>> byte_range{};
 	};
 
+	using ColorValue = std::variant<glm::vec4, glm::ivec4, glm::uvec4>;
+	using DepthValue = float;
+	using StencilValue = uint32_t;
+
 	// ----- Commands -----
 
 	struct ClearImageParams
@@ -142,11 +146,11 @@ public:
 		/// Default: One default-initialized range.
 		Opt<std::vector<ImageLevelsLayersRange>> ranges{};
 		/// Default: Empty (no color clear).
-		Opt<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> color_value{};
+		Opt<ColorValue> color_value{};
 		/// Default: Empty (no depth clear).
-		Opt<float> depth_value{};
+		Opt<DepthValue> depth_value{};
 		/// Default: Empty (no stencil clear).
-		Opt<uint32_t> stencil_value{};
+		Opt<StencilValue> stencil_value{};
 	};
 
 	void clearImage(ClearImageParams&& params);
@@ -268,7 +272,7 @@ public:
 			Req<vk::AttachmentLoadOp> load_op;
 			Req<vk::AttachmentStoreOp> store_op;
 			/// Default: Empty. Must be set if load_op == eClear.
-			Opt<std::variant<glm::vec4, glm::ivec4, glm::uvec4>> clear_color_value{};
+			Opt<ColorValue> clear_color_value{};
 			/// Default: No resolve.
 			Opt<Resolve> resolve{};
 		};
@@ -300,9 +304,9 @@ public:
 			Req<vk::AttachmentLoadOp> load_op;
 			Req<vk::AttachmentStoreOp> store_op;
 			/// Default: Empty. Must be set if load_op == eClear and depth is enabled.
-			Opt<float> clear_depth_value{};
+			Opt<DepthValue> clear_depth_value{};
 			/// Default: Empty. Must be set if load_op == eClear and stencil is enabled.
-			Opt<uint32_t> clear_stencil_value{};
+			Opt<StencilValue> clear_stencil_value{};
 			/// Default: No resolve.
 			Opt<Resolve> resolve{};
 		};
