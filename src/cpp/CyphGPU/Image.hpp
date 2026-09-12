@@ -1,8 +1,8 @@
 #pragma once
 
+#include <CyphGPU/detail/Resource.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
-#include <CyphGPU/Resource.hpp>
 #include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Utils.hpp>
 
@@ -16,7 +16,7 @@
 
 namespace cgpu
 {
-class Image final : public Resource
+class Image final : detail::Resource
 {
 	class PrivateKey
 	{};
@@ -128,8 +128,8 @@ public:
 	vk::DeviceSize calcByteSize(Range<uint32_t> levels, uint32_t layers) const;
 
 private:
-	friend class Swapchain;
 	friend class CommandRecorder;
+	friend class Swapchain;
 
 	struct SampledDescriptorInfo
 	{

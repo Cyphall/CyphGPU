@@ -1,8 +1,8 @@
 #pragma once
 
+#include <CyphGPU/detail/Resource.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
-#include <CyphGPU/Resource.hpp>
 #include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Utils.hpp>
 
@@ -14,7 +14,7 @@
 
 namespace cgpu
 {
-class Buffer final : public Resource
+class Buffer final : detail::Resource
 {
 	class PrivateKey
 	{};
@@ -108,6 +108,8 @@ public:
 	StorageTexelBufferHandle getStorageTexelDescriptorIndirect(vk::Format format, const StorageTexelDescriptorOverrides& overrides);
 
 private:
+	friend class CommandRecorder;
+
 	struct UniformTexelDescriptorInfo
 	{
 		vk::Format format{};

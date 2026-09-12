@@ -3,10 +3,10 @@
 #include <CyphGPU/Queue.hpp>
 
 #include <flat_map>
-#include <shared_mutex>
 #include <optional>
+#include <shared_mutex>
 
-namespace cgpu
+namespace cgpu::detail
 {
 class Resource
 {

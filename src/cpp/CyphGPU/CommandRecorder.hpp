@@ -10,6 +10,7 @@
 #include <boost/container/static_vector.hpp>
 #include <glm/glm.hpp>
 #include <memory>
+#include <type_traits>
 #include <variant>
 
 namespace cgpu
@@ -499,7 +500,7 @@ private:
 
 		bool is_stageful{};
 
-		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
+		detail::BumpDenseUnorderedMap<detail::Resource*, AccessPoints> referenced_resources;
 
 		explicit Cmd(detail::BumpMemoryResource& bump_memory):
 			referenced_resources{detail::BumpAllocator{bump_memory}}
@@ -541,14 +542,14 @@ private:
 	);
 
 	template<class T>
-	requires(!std::derived_from<T, cgpu::Resource>)
+	requires(!std::is_base_of_v<cgpu::detail::Resource, T>)
 	void addReferencedObject(const std::shared_ptr<T>& object)
 	{
 		m_containers->referenced_objects.try_emplace(object, false);
 	}
 
 	template<class T>
-	requires(std::derived_from<T, cgpu::Resource>)
+	requires(std::is_base_of_v<cgpu::detail::Resource, T>)
 	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
 
 	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier

@@ -219,7 +219,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	struct Barrier
 	{
 		uint32_t cmd_idx{};
-		Resource* resource{};
+		detail::Resource* resource{};
 		AccessPoints src{};
 		AccessPoints dst{};
 	};
@@ -256,7 +256,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		uint32_t dep_cmd_idx;
 	};
 
-	detail::BumpDenseUnorderedMap<Resource*, LastResourceAccesses> last_resource_accesses{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpDenseUnorderedMap<detail::Resource*, LastResourceAccesses> last_resource_accesses{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpVector<Event> events{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpVector<CmdSync> cmd_syncs{detail::BumpAllocator{*m_bump_memory}};
 	detail::BumpVector<Dependency> deps{detail::BumpAllocator{*m_bump_memory}};
@@ -419,7 +419,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 	};
 
-	detail::BumpVector<std::pair<Resource*, bool>> referenced_resources{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpVector<std::pair<detail::Resource*, bool>> referenced_resources{detail::BumpAllocator{*m_bump_memory}};
 	{
 		ZoneScopedN("Resource prologue");
 
@@ -430,7 +430,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 
 		// Sort by pointer value to avoid any risk of deadlock with other concurrent submits
-		std::ranges::sort(referenced_resources, {}, &std::pair<Resource*, bool>::first);
+		std::ranges::sort(referenced_resources, {}, &std::pair<detail::Resource*, bool>::first);
 
 		for (auto& [resource, written] : referenced_resources)
 		{
@@ -496,7 +496,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			for (uint32_t barrier_idx = cmd_sync.signal.barrier_begin; barrier_idx != cmd_sync.signal.barrier_end; barrier_idx++)
 			{
 				const auto& barrier = barriers[barrier_idx];
-				if (barrier.resource->getType() == Resource::Type::eImage)
+				if (barrier.resource->getType() == detail::Resource::Type::eImage)
 				{
 					auto& image = static_cast<Image&>(*barrier.resource);
 					vk_image_barriers.push_back({
@@ -599,7 +599,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 			{
 				for (const auto& [resource, access_point] : cmd.referenced_resources)
 				{
-					if (resource->getType() != Resource::Type::eImage)
+					if (resource->getType() != detail::Resource::Type::eImage)
 					{
 						continue;
 					}
@@ -2255,7 +2255,7 @@ cgpu::CommandRecorder::CommandRecorder(
 }
 
 template<class T>
-requires(std::derived_from<T, cgpu::Resource>)
+requires(std::is_base_of_v<cgpu::detail::Resource, T>)
 void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point)
 {
 	assert(!m_containers->cmd_list.empty());
