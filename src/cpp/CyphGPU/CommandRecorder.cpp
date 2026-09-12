@@ -16,6 +16,7 @@
 #include <ranges>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
+#include <vulkan/vulkan_format_traits.hpp>
 
 #define COMMAND_PARSE \
 	ZoneScoped;       \
@@ -915,9 +916,19 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 	{
 		cmd.color_value = std::visit(
 			Overloaded{
-				[&](const glm::vec4& value) { return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}}; },
-				[&](const glm::ivec4& value) { return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}}; },
-				[&](const glm::uvec4& value) { return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}}; },
+				[&](const glm::vec4& value) {
+					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "SINT") != 0);
+					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "UINT") != 0);
+					return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
+				},
+				[&](const glm::ivec4& value) {
+					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "SINT") == 0);
+					return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
+				},
+				[&](const glm::uvec4& value) {
+					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "UINT") == 0);
+					return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
+				},
 			},
 			*params.color_value
 		);
@@ -1460,9 +1471,19 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		{
 			clear_value = std::visit(
 				Overloaded{
-					[&](const glm::vec4& value) { return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}}; },
-					[&](const glm::ivec4& value) { return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}}; },
-					[&](const glm::uvec4& value) { return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}}; },
+					[&](const glm::vec4& value) {
+						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "SINT") != 0);
+						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "UINT") != 0);
+						return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
+					},
+					[&](const glm::ivec4& value) {
+						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "SINT") == 0);
+						return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
+					},
+					[&](const glm::uvec4& value) {
+						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "UINT") == 0);
+						return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
+					},
 				},
 				attachment.clear_color_value.value()
 			);
