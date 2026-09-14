@@ -4,9 +4,6 @@
 
 A rendering backend over modern Vulkan for my other projects.
 
-> [!IMPORTANT]  
-> Not production-ready and probably never will.
-
 ## Features
 
 * Fully bindless (VK_EXT_descriptor_heap, buffer pointers)
