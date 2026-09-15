@@ -19,10 +19,7 @@ A rendering backend over modern Vulkan for my other projects.
 
 ## Build & Install
 
-CyphGPU supports Windows, macOS and Linux.
-
-> [!NOTE]  
-> CyphGPU does not bundle a macOS Vulkan driver itself, it needs to be available system-wide like any other Vulkan driver on any other OS.
+CyphGPU supports Windows and Linux.
 
 ### Requirements:
 
@@ -34,7 +31,7 @@ CyphGPU supports Windows, macOS and Linux.
 > [!NOTE]  
 > All CMake presets require vcpkg.
 >
-> When building the sample app, macOS and Linux may need some additional system dependencies.
+> When building the sample app, Linux may need some additional system dependencies.
 
 ### Steps:
 
