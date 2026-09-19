@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -17,10 +18,9 @@ public:
 	{
 		struct VertexShader
 		{
-			// Required
-			std::variant<std::vector<uint32_t>, std::string> source;
-
-			// Optional
+			/// Required.
+			std::variant<std::vector<uint32_t>, std::string> source CGPU_REQUIRED;
+			/// Optional. Default: main.
 			std::string entry_point{"main"};
 
 			bool operator==(const VertexShader&) const = default;
@@ -28,25 +28,29 @@ public:
 
 		struct GeometryShader
 		{
-			// Required
-			std::variant<std::vector<uint32_t>, std::string> source;
-
-			// Optional
+			/// Required.
+			std::variant<std::vector<uint32_t>, std::string> source CGPU_REQUIRED;
+			/// Optional. Default: main.
 			std::string entry_point{"main"};
 
 			bool operator==(const GeometryShader&) const = default;
 		};
 
-		// Required
-		VertexShader vertex_shader;
-
-		// Optional
+		/// Required.
+		VertexShader vertex_shader CGPU_REQUIRED;
+		/// Optional. Default: No geometry shader.
 		std::optional<GeometryShader> geometry_shader{};
+		/// Optional. Default: false.
 		bool depth_clamp{false};
+		/// Optional. Default: Fill.
 		vk::PolygonMode polygon_mode{vk::PolygonMode::eFill};
+		/// Optional. Default: Back.
 		vk::CullModeFlags cull_mode{vk::CullModeFlagBits::eBack};
+		/// Optional. Default: Counterclockwise.
 		vk::FrontFace front_face{vk::FrontFace::eCounterClockwise};
+		/// Optional. Default: 1.
 		float line_width{1.0f};
+		/// Optional. Default: 0.
 		uint32_t view_mask{0};
 
 		bool operator==(const Desc&) const = default;

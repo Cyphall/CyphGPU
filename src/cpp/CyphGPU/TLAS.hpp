@@ -15,19 +15,22 @@ class TLAS final
 public:
 	struct ASInfo
 	{
-		// Required
-		uint32_t instance_count;
+		/// Required.
+		uint32_t instance_count CGPU_REQUIRED;
 	};
 
 	struct Desc
 	{
-		// Required
-		std::string name;
-		ASInfo as_info;
-		std::weak_ptr<Buffer> buffer;
-		vk::AccelerationStructureBuildSizesInfoKHR sizes;
-
-		// Optional
+		/// Required.
+		std::string name CGPU_REQUIRED;
+		/// Required.
+		ASInfo as_info CGPU_REQUIRED;
+		/// Required.
+		std::weak_ptr<Buffer> buffer CGPU_REQUIRED;
+		/// Required.
+		vk::AccelerationStructureBuildSizesInfoKHR sizes CGPU_REQUIRED;
+		/// Optional. Default: Whole range.
+		///
 		/// Final address must be aligned to 256 bytes.
 		std::optional<Range<vk::DeviceSize>> buffer_range{};
 	};

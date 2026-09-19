@@ -26,30 +26,48 @@ public:
 	{
 		struct ExistingHandle
 		{
-			vk::Image image;
-			/// true if the image is already in the GENERAL layout
+			/// Required.
+			vk::Image image CGPU_REQUIRED;
+			/// Optional. Default: false.
+			///
+			/// true if the image is already in the GENERAL layout.
 			bool layout_initialized{false};
 		};
 
-		// Required
-		std::string name;
-		vk::Format format;
-		glm::uvec3 extent;
-		vk::ImageUsageFlags usages; //TODO: Use vk::ImageUsageFlags2 when VK_KHR_extended_flags becomes more widely supported.
-
-		// Optional
+		/// Required.
+		std::string name CGPU_REQUIRED;
+		/// Required.
+		vk::Format format CGPU_REQUIRED;
+		/// Required.
+		glm::uvec3 extent CGPU_REQUIRED;
+		/// Required.
+		vk::ImageUsageFlags usages CGPU_REQUIRED; //TODO: Use vk::ImageUsageFlags2 when VK_KHR_extended_flags becomes more widely supported.
+		/// Optional. Default: 2D.
 		vk::ImageType type{vk::ImageType::e2D};
+		/// Optional. Default: GPU high-prio.
 		MemoryType memory_type{MemoryType::eGPUHighPrio};
+		/// Optional. Default: 1.
 		uint32_t levels{1};
+		/// Optional. Default: 1.
 		uint32_t layers{1};
+		/// Optional. Default: 1.
 		vk::SampleCountFlagBits samples{vk::SampleCountFlagBits::e1};
+		/// Optional. Default: No additional view format.
 		std::vector<vk::Format> additional_view_formats{};
+		/// Optional. Default: false.
+		///
 		/// For 2D images, must have extent.x == extent.y, layers >= 6 and samples == 1.
 		bool allow_cube_view{false};
+		/// Optional. Default: false.
+		///
 		/// For 3D images.
 		bool allow_2d_array_view{false};
+		/// Optional. Default: false.
+		///
 		/// For compressed images.
 		bool allow_block_texel_view{false};
+		/// Optional. Default: No existing handle.
+		///
 		/// Other desc parameters must still match what the image was created with.
 		std::optional<ExistingHandle> existing_handle{};
 	};

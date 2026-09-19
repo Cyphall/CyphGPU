@@ -17,7 +17,7 @@ class Context final
 public:
 	struct Desc
 	{
-		// Optional
+		/// Optional. Default: No shader bundle.
 		std::vector<const ShaderBundle*> shader_bundles{};
 	};
 

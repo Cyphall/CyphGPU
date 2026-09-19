@@ -15,18 +15,31 @@ class Sampler final
 public:
 	struct Desc
 	{
-		// Optional
+		/// Optional. Default: Nearest.
 		vk::Filter min_filter{vk::Filter::eNearest};
+		/// Optional. Default: Nearest.
 		vk::Filter mag_filter{vk::Filter::eNearest};
+		/// Optional. Default: Nearest.
 		vk::SamplerMipmapMode mipmap_mode{vk::SamplerMipmapMode::eNearest};
+		/// Optional. Default: Repeat.
 		vk::SamplerAddressMode wrapping_u{vk::SamplerAddressMode::eRepeat};
+		/// Optional. Default: Repeat.
 		vk::SamplerAddressMode wrapping_v{vk::SamplerAddressMode::eRepeat};
+		/// Optional. Default: Repeat.
 		vk::SamplerAddressMode wrapping_w{vk::SamplerAddressMode::eRepeat};
+		/// Optional. Default: No anisotropy.
 		std::optional<float> anisotropy{};
+		/// Optional. Default: No comparison.
 		std::optional<vk::CompareOp> comparison_mode{};
+		/// Optional. Default: -1000.
 		float min_lod{-1000.0f};
+		/// Optional. Default: 1000.
 		float max_lod{1000.0f};
+		/// Optional. Default: 0.
 		float mip_lod_bias{0.0f};
+		/// Optional. Default: Float opaque black.
+		///
+		/// Must be set when sampling non-float images.
 		vk::BorderColor border_color{vk::BorderColor::eFloatOpaqueBlack};
 
 		auto operator<=>(const Desc&) const = default;

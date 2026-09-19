@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <boost/container/static_vector.hpp>
 #include <glm/glm.hpp>
@@ -18,30 +19,33 @@ public:
 	{
 		struct BlendComponentState
 		{
-			// Required
-			vk::BlendFactor src_factor;
-			vk::BlendFactor dst_factor;
-			vk::BlendOp op;
+			/// Required.
+			vk::BlendFactor src_factor CGPU_REQUIRED;
+			/// Required.
+			vk::BlendFactor dst_factor CGPU_REQUIRED;
+			/// Required.
+			vk::BlendOp op CGPU_REQUIRED;
 
 			bool operator==(const BlendComponentState&) const = default;
 		};
 
 		struct BlendState
 		{
-			// Required
-			BlendComponentState color;
-			BlendComponentState alpha;
+			/// Required.
+			BlendComponentState color CGPU_REQUIRED;
+			/// Required.
+			BlendComponentState alpha CGPU_REQUIRED;
 
 			bool operator==(const BlendState&) const = default;
 		};
 
 		struct ColorAttachment
 		{
-			// Required
-			vk::Format format;
-
-			// Optional
+			/// Required.
+			vk::Format format CGPU_REQUIRED;
+			/// Optional. Default: No blending.
 			std::optional<BlendState> blend{};
+			/// Optional. Default: RGBA.
 			vk::ColorComponentFlags write_mask{
 				vk::ColorComponentFlagBits::eR |
 				vk::ColorComponentFlagBits::eG |
@@ -54,20 +58,23 @@ public:
 
 		struct DepthStencilAttachment
 		{
-			// Required
-			vk::Format format;
-
-			// Optional
+			/// Required.
+			vk::Format format CGPU_REQUIRED;
+			/// Optional. Default: True if the format has a depth aspect.
 			std::optional<bool> enable_depth{};
+			/// Optional. Default: True if the format has a stencil aspect.
 			std::optional<bool> enable_stencil{};
 
 			bool operator==(const DepthStencilAttachment&) const = default;
 		};
 
-		// Optional
+		/// Optional. Default: No color attachment.
 		boost::container::static_vector<ColorAttachment, 8> color_attachments{};
+		/// Optional. Default: No depth-stencil attachment.
 		std::optional<DepthStencilAttachment> depth_stencil_attachment{};
+		/// Optional. Default: 1.
 		vk::SampleCountFlagBits samples{vk::SampleCountFlagBits::e1};
+		/// Optional. Default: Transparent black.
 		glm::vec4 blend_constants{0.0f, 0.0f, 0.0f, 0.0f};
 
 		bool operator==(const Desc&) const = default;

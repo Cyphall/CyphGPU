@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <vulkan/vulkan.hpp>
 
@@ -14,10 +15,9 @@ class Surface final
 public:
 	struct Desc
 	{
-		// Required
-		vk::SurfaceKHR surface;
-
-		// Optional
+		/// Required.
+		vk::SurfaceKHR surface CGPU_REQUIRED;
+		/// Optional. Default: true.
 		bool owned{true};
 	};
 

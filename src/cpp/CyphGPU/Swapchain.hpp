@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <glm/glm.hpp>
 #include <optional>
@@ -16,17 +17,23 @@ class Swapchain final : public std::enable_shared_from_this<Swapchain>
 public:
 	struct Desc
 	{
-		// Required
-		vk::SurfaceFormatKHR format;
-		glm::uvec2 preferred_extent;
-		vk::ImageUsageFlags usages;
-
-		// Optional
+		/// Required.
+		vk::SurfaceFormatKHR format CGPU_REQUIRED;
+		/// Required.
+		glm::uvec2 preferred_extent CGPU_REQUIRED;
+		/// Required.
+		vk::ImageUsageFlags usages CGPU_REQUIRED;
+		/// Optional. Default: 1.
 		uint32_t preferred_layers{1};
+		/// Optional. Default: No additional view format.
 		std::vector<vk::Format> additional_view_formats{};
+		/// Optional. Default: FIFO.
 		vk::PresentModeKHR present_mode{vk::PresentModeKHR::eFifo};
+		/// Optional. Default: 3.
 		uint32_t preferred_image_count{3};
+		/// Optional. Default: Opaque.
 		vk::CompositeAlphaFlagBitsKHR alpha_mode{vk::CompositeAlphaFlagBitsKHR::eOpaque};
+		/// Optional. Default: No old swapchain.
 		std::optional<std::weak_ptr<Swapchain>> old_swapchain{};
 	};
 

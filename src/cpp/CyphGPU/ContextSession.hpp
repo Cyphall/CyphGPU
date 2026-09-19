@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <vulkan/vulkan.hpp>
 
@@ -14,11 +15,11 @@ class ContextSession final : public std::enable_shared_from_this<ContextSession>
 public:
 	struct Desc
 	{
-		// Required
-		std::string application_name;
-
-		// Optional
+		/// Required.
+		std::string application_name CGPU_REQUIRED;
+		/// Optional. Default: 0.
 		uint32_t application_version{0};
+		/// Optional. Default: No layer.
 		std::vector<const char*> enabled_layers{};
 	};
 

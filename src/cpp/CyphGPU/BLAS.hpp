@@ -17,38 +17,42 @@ public:
 	{
 		struct VertexBuffer
 		{
-			// Required
-			uint32_t count;
-			vk::Format format;
-
-			// Optional
+			/// Required.
+			uint32_t count CGPU_REQUIRED;
+			/// Required.
+			vk::Format format CGPU_REQUIRED;
+			/// Optional. Default: Size of format.
 			std::optional<vk::DeviceSize> stride{};
 		};
 
 		struct IndexBuffer
 		{
-			// Required
-			uint32_t count;
-			vk::IndexType type;
+			/// Required.
+			uint32_t count CGPU_REQUIRED;
+			/// Required.
+			vk::IndexType type CGPU_REQUIRED;
 		};
 
-		// Required
-		VertexBuffer vertex_buffer;
-
-		// Optional
+		/// Required.
+		VertexBuffer vertex_buffer CGPU_REQUIRED;
+		/// Optional. Default: No index buffer.
 		std::optional<IndexBuffer> index_buffer{};
+		/// Optional. Default: false.
 		bool opaque{false};
 	};
 
 	struct Desc
 	{
-		// Required
-		std::string name;
-		ASInfo as_info;
-		std::weak_ptr<Buffer> buffer;
-		vk::AccelerationStructureBuildSizesInfoKHR sizes;
-
-		// Optional
+		/// Required.
+		std::string name CGPU_REQUIRED;
+		/// Required.
+		ASInfo as_info CGPU_REQUIRED;
+		/// Required.
+		std::weak_ptr<Buffer> buffer CGPU_REQUIRED;
+		/// Required.
+		vk::AccelerationStructureBuildSizesInfoKHR sizes CGPU_REQUIRED;
+		/// Optional. Default: Whole range.
+		///
 		/// Final address must be aligned to 256 bytes.
 		std::optional<Range<vk::DeviceSize>> buffer_range{};
 	};

@@ -24,19 +24,26 @@ public:
 	{
 		struct ExistingHandle
 		{
-			vk::Buffer buffer;
-			/// Must be set for host-visible memory
-			std::optional<std::byte*> host_ptr;
+			/// Required.
+			vk::Buffer buffer CGPU_REQUIRED;
+			/// Optional. Default: No host pointer.
+			///
+			/// Must be set for host-visible memory.
+			std::optional<std::byte*> host_ptr{};
 		};
 
-		// Required
-		std::string name;
-		vk::DeviceSize size;
-
-		// Optional
+		/// Required.
+		std::string name CGPU_REQUIRED;
+		/// Required.
+		vk::DeviceSize size CGPU_REQUIRED;
+		/// Optional. Default: No flag.
 		vk::BufferUsageFlags2 usages{};
+		/// Optional. Default: GPU high-prio.
 		MemoryType memory_type{MemoryType::eGPUHighPrio};
+		/// Optional. Default: 1.
 		vk::DeviceSize min_alignment{1};
+		/// Optional. Default: No existing handle.
+		///
 		/// Other desc parameters must still match what the buffer was created with.
 		std::optional<ExistingHandle> existing_handle{};
 	};

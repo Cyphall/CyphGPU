@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -17,10 +18,9 @@ public:
 	{
 		struct FragmentShader
 		{
-			// Required
-			std::variant<std::vector<uint32_t>, std::string> source;
-
-			// Optional
+			/// Required.
+			std::variant<std::vector<uint32_t>, std::string> source CGPU_REQUIRED;
+			/// Optional. Default: main.
 			std::string entry_point{"main"};
 
 			bool operator==(const FragmentShader&) const = default;
@@ -28,26 +28,31 @@ public:
 
 		struct DepthState
 		{
-			// Required
-			vk::CompareOp test_pass_condition;
-			bool write_enabled;
+			/// Required.
+			vk::CompareOp test_pass_condition CGPU_REQUIRED;
+			/// Required.
+			bool write_enabled CGPU_REQUIRED;
 
 			bool operator==(const DepthState&) const = default;
 		};
 
 		struct StencilState
 		{
-			// Required
-			vk::StencilOpState front;
-			vk::StencilOpState back;
+			/// Required.
+			vk::StencilOpState front CGPU_REQUIRED;
+			/// Required.
+			vk::StencilOpState back CGPU_REQUIRED;
 
 			bool operator==(const StencilState&) const = default;
 		};
 
-		// Optional
+		/// Optional. Default: No fragment shader.
 		std::optional<FragmentShader> fragment_shader{};
+		/// Optional. Default: No depth test.
 		std::optional<DepthState> depth_state{};
+		/// Optional. Default: No stencil test.
 		std::optional<StencilState> stencil_state{};
+		/// Optional. Default: 0.
 		uint32_t view_mask{0};
 
 		bool operator==(const Desc&) const = default;

@@ -14,7 +14,7 @@ class VertexInputState final
 public:
 	struct Desc
 	{
-		// Optional
+		/// Optional. Default: Triangle list.
 		vk::PrimitiveTopology topology{vk::PrimitiveTopology::eTriangleList};
 
 		bool operator==(const Desc&) const = default;

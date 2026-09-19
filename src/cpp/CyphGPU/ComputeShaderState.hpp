@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CyphGPU/fwd.hpp>
+#include <CyphGPU/Utils.hpp>
 
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -17,17 +18,16 @@ public:
 	{
 		struct ComputeShader
 		{
-			// Required
-			std::variant<std::vector<uint32_t>, std::string> source;
-
-			// Optional
+			/// Required.
+			std::variant<std::vector<uint32_t>, std::string> source CGPU_REQUIRED;
+			/// Optional. Default: main.
 			std::string entry_point{"main"};
 
 			bool operator==(const ComputeShader&) const = default;
 		};
 
-		// Required
-		ComputeShader compute_shader{};
+		/// Required.
+		ComputeShader compute_shader CGPU_REQUIRED;
 
 		bool operator==(const Desc&) const = default;
 	};
