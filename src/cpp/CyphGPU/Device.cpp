@@ -136,7 +136,7 @@ std::optional<vk::CompositeAlphaFlagBitsKHR> cgpu::Device::selectBestAlphaMode(
 
 boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapabilityData(Capability capability)
 {
-	static CapabilityData core{
+	static const CapabilityData CORE{
 		{
 			vk::KHRShaderUntypedPointersExtensionName,
 			vk::EXTDescriptorHeapExtensionName,
@@ -371,7 +371,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
-	static CapabilityData swapchain{
+	static const CapabilityData SWAPCHAIN{
 		{
 			vk::KHRSwapchainExtensionName,
 			vk::KHRSwapchainMutableFormatExtensionName,
@@ -385,14 +385,14 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
-	static CapabilityData memory_budget{
+	static const CapabilityData MEMORY_BUDGET{
 		{
 			vk::EXTMemoryBudgetExtensionName,
 		},
 		[](detail::DynamicFeatureChain&) {}
 	};
 
-	static CapabilityData memory_priority{
+	static const CapabilityData MEMORY_PRIORITY{
 		{
 			vk::EXTMemoryPriorityExtensionName,
 		},
@@ -404,7 +404,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
-	static CapabilityData pageable_device_local_memory{
+	static const CapabilityData PAGEABLE_DEVICE_LOCAL_MEMORY{
 		{
 			vk::EXTMemoryPriorityExtensionName,
 			vk::EXTPageableDeviceLocalMemoryExtensionName,
@@ -421,7 +421,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
-	static CapabilityData unified_image_layouts{
+	static const CapabilityData UNIFIED_IMAGE_LAYOUTS{
 		{
 			vk::KHRUnifiedImageLayoutsExtensionName,
 		},
@@ -433,7 +433,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 		}
 	};
 
-	static CapabilityData tray_tracing{
+	static const CapabilityData RAY_TRACING{
 		{
 			vk::KHRDeferredHostOperationsExtensionName,
 			vk::KHRAccelerationStructureExtensionName,
@@ -458,13 +458,13 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 
 	switch (capability)
 	{
-	case Capability::eCore: return core;
-	case Capability::eSwapchain: return swapchain;
-	case Capability::eMemoryBudget: return memory_budget;
-	case Capability::eMemoryPriority: return memory_priority;
-	case Capability::ePageableDeviceLocalMemory: return pageable_device_local_memory;
-	case Capability::eUnifiedImageLayouts: return unified_image_layouts;
-	case Capability::eRayTracing: return tray_tracing;
+	case Capability::eCore: return CORE;
+	case Capability::eSwapchain: return SWAPCHAIN;
+	case Capability::eMemoryBudget: return MEMORY_BUDGET;
+	case Capability::eMemoryPriority: return MEMORY_PRIORITY;
+	case Capability::ePageableDeviceLocalMemory: return PAGEABLE_DEVICE_LOCAL_MEMORY;
+	case Capability::eUnifiedImageLayouts: return UNIFIED_IMAGE_LAYOUTS;
+	case Capability::eRayTracing: return RAY_TRACING;
 	default: std::unreachable();
 	}
 }

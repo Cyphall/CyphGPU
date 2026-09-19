@@ -60,14 +60,14 @@ std::vector<std::string> cgpu::Context::getAvailableLayers() const
 
 boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabilityData(Capability capability)
 {
-	static CapabilityData core{
+	static const CapabilityData CORE{
 		{
 			vk::EXTDebugUtilsExtensionName,
 		}
 	};
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-	static CapabilityData surface_win32{
+	static const CapabilityData SURFACE_WIN32{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRSurfaceMaintenance1ExtensionName,
@@ -79,7 +79,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-	static CapabilityData surface_metal{
+	static const CapabilityData SURFACE_METAL{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRSurfaceMaintenance1ExtensionName,
@@ -91,7 +91,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
-	static CapabilityData surface_xcb{
+	static const CapabilityData SURFACE_XCB{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRSurfaceMaintenance1ExtensionName,
@@ -103,7 +103,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	static CapabilityData surface_xlib{
+	static const CapabilityData SURFACE_XLIB{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRSurfaceMaintenance1ExtensionName,
@@ -115,7 +115,7 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 #endif
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	static CapabilityData surface_wayland{
+	static const CapabilityData SURFACE_WAYLAND{
 		{
 			vk::KHRSurfaceExtensionName,
 			vk::KHRSurfaceMaintenance1ExtensionName,
@@ -128,29 +128,29 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 
 	switch (capability)
 	{
-	case Capability::eCore: return core;
+	case Capability::eCore: return CORE;
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-	case Capability::eSurfaceWin32: return surface_win32;
+	case Capability::eSurfaceWin32: return SURFACE_WIN32;
 #else
 	case Capability::eSurfaceWin32: return boost::none;
 #endif
 #if defined(VK_USE_PLATFORM_METAL_EXT)
-	case Capability::eSurfaceMetal: return surface_metal;
+	case Capability::eSurfaceMetal: return SURFACE_METAL;
 #else
 	case Capability::eSurfaceMetal: return boost::none;
 #endif
 #if defined(VK_USE_PLATFORM_XCB_KHR)
-	case Capability::eSurfaceXcb: return surface_xcb;
+	case Capability::eSurfaceXcb: return SURFACE_XCB;
 #else
 	case Capability::eSurfaceXcb: return boost::none;
 #endif
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	case Capability::eSurfaceXlib: return surface_xlib;
+	case Capability::eSurfaceXlib: return SURFACE_XLIB;
 #else
 	case Capability::eSurfaceXlib: return boost::none;
 #endif
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
-	case Capability::eSurfaceWayland: return surface_wayland;
+	case Capability::eSurfaceWayland: return SURFACE_WAYLAND;
 #else
 	case Capability::eSurfaceWayland: return boost::none;
 #endif
