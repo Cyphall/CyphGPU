@@ -16,7 +16,6 @@
 #include <ranges>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
-#include <vulkan/vulkan_format_traits.hpp>
 
 #define COMMAND_PARSE \
 	ZoneScoped;       \
@@ -187,6 +186,77 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 	);
 
 	return {vk_range, top_left, bottom_right, byte_size};
+}
+
+bool isColorFormatSINT(vk::Format format)
+{
+	switch (format)
+	{
+	case vk::Format::eR8Sint:
+	case vk::Format::eR8G8Sint:
+	case vk::Format::eR8G8B8Sint:
+	case vk::Format::eB8G8R8Sint:
+	case vk::Format::eR8G8B8A8Sint:
+	case vk::Format::eB8G8R8A8Sint:
+	case vk::Format::eA8B8G8R8SintPack32:
+	case vk::Format::eA2R10G10B10SintPack32:
+	case vk::Format::eA2B10G10R10SintPack32:
+	case vk::Format::eR16Sint:
+	case vk::Format::eR16G16Sint:
+	case vk::Format::eR16G16B16Sint:
+	case vk::Format::eR16G16B16A16Sint:
+	case vk::Format::eR32Sint:
+	case vk::Format::eR32G32Sint:
+	case vk::Format::eR32G32B32Sint:
+	case vk::Format::eR32G32B32A32Sint:
+	case vk::Format::eR64Sint:
+	case vk::Format::eR64G64Sint:
+	case vk::Format::eR64G64B64Sint:
+	case vk::Format::eR64G64B64A64Sint:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool isColorFormatUINT(vk::Format format)
+{
+	switch (format)
+	{
+	case vk::Format::eR8Uint:
+	case vk::Format::eR8G8Uint:
+	case vk::Format::eR8G8B8Uint:
+	case vk::Format::eB8G8R8Uint:
+	case vk::Format::eR8G8B8A8Uint:
+	case vk::Format::eB8G8R8A8Uint:
+	case vk::Format::eA8B8G8R8UintPack32:
+	case vk::Format::eA2R10G10B10UintPack32:
+	case vk::Format::eA2B10G10R10UintPack32:
+	case vk::Format::eR16Uint:
+	case vk::Format::eR16G16Uint:
+	case vk::Format::eR16G16B16Uint:
+	case vk::Format::eR16G16B16A16Uint:
+	case vk::Format::eR32Uint:
+	case vk::Format::eR32G32Uint:
+	case vk::Format::eR32G32B32Uint:
+	case vk::Format::eR32G32B32A32Uint:
+	case vk::Format::eR64Uint:
+	case vk::Format::eR64G64Uint:
+	case vk::Format::eR64G64B64Uint:
+	case vk::Format::eR64G64B64A64Uint:
+	case vk::Format::eR10X6UintPack16ARM:
+	case vk::Format::eR10X6G10X6Uint2Pack16ARM:
+	case vk::Format::eR10X6G10X6B10X6A10X6Uint4Pack16ARM:
+	case vk::Format::eR12X4UintPack16ARM:
+	case vk::Format::eR12X4G12X4Uint2Pack16ARM:
+	case vk::Format::eR12X4G12X4B12X4A12X4Uint4Pack16ARM:
+	case vk::Format::eR14X2UintPack16ARM:
+	case vk::Format::eR14X2G14X2Uint2Pack16ARM:
+	case vk::Format::eR14X2G14X2B14X2A14X2Uint4Pack16ARM:
+		return true;
+	default:
+		return false;
+	}
 }
 }
 
@@ -917,16 +987,16 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 		cmd.color_value = std::visit(
 			Overloaded{
 				[&](const glm::vec4& value) {
-					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "SINT") != 0);
-					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "UINT") != 0);
+					assert(!isColorFormatSINT((*params.image)->getDesc().format));
+					assert(!isColorFormatUINT((*params.image)->getDesc().format));
 					return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
 				},
 				[&](const glm::ivec4& value) {
-					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "SINT") == 0);
+					assert(isColorFormatSINT((*params.image)->getDesc().format));
 					return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
 				},
 				[&](const glm::uvec4& value) {
-					assert(std::strcmp(vk::componentNumericFormat((*params.image)->getDesc().format, 0), "UINT") == 0);
+					assert(isColorFormatUINT((*params.image)->getDesc().format));
 					return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
 				},
 			},
@@ -1445,8 +1515,8 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		if (attachment.resolve)
 		{
 			resolve_mode =
-				attachment.resolve->mode ?
-					*attachment.resolve->mode :
+				isColorFormatSINT(format) || isColorFormatUINT(format) ?
+					vk::ResolveModeFlagBits::eSampleZero :
 					vk::ResolveModeFlagBits::eAverage;
 
 			uint32_t resolve_level = attachment.resolve->level ? *attachment.resolve->level : 0;
@@ -1472,16 +1542,16 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 			clear_value = std::visit(
 				Overloaded{
 					[&](const glm::vec4& value) {
-						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "SINT") != 0);
-						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "UINT") != 0);
+						assert(!isColorFormatSINT((*attachment.image)->getDesc().format));
+						assert(!isColorFormatUINT((*attachment.image)->getDesc().format));
 						return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
 					},
 					[&](const glm::ivec4& value) {
-						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "SINT") == 0);
+						assert(isColorFormatSINT((*attachment.image)->getDesc().format));
 						return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
 					},
 					[&](const glm::uvec4& value) {
-						assert(std::strcmp(vk::componentNumericFormat((*attachment.image)->getDesc().format, 0), "UINT") == 0);
+						assert(isColorFormatUINT((*attachment.image)->getDesc().format));
 						return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
 					},
 				},
@@ -2232,7 +2302,10 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 	resolve_mode_info.stencilResolveMode = vk::ResolveModeFlagBits::eNone;
 	if (aspects_in_ranges & vk::ImageAspectFlagBits::eColor)
 	{
-		resolve_mode_info.resolveMode = params.color_mode ? *params.color_mode : vk::ResolveModeFlagBits::eAverage;
+		resolve_mode_info.resolveMode =
+			isColorFormatSINT((*params.src_image)->getDesc().format) || isColorFormatUINT((*params.src_image)->getDesc().format) ?
+				vk::ResolveModeFlagBits::eSampleZero :
+				vk::ResolveModeFlagBits::eAverage;
 	}
 	if (aspects_in_ranges & vk::ImageAspectFlagBits::eDepth)
 	{

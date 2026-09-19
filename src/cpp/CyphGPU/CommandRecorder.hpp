@@ -254,8 +254,6 @@ public:
 			struct Resolve
 			{
 				Req<ImagePtr> image;
-				/// Default: Average.
-				Opt<vk::ResolveModeFlagBits> mode{};
 				/// Default: Level 0.
 				Opt<uint32_t> level{};
 				/// Default: Layer 0.
@@ -454,8 +452,6 @@ public:
 		Req<ImagePtr> dst_image;
 		/// Default: One default-initialized range.
 		Opt<std::vector<Range>> ranges{};
-		/// Default: Average.
-		Opt<vk::ResolveModeFlagBits> color_mode{};
 		/// Default: SampleZero.
 		Opt<vk::ResolveModeFlagBits> depth_mode{};
 		/// Default: SampleZero.
