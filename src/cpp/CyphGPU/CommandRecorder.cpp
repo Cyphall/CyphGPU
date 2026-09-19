@@ -73,34 +73,6 @@ constexpr bool hasWriteAccesses(vk::AccessFlags2 accesses)
 	return static_cast<bool>(accesses & write_accesses);
 }
 
-constexpr std::array CLEAR_IMAGE_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::ImageLevelsLayersRange{},
-};
-
-constexpr std::array COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::CopyImageToImageParams::Range{},
-};
-
-constexpr std::array COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::CopyBufferToImageParams::Range{},
-};
-
-constexpr std::array COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::CopyImageToBufferParams::Range{},
-};
-
-constexpr std::array COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::CopyBufferToBufferParams::Range{},
-};
-
-constexpr std::array BLIT_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::BlitParams::Range{},
-};
-
-constexpr std::array RESOLVE_DEFAULT_RANGE = {
-	cgpu::CommandRecorder::ResolveParams::Range{},
-};
-
 std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 	const cgpu::ImagePtr& image,
 	const cgpu::CommandRecorder::ImageLevelsLayersRange& range,
@@ -131,7 +103,7 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 {
 	vk::ImageSubresourceLayers vk_range;
 	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
-	vk_range.mipLevel = range.level ? *range.level : 0;
+	vk_range.mipLevel = range.level;
 	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
 	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
 
@@ -171,11 +143,11 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 {
 	vk::ImageSubresourceLayers vk_range;
 	vk_range.aspectMask = range.aspects ? *range.aspects : cgpu::getAspects(image->getDesc().format);
-	vk_range.mipLevel = range.level ? *range.level : 0;
+	vk_range.mipLevel = range.level;
 	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
 	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
 
-	glm::uvec3 top_left = range.top_left ? *range.top_left : glm::uvec3{0, 0, 0};
+	glm::uvec3 top_left = range.top_left;
 	glm::uvec3 bottom_right = range.bottom_right ? *range.bottom_right : cgpu::calcImageLevelExtent(image->getDesc().extent, vk_range.mipLevel);
 	glm::uvec3 rect_extent = glm::uvec3{glm::abs(glm::ivec3{bottom_right} - glm::ivec3{top_left})};
 
@@ -259,6 +231,14 @@ bool isColorFormatUINT(vk::Format format)
 	}
 }
 }
+
+const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::CommandRecorder::ClearImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::CopyImageToImageParams::Range, 1> cgpu::CommandRecorder::CopyImageToImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::CopyBufferToImageParams::Range, 1> cgpu::CommandRecorder::CopyBufferToImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::CopyImageToBufferParams::Range, 1> cgpu::CommandRecorder::CopyImageToBufferParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::CopyBufferToBufferParams::Range, 1> cgpu::CommandRecorder::CopyBufferToBufferParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::BlitParams::Range, 1> cgpu::CommandRecorder::BlitParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::ResolveParams::Range, 1> cgpu::CommandRecorder::ResolveParams::DEFAULT_RANGE{};
 
 cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 {
@@ -917,12 +897,11 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 		return;
 	}
 
-	std::span<const ImageLevelsLayersRange> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : CLEAR_IMAGE_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
-	vk_ranges.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_ranges.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [vk_range, byte_size] = resolveRange(*params.image, range, aspects);
+		auto [vk_range, byte_size] = resolveRange(params.image, range, aspects);
 
 		if (byte_size == 0)
 		{
@@ -981,22 +960,22 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 	};
 
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
-	cmd.image = (*params.image)->getHandle();
+	cmd.image = params.image->getHandle();
 	if (params.color_value)
 	{
 		cmd.color_value = std::visit(
 			Overloaded{
 				[&](const glm::vec4& value) {
-					assert(!isColorFormatSINT((*params.image)->getDesc().format));
-					assert(!isColorFormatUINT((*params.image)->getDesc().format));
+					assert(!isColorFormatSINT(params.image->getDesc().format));
+					assert(!isColorFormatUINT(params.image->getDesc().format));
 					return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
 				},
 				[&](const glm::ivec4& value) {
-					assert(isColorFormatSINT((*params.image)->getDesc().format));
+					assert(isColorFormatSINT(params.image->getDesc().format));
 					return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
 				},
 				[&](const glm::uvec4& value) {
-					assert(isColorFormatUINT((*params.image)->getDesc().format));
+					assert(isColorFormatUINT(params.image->getDesc().format));
 					return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
 				},
 			},
@@ -1012,7 +991,7 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 	}
 
 	addCmdResource(
-		*params.image,
+		params.image,
 		{
 			vk::PipelineStageFlagBits2::eClear,
 			vk::AccessFlagBits2::eTransferWrite,
@@ -1024,13 +1003,12 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 {
 	COMMAND_PARSE
 
-	std::span<const CopyImageToImageParams::Range> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : COPY_IMAGE_TO_IMAGE_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageCopy2> vk_regions{detail::BumpAllocator{*m_bump_memory}};
-	vk_regions.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_regions.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
-		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(params.src_image, range.src);
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(params.dst_image, range.dst);
 
 		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
 		assert(src_pixel_range.size == dst_pixel_range.size && "Image ranges must have the same pixel region size.");
@@ -1086,15 +1064,15 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 	};
 
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
-	cmd.info.srcImage = (*params.src_image)->getHandle();
+	cmd.info.srcImage = params.src_image->getHandle();
 	cmd.info.srcImageLayout = vk::ImageLayout::eGeneral;
-	cmd.info.dstImage = (*params.dst_image)->getHandle();
+	cmd.info.dstImage = params.dst_image->getHandle();
 	cmd.info.dstImageLayout = vk::ImageLayout::eGeneral;
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
 
 	addCmdResource(
-		*params.src_image,
+		params.src_image,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferRead,
@@ -1102,7 +1080,7 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 	);
 
 	addCmdResource(
-		*params.dst_image,
+		params.dst_image,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferWrite,
@@ -1114,13 +1092,12 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 {
 	COMMAND_PARSE
 
-	std::span<const CopyBufferToImageParams::Range> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : COPY_BUFFER_TO_IMAGE_DEFAULT_RANGE;
 	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{detail::BumpAllocator{*m_bump_memory}};
-	vk_regions.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_regions.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
-		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [src_vk_range, src_byte_size] = resolveRange(params.src_buffer, range.src);
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(params.dst_image, range.dst);
 
 		assert(src_byte_size == dst_byte_size && "Image range and buffer range must have the same byte size.");
 
@@ -1130,7 +1107,7 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 		}
 
 		vk::DeviceMemoryImageCopyKHR& vk_region = vk_regions.emplace_back();
-		vk_region.addressRange.address = (*params.src_buffer)->getDevicePtr() + src_vk_range.offset;
+		vk_region.addressRange.address = params.src_buffer->getDevicePtr() + src_vk_range.offset;
 		vk_region.addressRange.size = src_vk_range.size;
 		vk_region.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
 		vk_region.addressRowLength = 0;
@@ -1176,19 +1153,19 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 	};
 
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
-	cmd.info.image = (*params.dst_image)->getHandle();
+	cmd.info.image = params.dst_image->getHandle();
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
 
 	addCmdResource(
-		*params.src_buffer,
+		params.src_buffer,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferRead,
 		}
 	);
 	addCmdResource(
-		*params.dst_image,
+		params.dst_image,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferWrite,
@@ -1200,13 +1177,12 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 {
 	COMMAND_PARSE
 
-	std::span<const CopyImageToBufferParams::Range> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : COPY_IMAGE_TO_BUFFER_DEFAULT_RANGE;
 	detail::BumpVector<vk::DeviceMemoryImageCopyKHR> vk_regions{detail::BumpAllocator{*m_bump_memory}};
-	vk_regions.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_regions.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
-		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dst_buffer, range.dst.value_or(BufferRange{}));
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(params.src_image, range.src);
+		auto [dst_vk_range, dst_byte_size] = resolveRange(params.dst_buffer, range.dst);
 
 		assert(src_byte_size == dst_byte_size && "Image range and buffer range must have the same byte size.");
 
@@ -1216,7 +1192,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 		}
 
 		vk::DeviceMemoryImageCopyKHR& vk_region = vk_regions.emplace_back();
-		vk_region.addressRange.address = (*params.dst_buffer)->getDevicePtr() + dst_vk_range.offset;
+		vk_region.addressRange.address = params.dst_buffer->getDevicePtr() + dst_vk_range.offset;
 		vk_region.addressRange.size = dst_vk_range.size;
 		vk_region.addressFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
 		vk_region.addressRowLength = 0;
@@ -1262,19 +1238,19 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 	};
 
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
-	cmd.info.image = (*params.src_image)->getHandle();
+	cmd.info.image = params.src_image->getHandle();
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
 
 	addCmdResource(
-		*params.src_image,
+		params.src_image,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferRead,
 		}
 	);
 	addCmdResource(
-		*params.dst_buffer,
+		params.dst_buffer,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferWrite,
@@ -1286,13 +1262,12 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 {
 	COMMAND_PARSE
 
-	std::span<const CopyBufferToBufferParams::Range> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : COPY_BUFFER_TO_BUFFER_DEFAULT_RANGE;
 	detail::BumpVector<vk::DeviceMemoryCopyKHR> vk_regions{detail::BumpAllocator{*m_bump_memory}};
-	vk_regions.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_regions.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [src_vk_range, src_byte_size] = resolveRange(*params.src_buffer, range.src.value_or(BufferRange{}));
-		auto [dst_vk_range, dst_byte_size] = resolveRange(*params.dst_buffer, range.dst.value_or(BufferRange{}));
+		auto [src_vk_range, src_byte_size] = resolveRange(params.src_buffer, range.src);
+		auto [dst_vk_range, dst_byte_size] = resolveRange(params.dst_buffer, range.dst);
 
 		assert(src_byte_size == dst_byte_size && "Buffer ranges must have the same byte size.");
 
@@ -1302,10 +1277,10 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 		}
 
 		vk::DeviceMemoryCopyKHR& vk_region = vk_regions.emplace_back();
-		vk_region.srcRange.address = (*params.src_buffer)->getDevicePtr() + src_vk_range.offset;
+		vk_region.srcRange.address = params.src_buffer->getDevicePtr() + src_vk_range.offset;
 		vk_region.srcRange.size = src_vk_range.size;
 		vk_region.srcFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
-		vk_region.dstRange.address = (*params.dst_buffer)->getDevicePtr() + dst_vk_range.offset;
+		vk_region.dstRange.address = params.dst_buffer->getDevicePtr() + dst_vk_range.offset;
 		vk_region.dstRange.size = dst_vk_range.size;
 		vk_region.dstFlags = vk::AddressCommandFlagBitsKHR::eFullyBound;
 	}
@@ -1345,14 +1320,14 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 	cmd.info.pRegions = cmd.regions.data();
 
 	addCmdResource(
-		*params.src_buffer,
+		params.src_buffer,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferRead,
 		}
 	);
 	addCmdResource(
-		*params.dst_buffer,
+		params.dst_buffer,
 		{
 			vk::PipelineStageFlagBits2::eCopy,
 			vk::AccessFlagBits2::eTransferWrite,
@@ -1364,13 +1339,12 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 {
 	COMMAND_PARSE
 
-	std::span<const BlitParams::Range> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : BLIT_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageBlit2> vk_regions{detail::BumpAllocator{*m_bump_memory}};
-	vk_regions.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_regions.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [src_vk_range, src_top_left, src_bottom_right, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsRectRange{}));
-		auto [dst_vk_range, dst_top_left, dst_bottom_right, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsRectRange{}));
+		auto [src_vk_range, src_top_left, src_bottom_right, src_byte_size] = resolveRange(params.src_image, range.src);
+		auto [dst_vk_range, dst_top_left, dst_bottom_right, dst_byte_size] = resolveRange(params.dst_image, range.dst);
 
 		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
 
@@ -1427,23 +1401,23 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 	};
 
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
-	cmd.info.srcImage = (*params.src_image)->getHandle();
+	cmd.info.srcImage = params.src_image->getHandle();
 	cmd.info.srcImageLayout = vk::ImageLayout::eGeneral;
-	cmd.info.dstImage = (*params.dst_image)->getHandle();
+	cmd.info.dstImage = params.dst_image->getHandle();
 	cmd.info.dstImageLayout = vk::ImageLayout::eGeneral;
 	cmd.info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	cmd.info.pRegions = cmd.regions.data();
-	cmd.info.filter = params.filter.value_or(vk::Filter::eNearest);
+	cmd.info.filter = params.filter;
 
 	addCmdResource(
-		*params.src_image,
+		params.src_image,
 		{
 			vk::PipelineStageFlagBits2::eBlit,
 			vk::AccessFlagBits2::eTransferRead,
 		}
 	);
 	addCmdResource(
-		*params.dst_image,
+		params.dst_image,
 		{
 			vk::PipelineStageFlagBits2::eBlit,
 			vk::AccessFlagBits2::eTransferWrite,
@@ -1455,18 +1429,13 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 {
 	COMMAND_PARSE
 
-	uint32_t layer_count = 1;
-	uint32_t view_mask = 0;
-	if (params.layer_mode)
-	{
-		std::visit(
-			Overloaded{
-				[&](const GraphicsPassParams::LayerCount& value) {layer_count = *value.value; view_mask = 0; },
-				[&](const GraphicsPassParams::MultiviewMask& value) {view_mask = *value.value; layer_count = 0; },
-			},
-			*params.layer_mode
-		);
-	}
+	auto [layer_count, view_mask] = std::visit(
+		Overloaded{
+			[&](const GraphicsPassParams::LayerCount& value) { return std::make_pair(value.value, 0u); },
+			[&](const GraphicsPassParams::MultiviewMask& value) { return std::make_pair(0u, value.value); },
+		},
+		params.layer_mode
+	);
 
 	uint32_t view_layer_count = layer_count > 0 ? layer_count : std::bit_width(view_mask);
 	if (view_layer_count == 0)
@@ -1488,23 +1457,18 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		}
 	};
 
-	auto color_attachments = params.color_attachments ? *params.color_attachments : std::span<const GraphicsPassParams::ColorAttachment>{};
 	boost::container::static_vector<vk::RenderingAttachmentInfo, 8> vk_color_attachments{};
-	for (const auto& attachment : color_attachments)
+	for (const auto& attachment : params.color_attachments)
 	{
-		uint32_t level = attachment.level ? *attachment.level : 0;
+		handle_implicit_extent(attachment.image, attachment.level);
 
-		handle_implicit_extent(*attachment.image, level);
-
-		vk::Format format = attachment.format ? *attachment.format : (*attachment.image)->getDesc().format;
-
-		uint32_t first_layer = attachment.first_layer ? *attachment.first_layer : 0;
+		vk::Format format = attachment.format ? *attachment.format : attachment.image->getDesc().format;
 
 		// clang-format off
-		vk::ImageView view = (*attachment.image)->getAttachmentView(
+		vk::ImageView view = attachment.image->getAttachmentView(
 			format,
-			level,
-			{first_layer, view_layer_count},
+			attachment.level,
+			{attachment.first_layer, view_layer_count},
 			vk::ImageAspectFlagBits::eColor,
 			vk::ImageUsageFlagBits::eColorAttachment
 		);
@@ -1519,17 +1483,13 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 					vk::ResolveModeFlagBits::eSampleZero :
 					vk::ResolveModeFlagBits::eAverage;
 
-			uint32_t resolve_level = attachment.resolve->level ? *attachment.resolve->level : 0;
-
-			handle_implicit_extent(*attachment.resolve->image, resolve_level);
-
-			uint32_t resolve_first_layer = attachment.resolve->first_layer ? *attachment.resolve->first_layer : 0;
+			handle_implicit_extent(attachment.resolve->image, attachment.resolve->level);
 
 			// clang-format off
-			resolve_view = (*attachment.resolve->image)->getAttachmentView(
+			resolve_view = attachment.resolve->image->getAttachmentView(
 				format,
-				resolve_level,
-				{resolve_first_layer, view_layer_count},
+				attachment.resolve->level,
+				{attachment.resolve->first_layer, view_layer_count},
 				vk::ImageAspectFlagBits::eColor,
 				vk::ImageUsageFlagBits::eColorAttachment
 			);
@@ -1537,21 +1497,21 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		}
 
 		vk::ClearColorValue clear_value{};
-		if (*attachment.load_op == vk::AttachmentLoadOp::eClear)
+		if (attachment.load_op == vk::AttachmentLoadOp::eClear)
 		{
 			clear_value = std::visit(
 				Overloaded{
 					[&](const glm::vec4& value) {
-						assert(!isColorFormatSINT((*attachment.image)->getDesc().format));
-						assert(!isColorFormatUINT((*attachment.image)->getDesc().format));
+						assert(!isColorFormatSINT(attachment.image->getDesc().format));
+						assert(!isColorFormatUINT(attachment.image->getDesc().format));
 						return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
 					},
 					[&](const glm::ivec4& value) {
-						assert(isColorFormatSINT((*attachment.image)->getDesc().format));
+						assert(isColorFormatSINT(attachment.image->getDesc().format));
 						return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
 					},
 					[&](const glm::uvec4& value) {
-						assert(isColorFormatUINT((*attachment.image)->getDesc().format));
+						assert(isColorFormatUINT(attachment.image->getDesc().format));
 						return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
 					},
 				},
@@ -1565,8 +1525,8 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		vk_attachment.resolveMode = resolve_mode;
 		vk_attachment.resolveImageView = resolve_view;
 		vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
-		vk_attachment.loadOp = *attachment.load_op;
-		vk_attachment.storeOp = *attachment.store_op;
+		vk_attachment.loadOp = attachment.load_op;
+		vk_attachment.storeOp = attachment.store_op;
 		vk_attachment.clearValue.color = clear_value;
 	}
 
@@ -1574,7 +1534,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	std::optional<vk::RenderingAttachmentInfo> vk_stencil_attachment;
 	if (params.depth_stencil_attachment)
 	{
-		auto aspects = getAspects((*params.depth_stencil_attachment->image)->getDesc().format);
+		auto aspects = getAspects(params.depth_stencil_attachment->image->getDesc().format);
 		bool aspects_have_depth = static_cast<bool>(aspects & vk::ImageAspectFlagBits::eDepth);
 		bool aspects_have_stencil = static_cast<bool>(aspects & vk::ImageAspectFlagBits::eStencil);
 
@@ -1583,11 +1543,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 
 		if (enable_depth || enable_stencil)
 		{
-			uint32_t level = params.depth_stencil_attachment->level ? *params.depth_stencil_attachment->level : 0;
-
-			handle_implicit_extent(*params.depth_stencil_attachment->image, level);
-
-			uint32_t first_layer = params.depth_stencil_attachment->first_layer ? *params.depth_stencil_attachment->first_layer : 0;
+			handle_implicit_extent(params.depth_stencil_attachment->image, params.depth_stencil_attachment->level);
 
 			vk::ImageAspectFlags actual_aspects;
 			if (enable_depth)
@@ -1600,10 +1556,10 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 			}
 
 			// clang-format off
-			vk::ImageView view = (*params.depth_stencil_attachment->image)->getAttachmentView(
-				(*params.depth_stencil_attachment->image)->getDesc().format,
-				level,
-				{first_layer, view_layer_count},
+			vk::ImageView view = params.depth_stencil_attachment->image->getAttachmentView(
+				params.depth_stencil_attachment->image->getDesc().format,
+				params.depth_stencil_attachment->level,
+				{params.depth_stencil_attachment->first_layer, view_layer_count},
 				actual_aspects,
 				vk::ImageUsageFlagBits::eDepthStencilAttachment
 			);
@@ -1616,30 +1572,20 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 			{
 				if (enable_depth)
 				{
-					depth_resolve_mode =
-						params.depth_stencil_attachment->resolve->depth_mode ?
-							*params.depth_stencil_attachment->resolve->depth_mode :
-							vk::ResolveModeFlagBits::eSampleZero;
+					depth_resolve_mode = params.depth_stencil_attachment->resolve->depth_mode;
 				}
 				if (enable_stencil)
 				{
-					stencil_resolve_mode =
-						params.depth_stencil_attachment->resolve->stencil_mode ?
-							*params.depth_stencil_attachment->resolve->stencil_mode :
-							vk::ResolveModeFlagBits::eSampleZero;
+					stencil_resolve_mode = params.depth_stencil_attachment->resolve->stencil_mode;
 				}
 
-				uint32_t resolve_level = params.depth_stencil_attachment->resolve->level ? *params.depth_stencil_attachment->resolve->level : 0;
-
-				handle_implicit_extent(*params.depth_stencil_attachment->resolve->image, resolve_level);
-
-				uint32_t resolve_first_layer = params.depth_stencil_attachment->resolve->first_layer ? *params.depth_stencil_attachment->resolve->first_layer : 0;
+				handle_implicit_extent(params.depth_stencil_attachment->resolve->image, params.depth_stencil_attachment->resolve->level);
 
 				// clang-format off
-				resolve_view = (*params.depth_stencil_attachment->resolve->image)->getAttachmentView(
-					(*params.depth_stencil_attachment->resolve->image)->getDesc().format,
-					resolve_level,
-					{resolve_first_layer, view_layer_count},
+				resolve_view = params.depth_stencil_attachment->resolve->image->getAttachmentView(
+					params.depth_stencil_attachment->resolve->image->getDesc().format,
+					params.depth_stencil_attachment->resolve->level,
+					{params.depth_stencil_attachment->resolve->first_layer, view_layer_count},
 					actual_aspects,
 					vk::ImageUsageFlagBits::eDepthStencilAttachment
 				);
@@ -1649,7 +1595,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 			if (enable_depth)
 			{
 				vk::ClearDepthStencilValue clear_value;
-				if (*params.depth_stencil_attachment->load_op == vk::AttachmentLoadOp::eClear)
+				if (params.depth_stencil_attachment->load_op == vk::AttachmentLoadOp::eClear)
 				{
 					clear_value.depth = params.depth_stencil_attachment->clear_depth_value.value();
 				}
@@ -1660,14 +1606,14 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 				vk_attachment.resolveMode = depth_resolve_mode;
 				vk_attachment.resolveImageView = resolve_view;
 				vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
-				vk_attachment.loadOp = *params.depth_stencil_attachment->load_op;
-				vk_attachment.storeOp = *params.depth_stencil_attachment->store_op;
+				vk_attachment.loadOp = params.depth_stencil_attachment->load_op;
+				vk_attachment.storeOp = params.depth_stencil_attachment->store_op;
 				vk_attachment.clearValue.depthStencil = clear_value;
 			}
 			if (enable_stencil)
 			{
 				vk::ClearDepthStencilValue clear_value;
-				if (*params.depth_stencil_attachment->load_op == vk::AttachmentLoadOp::eClear)
+				if (params.depth_stencil_attachment->load_op == vk::AttachmentLoadOp::eClear)
 				{
 					clear_value.stencil = params.depth_stencil_attachment->clear_stencil_value.value();
 				}
@@ -1678,8 +1624,8 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 				vk_attachment.resolveMode = stencil_resolve_mode;
 				vk_attachment.resolveImageView = resolve_view;
 				vk_attachment.resolveImageLayout = vk::ImageLayout::eGeneral;
-				vk_attachment.loadOp = *params.depth_stencil_attachment->load_op;
-				vk_attachment.storeOp = *params.depth_stencil_attachment->store_op;
+				vk_attachment.loadOp = params.depth_stencil_attachment->load_op;
+				vk_attachment.storeOp = params.depth_stencil_attachment->store_op;
 				vk_attachment.clearValue.depthStencil = clear_value;
 			}
 		}
@@ -1800,7 +1746,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	std::exception_ptr exception_ptr;
 	try
 	{
-		(*params.callback)(ctx);
+		params.callback(ctx);
 	}
 	catch (...)
 	{
@@ -1853,20 +1799,20 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 		return accesses;
 	};
 
-	for (const auto& attachment : color_attachments)
+	for (const auto& attachment : params.color_attachments)
 	{
 		addCmdResource(
-			*attachment.image,
+			attachment.image,
 			{
 				vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-				load_store_ops_to_accesses(*attachment.load_op, *attachment.store_op, true),
+				load_store_ops_to_accesses(attachment.load_op, attachment.store_op, true),
 			}
 		);
 
 		if (attachment.resolve)
 		{
 			addCmdResource(
-				*attachment.resolve->image,
+				attachment.resolve->image,
 				{
 					vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 					vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -1878,17 +1824,17 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	if (vk_depth_attachment || vk_stencil_attachment)
 	{
 		addCmdResource(
-			*params.depth_stencil_attachment->image,
+			params.depth_stencil_attachment->image,
 			{
 				vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-				load_store_ops_to_accesses(*params.depth_stencil_attachment->load_op, *params.depth_stencil_attachment->store_op, false),
+				load_store_ops_to_accesses(params.depth_stencil_attachment->load_op, params.depth_stencil_attachment->store_op, false),
 			}
 		);
 
 		if (params.depth_stencil_attachment->resolve)
 		{
 			addCmdResource(
-				*params.depth_stencil_attachment->resolve->image,
+				params.depth_stencil_attachment->resolve->image,
 				{
 					vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 					vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -1971,7 +1917,7 @@ void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
 	auto& cmd = addCmd<CmdCallback>(true, *m_bump_memory);
 
 	ComputePassContext ctx{*this, cmd.dispatch_cmds};
-	(*params.callback)(ctx);
+	params.callback(ctx);
 }
 
 void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
@@ -2002,10 +1948,10 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 
 	auto& cmd = addCmd<CmdCallback>(true);
 
-	auto vertex_range = std::get<0>(resolveRange(*params.vertex_buffer->buffer, params.vertex_buffer->range.value_or(BufferRange{})));
+	auto vertex_range = std::get<0>(resolveRange(params.vertex_buffer.buffer, params.vertex_buffer.range));
 
 	addCmdResource(
-		*params.vertex_buffer->buffer,
+		params.vertex_buffer.buffer,
 		{
 			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 			vk::AccessFlagBits2::eShaderRead,
@@ -2015,10 +1961,10 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 	cgpu::Range<vk::DeviceSize> index_range;
 	if (params.index_buffer)
 	{
-		index_range = std::get<0>(resolveRange(*params.index_buffer->buffer, params.index_buffer->range.value_or(BufferRange{})));
+		index_range = std::get<0>(resolveRange(params.index_buffer->buffer, params.index_buffer->range));
 
 		addCmdResource(
-			*params.index_buffer->buffer,
+			params.index_buffer->buffer,
 			{
 				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 				vk::AccessFlagBits2::eShaderRead,
@@ -2029,10 +1975,10 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 	cgpu::Range<vk::DeviceSize> scratch_range;
 	if (params.scratch_buffer)
 	{
-		scratch_range = std::get<0>(resolveRange(*params.scratch_buffer->buffer, params.scratch_buffer->range.value_or(BufferRange{})));
+		scratch_range = std::get<0>(resolveRange(params.scratch_buffer->buffer, params.scratch_buffer->range));
 
 		addCmdResource(
-			*params.scratch_buffer->buffer,
+			params.scratch_buffer->buffer,
 			{
 				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 				vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
@@ -2041,27 +1987,27 @@ void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
 	}
 
 	addCmdResource(
-		(*params.blas)->getBuffer(),
+		params.blas->getBuffer(),
 		{
 			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 			vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
 		}
 	);
 
-	BLAS::fillVkStructs((*params.blas)->getDesc().as_info, cmd.vk_structs);
+	BLAS::fillVkStructs(params.blas->getDesc().as_info, cmd.vk_structs);
 
-	cmd.vk_structs.geometry_info.geometry.triangles.vertexData.deviceAddress = (*params.vertex_buffer->buffer)->getDevicePtr(vertex_range.offset);
-	cmd.vk_structs.geometry_info.geometry.triangles.indexData.deviceAddress = params.index_buffer ? (*params.index_buffer->buffer)->getDevicePtr(index_range.offset) : 0;
+	cmd.vk_structs.geometry_info.geometry.triangles.vertexData.deviceAddress = params.vertex_buffer.buffer->getDevicePtr(vertex_range.offset);
+	cmd.vk_structs.geometry_info.geometry.triangles.indexData.deviceAddress = params.index_buffer ? params.index_buffer->buffer->getDevicePtr(index_range.offset) : 0;
 
-	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = (*params.blas)->getHandle();
-	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
+	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = params.blas->getHandle();
+	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? params.scratch_buffer->buffer->getDevicePtr(scratch_range.offset) : 0;
 
 	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
 	cmd.range_info.primitiveOffset = 0;
 	cmd.range_info.firstVertex = 0;
 	cmd.range_info.transformOffset = 0;
 
-	addReferencedObject(*params.blas);
+	addReferencedObject(params.blas);
 }
 
 void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
@@ -2095,25 +2041,25 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 	cgpu::Range<vk::DeviceSize> instance_range;
 	if (params.instance_info)
 	{
-		instance_range = std::get<0>(resolveRange(*params.instance_info->buffer->buffer, params.instance_info->buffer->range.value_or(BufferRange{})));
+		instance_range = std::get<0>(resolveRange(params.instance_info->buffer.buffer, params.instance_info->buffer.range));
 
-		assert(instance_range.size == params.instance_info->data->size() * sizeof(vk::AccelerationStructureInstanceKHR));
-		assert(((*params.instance_info->buffer->buffer)->getDevicePtr() + instance_range.offset) % 16 == 0);
+		assert(instance_range.size == params.instance_info->data.size() * sizeof(vk::AccelerationStructureInstanceKHR));
+		assert((params.instance_info->buffer.buffer->getDevicePtr() + instance_range.offset) % 16 == 0);
 
-		auto* instance_ptr = (*params.instance_info->buffer->buffer)->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
-		for (const auto& instance : *params.instance_info->data)
+		auto* instance_ptr = params.instance_info->buffer.buffer->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
+		for (const auto& instance : params.instance_info->data)
 		{
-			std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(glm::transpose(*instance.local_to_world)), sizeof(glm::mat3x4));
-			instance_ptr->instanceCustomIndex = instance.custom_index.value_or(0);
-			instance_ptr->mask = instance.mask.value_or(0xFF);
-			instance_ptr->instanceShaderBindingTableRecordOffset = instance.sbt_record_offset.value_or(0);
-			instance_ptr->flags = static_cast<VkGeometryInstanceFlagsKHR>(instance.flags.value_or(vk::GeometryInstanceFlagsKHR{}));
-			instance_ptr->accelerationStructureReference = (*instance.blas)->getDevicePtr();
+			std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(glm::transpose(instance.local_to_world)), sizeof(glm::mat3x4));
+			instance_ptr->instanceCustomIndex = instance.custom_index;
+			instance_ptr->mask = instance.mask;
+			instance_ptr->instanceShaderBindingTableRecordOffset = instance.sbt_record_offset;
+			instance_ptr->flags = static_cast<VkGeometryInstanceFlagsKHR>(instance.flags);
+			instance_ptr->accelerationStructureReference = instance.blas->getDevicePtr();
 
 			instance_ptr++;
 
 			addCmdResource(
-				(*instance.blas)->getBuffer(),
+				instance.blas->getBuffer(),
 				{
 					vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 					vk::AccessFlagBits2::eShaderRead,
@@ -2122,7 +2068,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 		}
 
 		addCmdResource(
-			*params.instance_info->buffer->buffer,
+			params.instance_info->buffer.buffer,
 			{
 				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 				vk::AccessFlagBits2::eShaderRead,
@@ -2133,10 +2079,10 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 	cgpu::Range<vk::DeviceSize> scratch_range;
 	if (params.scratch_buffer)
 	{
-		scratch_range = std::get<0>(resolveRange(*params.scratch_buffer->buffer, params.scratch_buffer->range.value_or(BufferRange{})));
+		scratch_range = std::get<0>(resolveRange(params.scratch_buffer->buffer, params.scratch_buffer->range));
 
 		addCmdResource(
-			*params.scratch_buffer->buffer,
+			params.scratch_buffer->buffer,
 			{
 				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 				vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
@@ -2145,19 +2091,19 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 	}
 
 	addCmdResource(
-		(*params.tlas)->getBuffer(),
+		params.tlas->getBuffer(),
 		{
 			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
 			vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
 		}
 	);
 
-	TLAS::fillVkStructs((*params.tlas)->getDesc().as_info, cmd.vk_structs);
+	TLAS::fillVkStructs(params.tlas->getDesc().as_info, cmd.vk_structs);
 
-	cmd.vk_structs.geometry_info.geometry.instances.data.deviceAddress = params.instance_info ? (*params.instance_info->buffer->buffer)->getDevicePtr(instance_range.offset) : 0;
+	cmd.vk_structs.geometry_info.geometry.instances.data.deviceAddress = params.instance_info ? params.instance_info->buffer.buffer->getDevicePtr(instance_range.offset) : 0;
 
-	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = (*params.tlas)->getHandle();
-	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? (*params.scratch_buffer->buffer)->getDevicePtr(scratch_range.offset) : 0;
+	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = params.tlas->getHandle();
+	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? params.scratch_buffer->buffer->getDevicePtr(scratch_range.offset) : 0;
 
 	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
 	cmd.range_info.primitiveOffset = 0;
@@ -2166,13 +2112,13 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 
 	if (params.instance_info)
 	{
-		for (const auto& instance : *params.instance_info->data)
+		for (const auto& instance : params.instance_info->data)
 		{
-			addReferencedObject(*instance.blas);
+			addReferencedObject(instance.blas);
 		}
 	}
 
-	addReferencedObject(*params.tlas);
+	addReferencedObject(params.tlas);
 }
 
 void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
@@ -2202,10 +2148,10 @@ void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 
 	auto& cmd = addCmd<CmdCallback>(false);
 
-	cmd.barrier.srcStageMask = params.src_stages ? *params.src_stages : vk::PipelineStageFlagBits2::eAllCommands;
-	cmd.barrier.srcAccessMask = params.src_accesses ? *params.src_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
-	cmd.barrier.dstStageMask = params.dst_stages ? *params.dst_stages : vk::PipelineStageFlagBits2::eAllCommands;
-	cmd.barrier.dstAccessMask = params.dst_accesses ? *params.dst_accesses : vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+	cmd.barrier.srcStageMask = params.src_stages;
+	cmd.barrier.srcAccessMask = params.src_accesses;
+	cmd.barrier.dstStageMask = params.dst_stages;
+	cmd.barrier.dstAccessMask = params.dst_accesses;
 
 	cmd.info.dependencyFlags = {};
 	cmd.info.memoryBarrierCount = 1;
@@ -2221,13 +2167,12 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 	COMMAND_PARSE
 
 	vk::ImageAspectFlags aspects_in_ranges;
-	std::span<const ResolveParams::Range> ranges = params.ranges ? std::span{std::as_const(*params.ranges)} : RESOLVE_DEFAULT_RANGE;
 	detail::BumpVector<vk::ImageResolve2> vk_regions{detail::BumpAllocator{*m_bump_memory}};
-	vk_regions.reserve(ranges.size());
-	for (const auto& range : ranges)
+	vk_regions.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(*params.src_image, range.src.value_or(ImageLevelLayersAspectsPixelsRange{}));
-		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(*params.dst_image, range.dst.value_or(ImageLevelLayersAspectsPixelsRange{}));
+		auto [src_vk_range, src_pixel_range, src_byte_size] = resolveRange(params.src_image, range.src);
+		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(params.dst_image, range.dst);
 
 		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
 		assert(src_vk_range.aspectMask == dst_vk_range.aspectMask && "Image ranges must have the same aspects.");
@@ -2289,9 +2234,9 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_regions));
 
 	auto& resolve_info = cmd.chain.get<vk::ResolveImageInfo2>();
-	resolve_info.srcImage = (*params.src_image)->getHandle();
+	resolve_info.srcImage = params.src_image->getHandle();
 	resolve_info.srcImageLayout = vk::ImageLayout::eGeneral;
-	resolve_info.dstImage = (*params.dst_image)->getHandle();
+	resolve_info.dstImage = params.dst_image->getHandle();
 	resolve_info.dstImageLayout = vk::ImageLayout::eGeneral;
 	resolve_info.regionCount = static_cast<uint32_t>(cmd.regions.size());
 	resolve_info.pRegions = cmd.regions.data();
@@ -2303,28 +2248,28 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 	if (aspects_in_ranges & vk::ImageAspectFlagBits::eColor)
 	{
 		resolve_mode_info.resolveMode =
-			isColorFormatSINT((*params.src_image)->getDesc().format) || isColorFormatUINT((*params.src_image)->getDesc().format) ?
+			isColorFormatSINT(params.src_image->getDesc().format) || isColorFormatUINT(params.src_image->getDesc().format) ?
 				vk::ResolveModeFlagBits::eSampleZero :
 				vk::ResolveModeFlagBits::eAverage;
 	}
 	if (aspects_in_ranges & vk::ImageAspectFlagBits::eDepth)
 	{
-		resolve_mode_info.resolveMode = params.depth_mode ? *params.depth_mode : vk::ResolveModeFlagBits::eSampleZero;
+		resolve_mode_info.resolveMode = params.depth_mode;
 	}
 	if (aspects_in_ranges & vk::ImageAspectFlagBits::eStencil)
 	{
-		resolve_mode_info.stencilResolveMode = params.stencil_mode ? *params.stencil_mode : vk::ResolveModeFlagBits::eSampleZero;
+		resolve_mode_info.stencilResolveMode = params.stencil_mode;
 	}
 
 	addCmdResource(
-		*params.src_image,
+		params.src_image,
 		{
 			vk::PipelineStageFlagBits2::eResolve,
 			vk::AccessFlagBits2::eTransferRead,
 		}
 	);
 	addCmdResource(
-		*params.dst_image,
+		params.dst_image,
 		{
 			vk::PipelineStageFlagBits2::eResolve,
 			vk::AccessFlagBits2::eTransferWrite,

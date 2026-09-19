@@ -4,6 +4,12 @@
 #include <string_view>
 #include <vulkan/vulkan.hpp>
 
+#if __has_cpp_attribute(clang::require_explicit_initialization)
+#	define CGPU_REQUIRED [[clang::require_explicit_initialization]]
+#else
+#	define CGPU_REQUIRED
+#endif
+
 namespace cgpu
 {
 struct StringHash : std::hash<std::string_view>

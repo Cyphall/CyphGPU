@@ -126,9 +126,9 @@ void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmd_rec, ImTextureDa
 		.dst_image = btd.image,
 		.ranges = {{
 			{
-				.dst = {{
+				.dst = {
 					.pixels = {{{upload_region.offset, 0}, {upload_region.size, 1}}},
-				}},
+				},
 			},
 		}},
 	});
@@ -366,13 +366,15 @@ void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::Command
 	}
 
 	cmd_rec.graphicsPass({
-		.color_attachments = {{{
-			.image = output_image,
-			.format = cgpu::getLinearEquivalent(output_image->getDesc().format),
-			.load_op = vk::AttachmentLoadOp::eLoad,
-			.store_op = vk::AttachmentStoreOp::eStore,
-			.clear_color_value = glm::vec4{0.0f, 0.0f, 0.0f, 1.0f},
-		}}},
+		.color_attachments = {
+			{
+				.image = output_image,
+				.format = cgpu::getLinearEquivalent(output_image->getDesc().format),
+				.load_op = vk::AttachmentLoadOp::eLoad,
+				.store_op = vk::AttachmentStoreOp::eStore,
+				.clear_color_value = glm::vec4{0.0f, 0.0f, 0.0f, 1.0f},
+			},
+		},
 		.callback = [&](cgpu::GraphicsPassContext& ctx) {
 			ImGui_ImplCyphGPU_RenderState render_state{
 				.ctx = &ctx,

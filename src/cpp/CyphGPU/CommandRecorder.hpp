@@ -6,6 +6,7 @@
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/Utils.hpp>
 
+#include <array>
 #include <boost/container/static_vector.hpp>
 #include <glm/glm.hpp>
 #include <memory>
@@ -19,51 +20,6 @@ class ScopedDebugRegion;
 class CommandRecorder
 {
 public:
-	template<class T>
-	struct Req
-	{
-		T value;
-
-		Req() = delete;
-
-		template<class... TArgs>
-		requires(std::constructible_from<T, TArgs...>)
-		Req(TArgs&&... args):
-			value{std::forward<TArgs>(args)...}
-		{}
-
-		Req(const T& value):
-			value{value}
-		{}
-
-		Req(T&& value):
-			value{std::move(value)}
-		{}
-
-		T& operator*()
-		{
-			return value;
-		}
-
-		std::add_const_t<T>& operator*() const
-		{
-			return value;
-		}
-
-		T* operator->()
-		{
-			return std::addressof(value);
-		}
-
-		std::add_const_t<T>* operator->() const
-		{
-			return std::addressof(value);
-		}
-	};
-
-	template<class T>
-	using Opt = std::optional<T>;
-
 	class SubmitHandle
 	{
 	public:
@@ -96,42 +52,42 @@ public:
 
 	struct ImageLevelsLayersRange
 	{
-		/// Default: All levels.
-		Opt<Range<uint32_t>> levels{};
-		/// Default: All layers.
-		Opt<Range<uint32_t>> layers{};
+		/// Optional. Default: All levels.
+		std::optional<Range<uint32_t>> levels{};
+		/// Optional. Default: All layers.
+		std::optional<Range<uint32_t>> layers{};
 	};
 
 	struct ImageLevelLayersAspectsPixelsRange
 	{
-		/// Default: Level 0.
-		Opt<uint32_t> level{};
-		/// Default: All layers.
-		Opt<Range<uint32_t>> layers{};
-		/// Default: All aspects.
-		Opt<vk::ImageAspectFlags> aspects{};
-		/// Default: All pixels.
-		Opt<Range<glm::uvec3>> pixels{};
+		/// Optional. Default: Level 0.
+		uint32_t level{0};
+		/// Optional. Default: All layers.
+		std::optional<Range<uint32_t>> layers{};
+		/// Optional. Default: All aspects.
+		std::optional<vk::ImageAspectFlags> aspects{};
+		/// Optional. Default: All pixels.
+		std::optional<Range<glm::uvec3>> pixels{};
 	};
 
 	struct ImageLevelLayersAspectsRectRange
 	{
-		/// Default: Level 0.
-		Opt<uint32_t> level{};
-		/// Default: All layers.
-		Opt<Range<uint32_t>> layers{};
-		/// Default: All aspects.
-		Opt<vk::ImageAspectFlags> aspects{};
-		/// Default: [0, 0, 0].
-		Opt<glm::uvec3> top_left{};
-		/// Default: Image extent.
-		Opt<glm::uvec3> bottom_right{};
+		/// Optional. Default: Level 0.
+		uint32_t level{0};
+		/// Optional. Default: All layers.
+		std::optional<Range<uint32_t>> layers{};
+		/// Optional. Default: All aspects.
+		std::optional<vk::ImageAspectFlags> aspects{};
+		/// Optional. Default: [0, 0, 0].
+		glm::uvec3 top_left{0, 0, 0};
+		/// Optional. Default: Image extent.
+		std::optional<glm::uvec3> bottom_right{};
 	};
 
 	struct BufferRange
 	{
-		/// Default: All bytes.
-		Opt<Range<vk::DeviceSize>> byte_range{};
+		/// Optional. Default: All bytes.
+		std::optional<Range<vk::DeviceSize>> byte_range{};
 	};
 
 	using ColorValue = std::variant<glm::vec4, glm::ivec4, glm::uvec4>;
@@ -142,15 +98,18 @@ public:
 
 	struct ClearImageParams
 	{
-		Req<ImagePtr> image;
-		/// Default: One default-initialized range.
-		Opt<std::vector<ImageLevelsLayersRange>> ranges{};
-		/// Default: Empty (no color clear).
-		Opt<ColorValue> color_value{};
-		/// Default: Empty (no depth clear).
-		Opt<DepthValue> depth_value{};
-		/// Default: Empty (no stencil clear).
-		Opt<StencilValue> stencil_value{};
+		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
+		/// Optional. Default: Empty (no color clear).
+		std::optional<ColorValue> color_value{};
+		/// Optional. Default: Empty (no depth clear).
+		std::optional<DepthValue> depth_value{};
+		/// Optional. Default: Empty (no stencil clear).
+		std::optional<StencilValue> stencil_value{};
 	};
 
 	void clearImage(ClearImageParams&& params);
@@ -159,16 +118,20 @@ public:
 	{
 		struct Range
 		{
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsPixelsRange> src{};
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsPixelsRange src{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsPixelsRange dst{};
 		};
 
-		Req<ImagePtr> src_image;
-		Req<ImagePtr> dst_image;
-		/// Default: One default-initialized range.
-		Opt<std::vector<Range>> ranges{};
+		static const std::array<Range, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr src_image CGPU_REQUIRED;
+		/// Required.
+		ImagePtr dst_image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const Range> ranges{DEFAULT_RANGE};
 	};
 
 	void copyImageToImage(CopyImageToImageParams&& params);
@@ -177,16 +140,20 @@ public:
 	{
 		struct Range
 		{
-			/// Default: Default-initialized range.
-			Opt<BufferRange> src{};
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+			/// Optional. Default: Default-initialized range.
+			BufferRange src{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsPixelsRange dst{};
 		};
 
-		Req<BufferPtr> src_buffer;
-		Req<ImagePtr> dst_image;
-		/// Default: One default-initialized range.
-		Opt<std::vector<Range>> ranges{};
+		static const std::array<Range, 1> DEFAULT_RANGE;
+
+		/// Required.
+		BufferPtr src_buffer CGPU_REQUIRED;
+		/// Required.
+		ImagePtr dst_image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const Range> ranges{DEFAULT_RANGE};
 	};
 
 	void copyBufferToImage(CopyBufferToImageParams&& params);
@@ -195,16 +162,20 @@ public:
 	{
 		struct Range
 		{
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsPixelsRange> src{};
-			/// Default: Default-initialized range.
-			Opt<BufferRange> dst{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsPixelsRange src{};
+			/// Optional. Default: Default-initialized range.
+			BufferRange dst{};
 		};
 
-		Req<ImagePtr> src_image;
-		Req<BufferPtr> dst_buffer;
-		/// Default: One default-initialized range.
-		Opt<std::vector<Range>> ranges{};
+		static const std::array<Range, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr src_image CGPU_REQUIRED;
+		/// Required.
+		BufferPtr dst_buffer CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const Range> ranges{DEFAULT_RANGE};
 	};
 
 	void copyImageToBuffer(CopyImageToBufferParams&& params);
@@ -213,16 +184,20 @@ public:
 	{
 		struct Range
 		{
-			/// Default: Default-initialized range.
-			Opt<BufferRange> src{};
-			/// Default: Default-initialized range.
-			Opt<BufferRange> dst{};
+			/// Optional. Default: Default-initialized range.
+			BufferRange src{};
+			/// Optional. Default: Default-initialized range.
+			BufferRange dst{};
 		};
 
-		Req<BufferPtr> src_buffer;
-		Req<BufferPtr> dst_buffer;
-		/// Default: One default-initialized range.
-		Opt<std::vector<Range>> ranges{};
+		static const std::array<Range, 1> DEFAULT_RANGE;
+
+		/// Required.
+		BufferPtr src_buffer CGPU_REQUIRED;
+		/// Required.
+		BufferPtr dst_buffer CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const Range> ranges{DEFAULT_RANGE};
 	};
 
 	void copyBufferToBuffer(CopyBufferToBufferParams&& params);
@@ -231,18 +206,22 @@ public:
 	{
 		struct Range
 		{
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsRectRange> src{};
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsRectRange> dst{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsRectRange src{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsRectRange dst{};
 		};
 
-		Req<ImagePtr> src_image;
-		Req<ImagePtr> dst_image;
-		/// Default: Nearest.
-		Opt<vk::Filter> filter{};
-		/// Default: One default-initialized range.
-		Opt<std::vector<Range>> ranges{};
+		static const std::array<Range, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr src_image CGPU_REQUIRED;
+		/// Required.
+		ImagePtr dst_image CGPU_REQUIRED;
+		/// Optional. Default: Nearest.
+		vk::Filter filter{vk::Filter::eNearest};
+		/// Optional. Default: One default-initialized range.
+		std::span<const Range> ranges{DEFAULT_RANGE};
 	};
 
 	void blit(BlitParams&& params);
@@ -253,90 +232,102 @@ public:
 		{
 			struct Resolve
 			{
-				Req<ImagePtr> image;
-				/// Default: Level 0.
-				Opt<uint32_t> level{};
-				/// Default: Layer 0.
-				Opt<uint32_t> first_layer{};
+				/// Required.
+				ImagePtr image CGPU_REQUIRED;
+				/// Optional. Default: Level 0.
+				uint32_t level{0};
+				/// Optional. Default: Layer 0.
+				uint32_t first_layer{0};
 			};
 
-			Req<ImagePtr> image;
-			/// Default: Image format.
-			Opt<vk::Format> format{};
-			/// Default: Level 0.
-			Opt<uint32_t> level{};
-			/// Default: Layer 0.
-			Opt<uint32_t> first_layer{};
-			Req<vk::AttachmentLoadOp> load_op;
-			Req<vk::AttachmentStoreOp> store_op;
-			/// Default: Empty. Must be set if load_op == eClear.
-			Opt<ColorValue> clear_color_value{};
-			/// Default: No resolve.
-			Opt<Resolve> resolve{};
+			/// Required.
+			ImagePtr image CGPU_REQUIRED;
+			/// Optional. Default: Image format.
+			std::optional<vk::Format> format{};
+			/// Optional. Default: Level 0.
+			uint32_t level{0};
+			/// Optional. Default: Layer 0.
+			uint32_t first_layer{0};
+			/// Required.
+			vk::AttachmentLoadOp load_op CGPU_REQUIRED;
+			/// Required.
+			vk::AttachmentStoreOp store_op CGPU_REQUIRED;
+			/// Optional. Default: Empty. Must be set if load_op == eClear.
+			std::optional<ColorValue> clear_color_value{};
+			/// Optional. Default: No resolve.
+			std::optional<Resolve> resolve{};
 		};
 
 		struct DepthStencilAttachment
 		{
 			struct Resolve
 			{
-				Req<ImagePtr> image;
-				/// Default: SampleZero. Only used when depth is enabled.
-				Opt<vk::ResolveModeFlagBits> depth_mode{};
-				/// Default: SampleZero. Only used when stencil is enabled.
-				Opt<vk::ResolveModeFlagBits> stencil_mode{};
-				/// Default: Level 0.
-				Opt<uint32_t> level{};
-				/// Default: Layer 0.
-				Opt<uint32_t> first_layer{};
+				/// Required.
+				ImagePtr image CGPU_REQUIRED;
+				/// Optional. Default: SampleZero. Only used when depth is enabled.
+				vk::ResolveModeFlagBits depth_mode{vk::ResolveModeFlagBits::eSampleZero};
+				/// Optional. Default: SampleZero. Only used when stencil is enabled.
+				vk::ResolveModeFlagBits stencil_mode{vk::ResolveModeFlagBits::eSampleZero};
+				/// Optional. Default: Level 0.
+				uint32_t level{0};
+				/// Optional. Default: Layer 0.
+				uint32_t first_layer{0};
 			};
 
-			Req<ImagePtr> image;
-			/// Default: Level 0.
-			Opt<uint32_t> level{};
-			/// Defaul: Layer 0.
-			Opt<uint32_t> first_layer{};
-			/// Default: True if the format has a depth aspect.
-			Opt<bool> enable_depth{};
-			/// Default: True if the format has a stencil aspect.
-			Opt<bool> enable_stencil{};
-			Req<vk::AttachmentLoadOp> load_op;
-			Req<vk::AttachmentStoreOp> store_op;
-			/// Default: Empty. Must be set if load_op == eClear and depth is enabled.
-			Opt<DepthValue> clear_depth_value{};
-			/// Default: Empty. Must be set if load_op == eClear and stencil is enabled.
-			Opt<StencilValue> clear_stencil_value{};
-			/// Default: No resolve.
-			Opt<Resolve> resolve{};
+			/// Required.
+			ImagePtr image CGPU_REQUIRED;
+			/// Optional. Default: Level 0.
+			uint32_t level{0};
+			/// Optional. Default: Layer 0.
+			uint32_t first_layer{0};
+			/// Optional. Default: True if the format has a depth aspect.
+			std::optional<bool> enable_depth{};
+			/// Optional. Default: True if the format has a stencil aspect.
+			std::optional<bool> enable_stencil{};
+			/// Required.
+			vk::AttachmentLoadOp load_op CGPU_REQUIRED;
+			/// Required.
+			vk::AttachmentStoreOp store_op CGPU_REQUIRED;
+			/// Optional. Default: Empty. Must be set if load_op == eClear and depth is enabled.
+			std::optional<DepthValue> clear_depth_value{};
+			/// Optional. Default: Empty. Must be set if load_op == eClear and stencil is enabled.
+			std::optional<StencilValue> clear_stencil_value{};
+			/// Optional. Default: No resolve.
+			std::optional<Resolve> resolve{};
 		};
 
 		struct LayerCount
 		{
-			Req<uint32_t> value;
+			/// Required.
+			uint32_t value CGPU_REQUIRED;
 		};
 
 		struct MultiviewMask
 		{
-			Req<uint32_t> value;
+			/// Required.
+			uint32_t value CGPU_REQUIRED;
 		};
 
-		/// Default: Attachment images extent.
+		/// Optional. Default: Attachment images extent.
 		///
 		/// Must be set if there is no attachment or if attachments have different extents.
-		Opt<Range<glm::uvec2>> render_area{};
-		/// Default: Single layer.
-		Opt<std::variant<LayerCount, MultiviewMask>> layer_mode{};
-		/// Default: No color attachment.
-		Opt<boost::container::static_vector<ColorAttachment, 8>> color_attachments{};
-		/// Default: No depth-stencil attachment.
-		Opt<DepthStencilAttachment> depth_stencil_attachment{};
-		Req<std::function<void(GraphicsPassContext& ctx)>> callback;
+		std::optional<Range<glm::uvec2>> render_area{};
+		/// Optional. Default: Single layer.
+		std::variant<LayerCount, MultiviewMask> layer_mode{LayerCount{1}};
+		/// Optional. Default: No color attachment.
+		boost::container::static_vector<ColorAttachment, 8> color_attachments{};
+		/// Optional. Default: No depth-stencil attachment.
+		std::optional<DepthStencilAttachment> depth_stencil_attachment{};
+		/// Required.
+		std::function<void(GraphicsPassContext& ctx)> callback CGPU_REQUIRED;
 	};
 
 	void graphicsPass(GraphicsPassParams&& params);
 
 	struct ComputePassParams
 	{
-		Req<std::function<void(ComputePassContext& ctx)>> callback;
+		/// Required.
+		std::function<void(ComputePassContext& ctx)> callback CGPU_REQUIRED;
 	};
 
 	void computePass(ComputePassParams&& params);
@@ -345,32 +336,37 @@ public:
 	{
 		struct VertexBuffer
 		{
-			Req<BufferPtr> buffer;
-			/// Default: Default-initialized range.
-			Opt<BufferRange> range{};
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
 		};
 
 		struct IndexBuffer
 		{
-			Req<BufferPtr> buffer;
-			/// Default: Default-initialized range.
-			Opt<BufferRange> range{};
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
 		};
 
 		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
 		struct ScratchBuffer
 		{
-			Req<BufferPtr> buffer;
-			/// Default: Default-initialized range.
-			Opt<BufferRange> range{};
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
 		};
 
-		Req<BLASPtr> blas;
-		Req<VertexBuffer> vertex_buffer;
-		/// Default: No index buffer.
-		Opt<IndexBuffer> index_buffer{};
-		/// Default: No scratch buffer.
-		Opt<ScratchBuffer> scratch_buffer{};
+		/// Required.
+		BLASPtr blas CGPU_REQUIRED;
+		/// Required.
+		VertexBuffer vertex_buffer CGPU_REQUIRED;
+		/// Optional. Default: No index buffer.
+		std::optional<IndexBuffer> index_buffer{};
+		/// Optional. Default: No scratch buffer.
+		std::optional<ScratchBuffer> scratch_buffer{};
 	};
 
 	void buildBLAS(BLASParams&& params);
@@ -379,16 +375,18 @@ public:
 	{
 		struct Instance
 		{
-			Req<BLASPtr> blas;
-			Req<glm::mat4x3> local_to_world;
-			/// Default: 0.
-			Opt<uint32_t> custom_index{};
-			/// Default: 0xFF.
-			Opt<uint8_t> mask{};
-			/// Default: 0.
-			Opt<uint32_t> sbt_record_offset{};
-			/// Default: 0.
-			Opt<vk::GeometryInstanceFlagsKHR> flags{};
+			/// Required.
+			BLASPtr blas CGPU_REQUIRED;
+			/// Required.
+			glm::mat4x3 local_to_world CGPU_REQUIRED;
+			/// Optional. Default: 0.
+			uint32_t custom_index{0};
+			/// Optional. Default: 0xFF.
+			uint8_t mask{0xFF};
+			/// Optional. Default: 0.
+			uint32_t sbt_record_offset{0};
+			/// Optional. Default: No flag.
+			vk::GeometryInstanceFlagsKHR flags{};
 		};
 
 		/// Must have a size of N * sizeof(vk::AccelerationStructureInstanceKHR) structs, where N being the number of instances.
@@ -396,44 +394,49 @@ public:
 		/// Must be aligned to 16 bytes.
 		struct InstancesBuffer
 		{
-			Req<BufferPtr> buffer;
-			/// Default: Default-initialized range.
-			Opt<BufferRange> range{};
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
 		};
 
 		struct InstanceInfo
 		{
-			Req<std::vector<Instance>> data;
-			Req<InstancesBuffer> buffer;
+			/// Required.
+			std::span<const Instance> data CGPU_REQUIRED;
+			/// Required.
+			InstancesBuffer buffer CGPU_REQUIRED;
 		};
 
 		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
 		struct ScratchBuffer
 		{
-			Req<BufferPtr> buffer;
-			/// Default: Default-initialized range.
-			Opt<BufferRange> range{};
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
 		};
 
-		Req<TLASPtr> tlas;
-		/// Default: No instance.
-		Opt<InstanceInfo> instance_info;
-		/// Default: No scratch buffer.
-		Opt<ScratchBuffer> scratch_buffer{};
+		/// Required.
+		TLASPtr tlas CGPU_REQUIRED;
+		/// Optional. Default: No instance.
+		std::optional<InstanceInfo> instance_info{};
+		/// Optional. Default: No scratch buffer.
+		std::optional<ScratchBuffer> scratch_buffer{};
 	};
 
 	void buildTLAS(TLASParams&& params);
 
 	struct DebugBarrierParams
 	{
-		/// Default: All commands.
-		Opt<vk::PipelineStageFlags2> src_stages;
-		/// Default: All accesses.
-		Opt<vk::AccessFlags2> src_accesses;
-		/// Default: All commands.
-		Opt<vk::PipelineStageFlags2> dst_stages;
-		/// Default: All accesses.
-		Opt<vk::AccessFlags2> dst_accesses;
+		/// Optional. Default: All commands.
+		vk::PipelineStageFlags2 src_stages{vk::PipelineStageFlagBits2::eAllCommands};
+		/// Optional. Default: All accesses.
+		vk::AccessFlags2 src_accesses{vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite};
+		/// Optional. Default: All commands.
+		vk::PipelineStageFlags2 dst_stages{vk::PipelineStageFlagBits2::eAllCommands};
+		/// Optional. Default: All accesses.
+		vk::AccessFlags2 dst_accesses{vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite};
 	};
 
 	void debugBarrier(DebugBarrierParams&& params);
@@ -442,20 +445,24 @@ public:
 	{
 		struct Range
 		{
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsPixelsRange> src{};
-			/// Default: Default-initialized range.
-			Opt<ImageLevelLayersAspectsPixelsRange> dst{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsPixelsRange src{};
+			/// Optional. Default: Default-initialized range.
+			ImageLevelLayersAspectsPixelsRange dst{};
 		};
 
-		Req<ImagePtr> src_image;
-		Req<ImagePtr> dst_image;
-		/// Default: One default-initialized range.
-		Opt<std::vector<Range>> ranges{};
-		/// Default: SampleZero.
-		Opt<vk::ResolveModeFlagBits> depth_mode{};
-		/// Default: SampleZero.
-		Opt<vk::ResolveModeFlagBits> stencil_mode{};
+		static const std::array<Range, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr src_image CGPU_REQUIRED;
+		/// Required.
+		ImagePtr dst_image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const Range> ranges{DEFAULT_RANGE};
+		/// Optional. Default: SampleZero.
+		vk::ResolveModeFlagBits depth_mode{vk::ResolveModeFlagBits::eSampleZero};
+		/// Optional. Default: SampleZero.
+		vk::ResolveModeFlagBits stencil_mode{vk::ResolveModeFlagBits::eSampleZero};
 	};
 
 	void resolve(ResolveParams&& params);

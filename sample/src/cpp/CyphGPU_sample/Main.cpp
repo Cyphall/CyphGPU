@@ -62,7 +62,7 @@ void uploadVertexBuffers(
 
 void uploadTexture(
 	const cgpu::DeviceSessionPtr& device_session,
-	cgpu::CommandRecorder& rec,
+	cgpu::CommandRecorder& cmd_rec,
 	cgpu::ImagePtr& texture
 )
 {
@@ -95,7 +95,7 @@ void uploadTexture(
 
 	stbi_image_free(data);
 
-	rec.copyBufferToImage({
+	cmd_rec.copyBufferToImage({
 		.src_buffer = staging_buffer,
 		.dst_image = texture,
 	});
@@ -308,13 +308,15 @@ int main()
 			}
 
 			cmd_rec.graphicsPass({
-				.color_attachments = {{{
-					.image = *swapchain->tryGetImage(),
-					.format = cgpu::getSrgbEquivalent(surface_format->format),
-					.load_op = vk::AttachmentLoadOp::eClear,
-					.store_op = vk::AttachmentStoreOp::eStore,
-					.clear_color_value = glm::vec4{0.033f, 0.033f, 0.033f, 1.0f},
-				}}},
+				.color_attachments = {
+					{
+						.image = *swapchain->tryGetImage(),
+						.format = cgpu::getSrgbEquivalent(surface_format->format),
+						.load_op = vk::AttachmentLoadOp::eClear,
+						.store_op = vk::AttachmentStoreOp::eStore,
+						.clear_color_value = glm::vec4{0.033f, 0.033f, 0.033f, 1.0f},
+					},
+				},
 				.depth_stencil_attachment = {{
 					.image = depth_image,
 					.load_op = vk::AttachmentLoadOp::eClear,
