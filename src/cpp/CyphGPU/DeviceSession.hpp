@@ -12,8 +12,8 @@
 #include <atomic>
 #include <condition_variable>
 #include <magic_enum/magic_enum.hpp>
-#include <shared_mutex>
 #include <queue>
+#include <shared_mutex>
 #include <thread>
 #include <unordered_map>
 #include <vk_mem_alloc.h>

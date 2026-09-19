@@ -1,7 +1,7 @@
 #include "Utils.hpp"
 
-#include <vulkan/vulkan_format_traits.hpp>
 #include <glm/ext/scalar_common.hpp>
+#include <vulkan/vulkan_format_traits.hpp>
 
 vk::Format cgpu::getLinearEquivalent(vk::Format format)
 {
