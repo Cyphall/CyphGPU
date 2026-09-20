@@ -17,6 +17,9 @@ namespace cgpu
 		name(std::nullptr_t)                              \
 		{}                                                \
                                                           \
+		name(const name&) = default;                      \
+		name& operator=(const name&) = default;           \
+                                                          \
 	private:                                              \
 		friend class parent_name;                         \
                                                           \
@@ -51,6 +54,9 @@ public:
 		std::memcpy(&m_value, glm::value_ptr(value), sizeof(m_value));
 	}
 
+	Vector(const Vector&) = default;
+	Vector& operator=(const Vector&) = default;
+
 	[[nodiscard]]
 	glm::vec<N, T> get() const
 	{
@@ -74,6 +80,9 @@ public:
 		glm::mat<R, C, T> row_major_value = glm::transpose(value);
 		std::memcpy(&m_value, glm::value_ptr(row_major_value), sizeof(m_value));
 	}
+
+	Matrix(const Matrix&) = default;
+	Matrix& operator=(const Matrix&) = default;
 
 	[[nodiscard]]
 	glm::mat<C, R, T> get() const
