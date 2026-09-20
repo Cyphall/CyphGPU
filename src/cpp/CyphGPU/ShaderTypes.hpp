@@ -11,6 +11,7 @@ namespace cgpu
 	struct name                                           \
 	{                                                     \
 		uint32_t index{0};                                \
+		uint32_t: 32; /* padding */                       \
                                                           \
 		name() = default;                                 \
                                                           \
@@ -22,9 +23,6 @@ namespace cgpu
                                                           \
 	private:                                              \
 		friend class parent_name;                         \
-                                                          \
-		[[maybe_unused]]                                  \
-		uint32_t m_padding{};                             \
                                                           \
 		name(uint32_t index):                             \
 			index{index}                                  \
