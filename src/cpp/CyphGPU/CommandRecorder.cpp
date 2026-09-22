@@ -317,6 +317,14 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 	{
 		ZoneScopedN("Resolve sync");
 
+		constexpr vk::QueueFlags QUEUE_CAPS_SUPPORTING_EVENTS =
+			vk::QueueFlagBits::eGraphics |
+			vk::QueueFlagBits::eCompute |
+			vk::QueueFlagBits::eVideoDecodeKHR |
+			vk::QueueFlagBits::eVideoEncodeKHR;
+
+		bool events_supported = static_cast<bool>(m_queue->getCapabilities() & QUEUE_CAPS_SUPPORTING_EVENTS);
+
 		last_resource_accesses.reserve(m_num_resources);
 		cmd_syncs.resize(m_containers->cmd_list.size());
 		deps.reserve(m_containers->cmd_list.size());
@@ -386,7 +394,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 						// If unrelated stageful commands are present between the two, use events instead of barriers
 						uint64_t num_stageful_cmds_between = cmd_stageful_index - dep_resource_access.cmd_stageful_index - 1;
-						if (num_stageful_cmds_between > 0)
+						if (events_supported && num_stageful_cmds_between > 0)
 						{
 							dep_cmd_sync.signal.event_idx = static_cast<uint32_t>(events.size());
 
