@@ -121,6 +121,37 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 	return {vk_range, pixel_range, byte_size};
 }
 
+std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> resolveRange(
+	const cgpu::ImagePtr& image,
+	const cgpu::CommandRecorder::ImageLevelLayersAspectPixelsRange& range
+)
+{
+	vk::ImageAspectFlags aspects = cgpu::getAspects(image->getDesc().format);
+	vk::ImageAspectFlagBits default_aspect =
+		std::has_single_bit(static_cast<vk::ImageAspectFlags::MaskType>(aspects)) ?
+			std::bit_cast<vk::ImageAspectFlagBits>(aspects) :
+			vk::ImageAspectFlagBits::eDepth;
+
+	vk::ImageSubresourceLayers vk_range;
+	vk_range.aspectMask = range.aspect ? *range.aspect : default_aspect;
+	vk_range.mipLevel = range.level;
+	vk_range.baseArrayLayer = range.layers ? range.layers->offset : 0;
+	vk_range.layerCount = range.layers ? range.layers->size : image->getDesc().layers;
+
+	cgpu::Range<glm::uvec3> pixel_range =
+		range.pixels ?
+			*range.pixels :
+			cgpu::Range<glm::uvec3>{glm::uvec3{0, 0, 0}, cgpu::calcImageLevelExtent(image->getDesc().extent, vk_range.mipLevel)};
+
+	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
+		image->getDesc().format,
+		pixel_range.size,
+		vk_range.layerCount
+	);
+
+	return {vk_range, pixel_range, byte_size};
+}
+
 std::tuple<cgpu::Range<vk::DeviceSize>, vk::DeviceSize> resolveRange(
 	const cgpu::BufferPtr& buffer,
 	const cgpu::CommandRecorder::BufferRange& range

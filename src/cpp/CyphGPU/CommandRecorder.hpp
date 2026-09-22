@@ -70,6 +70,18 @@ public:
 		std::optional<Range<glm::uvec3>> pixels{};
 	};
 
+	struct ImageLevelLayersAspectPixelsRange
+	{
+		/// Optional. Default: Level 0.
+		uint32_t level{0};
+		/// Optional. Default: All layers.
+		std::optional<Range<uint32_t>> layers{};
+		/// Optional. Default: Main aspect. For depth-stencil formats, the default aspect is depth.
+		std::optional<vk::ImageAspectFlagBits> aspect{};
+		/// Optional. Default: All pixels.
+		std::optional<Range<glm::uvec3>> pixels{};
+	};
+
 	struct ImageLevelLayersAspectsRectRange
 	{
 		/// Optional. Default: Level 0.
@@ -143,7 +155,7 @@ public:
 			/// Optional. Default: Default-initialized range.
 			BufferRange src{};
 			/// Optional. Default: Default-initialized range.
-			ImageLevelLayersAspectsPixelsRange dst{};
+			ImageLevelLayersAspectPixelsRange dst{};
 		};
 
 		static const std::array<Range, 1> DEFAULT_RANGE;
@@ -163,7 +175,7 @@ public:
 		struct Range
 		{
 			/// Optional. Default: Default-initialized range.
-			ImageLevelLayersAspectsPixelsRange src{};
+			ImageLevelLayersAspectPixelsRange src{};
 			/// Optional. Default: Default-initialized range.
 			BufferRange dst{};
 		};
