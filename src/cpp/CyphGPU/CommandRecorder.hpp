@@ -437,6 +437,7 @@ public:
 		std::optional<ScratchBuffer> scratch_buffer{};
 	};
 
+	//TODO: All BLASes referenced in the build should be kept alive by the TLAS until the next TLAS build
 	void buildTLAS(TLASParams&& params);
 
 	struct DebugBarrierParams
