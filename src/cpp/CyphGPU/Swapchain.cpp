@@ -102,6 +102,7 @@ void cgpu::Swapchain::presentImage()
 void cgpu::Swapchain::createSwapchain()
 {
 	std::flat_set<vk::Format> view_formats_set;
+	view_formats_set.emplace(m_desc.format.format);
 	view_formats_set.emplace(getLinearEquivalent(m_desc.format.format));
 	if (vk::componentCount(m_desc.format.format) >= 3)
 	{

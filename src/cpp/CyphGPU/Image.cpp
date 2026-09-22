@@ -197,6 +197,7 @@ void cgpu::Image::createImage()
 		}
 
 		std::flat_set<vk::Format> view_formats_set;
+		view_formats_set.emplace(m_desc.format);
 		view_formats_set.emplace(getLinearEquivalent(m_desc.format));
 		if (vk::componentCount(m_desc.format) >= 3)
 		{
