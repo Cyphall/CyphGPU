@@ -54,6 +54,8 @@ constexpr T alignUp(T size, std::type_identity_t<T> alignment)
 
 glm::uvec3 calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t level);
 
+glm::uvec3 calcImageExtentInBlocks(vk::Format format, const glm::uvec3& pixel_extent);
+
 vk::DeviceSize calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects = std::nullopt);
 
 vk::DeviceSize calcImageByteSize(vk::Format format, const glm::uvec3& base_extent, Range<uint32_t> levels, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects = std::nullopt);

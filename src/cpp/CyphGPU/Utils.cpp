@@ -46,15 +46,11 @@ vk::Format getFormatForAspects(vk::Format format, const std::optional<vk::ImageA
 
 vk::DeviceSize calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers)
 {
-	glm::u64vec3 block_count{
-		(extent.x + vk::blockExtent(format)[0] - 1) / vk::blockExtent(format)[0],
-		(extent.y + vk::blockExtent(format)[1] - 1) / vk::blockExtent(format)[1],
-		(extent.z + vk::blockExtent(format)[2] - 1) / vk::blockExtent(format)[2],
-	};
+	glm::u64vec3 extent_in_blocks = cgpu::calcImageExtentInBlocks(format, extent);
 
-	return block_count.x *
-	       block_count.y *
-	       block_count.z *
+	return extent_in_blocks.x *
+	       extent_in_blocks.y *
+	       extent_in_blocks.z *
 	       vk::blockSize(format) *
 	       layers;
 }
@@ -184,6 +180,17 @@ vk::ImageAspectFlags cgpu::getAspects(vk::Format format)
 glm::uvec3 cgpu::calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t level)
 {
 	return glm::max(base_extent >> level, glm::uvec3{1, 1, 1});
+}
+
+glm::uvec3 cgpu::calcImageExtentInBlocks(vk::Format format, const glm::uvec3& pixel_extent)
+{
+	auto block_extent = vk::blockExtent(format);
+
+	return {
+		(pixel_extent.x + block_extent[0] - 1) / block_extent[0],
+		(pixel_extent.y + block_extent[1] - 1) / block_extent[1],
+		(pixel_extent.z + block_extent[2] - 1) / block_extent[2],
+	};
 }
 
 vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects)

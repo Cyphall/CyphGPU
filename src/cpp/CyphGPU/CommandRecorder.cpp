@@ -1054,7 +1054,10 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 		auto [dst_vk_range, dst_pixel_range, dst_byte_size] = resolveRange(params.dst_image, range.dst);
 
 		assert(src_vk_range.layerCount == dst_vk_range.layerCount && "Image ranges must have the same number of layers.");
-		assert(src_pixel_range.size == dst_pixel_range.size && "Image ranges must have the same pixel region size.");
+		assert(
+			calcImageExtentInBlocks(params.src_image->getDesc().format, src_pixel_range.size) == calcImageExtentInBlocks(params.dst_image->getDesc().format, dst_pixel_range.size) &&
+			"Image ranges must have the same extent in blocks."
+		);
 		assert(src_byte_size == dst_byte_size && "Image ranges must have the same byte size.");
 
 		if (dst_byte_size == 0)
