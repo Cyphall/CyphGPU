@@ -143,7 +143,7 @@ public:
 	glm::uvec3 calcLevelExtent(uint32_t level) const;
 
 	[[nodiscard]]
-	vk::DeviceSize calcByteSize(Range<uint32_t> levels, uint32_t layers) const;
+	vk::DeviceSize calcByteSize(Range<uint32_t> levels, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects = std::nullopt) const;
 
 private:
 	friend class CommandRecorder;

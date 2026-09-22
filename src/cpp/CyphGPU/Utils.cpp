@@ -3,6 +3,63 @@
 #include <glm/ext/scalar_common.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
 
+namespace
+{
+vk::Format getFormatForAspects(vk::Format format, const std::optional<vk::ImageAspectFlags>& aspects)
+{
+	if (!aspects)
+	{
+		return format;
+	}
+
+	vk::Format depth_format{};
+	vk::Format stencil_format{};
+	switch (format)
+	{
+	case vk::Format::eD16UnormS8Uint:
+		depth_format = vk::Format::eD16Unorm;
+		stencil_format = vk::Format::eS8Uint;
+		break;
+	case vk::Format::eD24UnormS8Uint:
+		depth_format = vk::Format::eX8D24UnormPack32;
+		stencil_format = vk::Format::eS8Uint;
+		break;
+	case vk::Format::eD32SfloatS8Uint:
+		depth_format = vk::Format::eD32Sfloat;
+		stencil_format = vk::Format::eS8Uint;
+		break;
+	default:
+		return format;
+	}
+
+	if (*aspects == vk::ImageAspectFlagBits::eDepth)
+	{
+		return depth_format;
+	}
+	if (*aspects == vk::ImageAspectFlagBits::eStencil)
+	{
+		return stencil_format;
+	}
+
+	return format;
+}
+
+vk::DeviceSize calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers)
+{
+	glm::u64vec3 block_count{
+		(extent.x + vk::blockExtent(format)[0] - 1) / vk::blockExtent(format)[0],
+		(extent.y + vk::blockExtent(format)[1] - 1) / vk::blockExtent(format)[1],
+		(extent.z + vk::blockExtent(format)[2] - 1) / vk::blockExtent(format)[2],
+	};
+
+	return block_count.x *
+	       block_count.y *
+	       block_count.z *
+	       vk::blockSize(format) *
+	       layers;
+}
+}
+
 vk::Format cgpu::getLinearEquivalent(vk::Format format)
 {
 	switch (format)
@@ -129,27 +186,20 @@ glm::uvec3 cgpu::calcImageLevelExtent(const glm::uvec3& base_extent, uint32_t le
 	return glm::max(base_extent >> level, glm::uvec3{1, 1, 1});
 }
 
-vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers)
+vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& extent, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects)
 {
-	glm::u64vec3 block_count{
-		(extent.x + vk::blockExtent(format)[0] - 1) / vk::blockExtent(format)[0],
-		(extent.y + vk::blockExtent(format)[1] - 1) / vk::blockExtent(format)[1],
-		(extent.z + vk::blockExtent(format)[2] - 1) / vk::blockExtent(format)[2],
-	};
-
-	return block_count.x *
-	       block_count.y *
-	       block_count.z *
-	       vk::blockSize(format) *
-	       layers;
+	format = getFormatForAspects(format, aspects);
+	return ::calcImageByteSize(format, extent, layers);
 }
 
-vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& base_extent, Range<uint32_t> levels, uint32_t layers)
+vk::DeviceSize cgpu::calcImageByteSize(vk::Format format, const glm::uvec3& base_extent, Range<uint32_t> levels, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects)
 {
+	format = getFormatForAspects(format, aspects);
+
 	vk::DeviceSize size = 0;
 	for (uint32_t i = 0; i < levels.size; i++)
 	{
-		size += calcImageByteSize(format, calcImageLevelExtent(base_extent, levels.offset + i), layers);
+		size += ::calcImageByteSize(format, calcImageLevelExtent(base_extent, levels.offset + i), layers);
 	}
 	return size;
 }

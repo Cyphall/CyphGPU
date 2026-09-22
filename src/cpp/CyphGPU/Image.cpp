@@ -166,9 +166,9 @@ glm::uvec3 cgpu::Image::calcLevelExtent(uint32_t level) const
 	return calcImageLevelExtent(m_desc.extent, level);
 }
 
-vk::DeviceSize cgpu::Image::calcByteSize(Range<uint32_t> levels, uint32_t layers) const
+vk::DeviceSize cgpu::Image::calcByteSize(Range<uint32_t> levels, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects) const
 {
-	return calcImageByteSize(m_desc.format, m_desc.extent, levels, layers);
+	return calcImageByteSize(m_desc.format, m_desc.extent, levels, layers, aspects);
 }
 
 void cgpu::Image::createImage()

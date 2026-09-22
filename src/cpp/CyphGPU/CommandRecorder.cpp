@@ -90,7 +90,8 @@ std::tuple<vk::ImageSubresourceRange, vk::DeviceSize> resolveRange(
 		image->getDesc().format,
 		image->getDesc().extent,
 		{vk_range.baseMipLevel, vk_range.levelCount},
-		vk_range.layerCount
+		vk_range.layerCount,
+		aspects
 	);
 
 	return {vk_range, byte_size};
@@ -115,7 +116,8 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
 		image->getDesc().format,
 		pixel_range.size,
-		vk_range.layerCount
+		vk_range.layerCount,
+		vk_range.aspectMask
 	);
 
 	return {vk_range, pixel_range, byte_size};
@@ -146,7 +148,8 @@ std::tuple<vk::ImageSubresourceLayers, cgpu::Range<glm::uvec3>, vk::DeviceSize> 
 	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
 		image->getDesc().format,
 		pixel_range.size,
-		vk_range.layerCount
+		vk_range.layerCount,
+		vk_range.aspectMask
 	);
 
 	return {vk_range, pixel_range, byte_size};
@@ -185,7 +188,8 @@ std::tuple<vk::ImageSubresourceLayers, glm::uvec3, glm::uvec3, vk::DeviceSize> r
 	vk::DeviceSize byte_size = cgpu::calcImageByteSize(
 		image->getDesc().format,
 		rect_extent,
-		vk_range.layerCount
+		vk_range.layerCount,
+		vk_range.aspectMask
 	);
 
 	return {vk_range, top_left, bottom_right, byte_size};
