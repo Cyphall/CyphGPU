@@ -2084,6 +2084,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 
 	auto& cmd = addCmd<CmdCallback>(true);
 
+	detail::BumpDenseUnorderedSet<BLASPtr> referenced_blases{detail::BumpAllocator{*m_bump_memory}};
 	cgpu::Range<vk::DeviceSize> instance_range;
 	if (params.instance_info)
 	{
@@ -2104,6 +2105,8 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 
 			instance_ptr++;
 
+			referenced_blases.insert(instance.blas);
+
 			addCmdResource(
 				instance.blas->getBuffer(),
 				{
@@ -2121,6 +2124,8 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 			}
 		);
 	}
+
+	params.tlas->m_referenced_blases.assign_range(referenced_blases);
 
 	cgpu::Range<vk::DeviceSize> scratch_range;
 	if (params.scratch_buffer)

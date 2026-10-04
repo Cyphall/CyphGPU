@@ -1,5 +1,6 @@
 #include "ComputePassContext.hpp"
 
+#include <CyphGPU/BLAS.hpp>
 #include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/ComputeShaderState.hpp>
 #include <CyphGPU/TLAS.hpp>
@@ -134,14 +135,19 @@ void cgpu::ComputePassContext::registerStorageBufferIndirectAccess(const BufferP
 
 void cgpu::ComputePassContext::registerTLASIndirectAccess(const TLASPtr& tlas)
 {
-	m_rec->addCmdResource(
-		tlas->getBuffer(),
-		{
-			vk::PipelineStageFlagBits2::eComputeShader,
-			vk::AccessFlagBits2::eAccelerationStructureReadKHR,
-		}
-	);
+	auto access_point = CommandRecorder::AccessPoints{
+		vk::PipelineStageFlagBits2::eComputeShader,
+		vk::AccessFlagBits2::eAccelerationStructureReadKHR,
+	};
+
+	m_rec->addCmdResource(tlas->getBuffer(), access_point);
 	m_rec->addReferencedObject(tlas);
+
+	for (const auto& blas : tlas->m_referenced_blases)
+	{
+		m_rec->addCmdResource(blas->getBuffer(), access_point);
+		m_rec->addReferencedObject(blas);
+	}
 }
 
 void cgpu::ComputePassContext::dispatch(

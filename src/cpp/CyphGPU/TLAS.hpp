@@ -7,6 +7,7 @@
 
 namespace cgpu
 {
+/// Warning: builds and traces of the same TLAS must be submitted in the order they were recorded, and not recorded concurrently
 class TLAS final
 {
 	class PrivateKey
@@ -69,6 +70,8 @@ public:
 private:
 	friend class DeviceSession;
 	friend class CommandRecorder;
+	friend class GraphicsPassContext;
+	friend class ComputePassContext;
 
 	struct VkStructs
 	{
@@ -86,6 +89,8 @@ private:
 	vk::AccelerationStructureKHR m_handle;
 
 	vk::DeviceAddress m_device_ptr{};
+
+	std::vector<BLASPtr> m_referenced_blases{};
 
 	static void fillVkStructs(const ASInfo& as_info, VkStructs& vk_structs);
 

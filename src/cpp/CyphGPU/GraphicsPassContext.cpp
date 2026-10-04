@@ -1,5 +1,6 @@
 #include "GraphicsPassContext.hpp"
 
+#include <CyphGPU/BLAS.hpp>
 #include <CyphGPU/CommandRecorder.hpp>
 #include <CyphGPU/DeviceSession.hpp>
 #include <CyphGPU/TLAS.hpp>
@@ -156,14 +157,19 @@ void cgpu::GraphicsPassContext::registerStorageBufferIndirectAccess(const Buffer
 
 void cgpu::GraphicsPassContext::registerTLASIndirectAccess(const TLASPtr& tlas, GraphicsStages stages)
 {
-	m_rec->addCmdResource(
-		tlas->getBuffer(),
-		{
-			toVk(stages),
-			vk::AccessFlagBits2::eAccelerationStructureReadKHR,
-		}
-	);
+	auto access_point = CommandRecorder::AccessPoints{
+		toVk(stages),
+		vk::AccessFlagBits2::eAccelerationStructureReadKHR,
+	};
+
+	m_rec->addCmdResource(tlas->getBuffer(), access_point);
 	m_rec->addReferencedObject(tlas);
+
+	for (const auto& blas : tlas->m_referenced_blases)
+	{
+		m_rec->addCmdResource(blas->getBuffer(), access_point);
+		m_rec->addReferencedObject(blas);
+	}
 }
 
 void cgpu::GraphicsPassContext::bindPipelineStates(

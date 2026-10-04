@@ -94,6 +94,7 @@ public:
 		const Buffer::StorageTexelDescriptorOverrides& overrides
 	);
 
+	/// Warning: builds and traces of the same TLAS must be submitted in the order they were recorded, and not recorded concurrently
 	[[nodiscard]]
 	vk::DeviceAddress getTLASDevicePtr(
 		const TLASPtr& tlas,
@@ -104,6 +105,7 @@ public:
 	void registerStorageImageIndirectAccess(const ImagePtr& image, GraphicsStages stages, StorageAccess access);
 	void registerSampledBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages);
 	void registerStorageBufferIndirectAccess(const BufferPtr& buffer, GraphicsStages stages, StorageAccess access);
+	/// Warning: builds and traces of the same TLAS must be submitted in the order they were recorded, and not recorded concurrently
 	void registerTLASIndirectAccess(const TLASPtr& tlas, GraphicsStages stages);
 
 	// ----- Commands -----
