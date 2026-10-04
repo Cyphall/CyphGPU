@@ -2108,7 +2108,7 @@ void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
 				instance.blas->getBuffer(),
 				{
 					vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-					vk::AccessFlagBits2::eShaderRead,
+					vk::AccessFlagBits2::eAccelerationStructureReadKHR,
 				}
 			);
 		}
