@@ -80,6 +80,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt update
           sudo apt install xorg-dev
           sudo apt install libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
 
@@ -111,6 +112,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt update
           sudo apt install xorg-dev
           sudo apt install libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
 
