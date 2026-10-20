@@ -107,18 +107,23 @@ using half = float16_t;
 // Vectors & matrices
 
 #define CGPU_DECLARE_STRUCTURED_TYPES(scalar)         \
+	using scalar##1 = detail::Vector<scalar, 1>;      \
 	using scalar##2 = detail::Vector<scalar, 2>;      \
 	using scalar##3 = detail::Vector<scalar, 3>;      \
 	using scalar##4 = detail::Vector<scalar, 4>;      \
+	using scalar##1x1 = detail::Matrix<scalar, 1, 1>; \
 	using scalar##2x1 = detail::Matrix<scalar, 2, 1>; \
 	using scalar##3x1 = detail::Matrix<scalar, 3, 1>; \
 	using scalar##4x1 = detail::Matrix<scalar, 4, 1>; \
+	using scalar##1x2 = detail::Matrix<scalar, 1, 2>; \
 	using scalar##2x2 = detail::Matrix<scalar, 2, 2>; \
 	using scalar##3x2 = detail::Matrix<scalar, 3, 2>; \
 	using scalar##4x2 = detail::Matrix<scalar, 4, 2>; \
+	using scalar##1x3 = detail::Matrix<scalar, 1, 3>; \
 	using scalar##2x3 = detail::Matrix<scalar, 2, 3>; \
 	using scalar##3x3 = detail::Matrix<scalar, 3, 3>; \
 	using scalar##4x3 = detail::Matrix<scalar, 4, 3>; \
+	using scalar##1x4 = detail::Matrix<scalar, 1, 4>; \
 	using scalar##2x4 = detail::Matrix<scalar, 2, 4>; \
 	using scalar##3x4 = detail::Matrix<scalar, 3, 4>; \
 	using scalar##4x4 = detail::Matrix<scalar, 4, 4>;
@@ -140,18 +145,23 @@ CGPU_DECLARE_STRUCTURED_TYPES(float64_t)
 #undef CGPU_DECLARE_STRUCTURED_TYPES
 
 #define CGPU_DECLARE_STRUCTURED_ALIAS(alias, scalar) \
+	using alias##1 = scalar##1;                      \
 	using alias##2 = scalar##2;                      \
 	using alias##3 = scalar##3;                      \
 	using alias##4 = scalar##4;                      \
+	using alias##1x1 = scalar##1x1;                  \
 	using alias##2x1 = scalar##2x1;                  \
 	using alias##3x1 = scalar##3x1;                  \
 	using alias##4x1 = scalar##4x1;                  \
+	using alias##1x2 = scalar##1x2;                  \
 	using alias##2x2 = scalar##2x2;                  \
 	using alias##3x2 = scalar##3x2;                  \
 	using alias##4x2 = scalar##4x2;                  \
+	using alias##1x3 = scalar##1x3;                  \
 	using alias##2x3 = scalar##2x3;                  \
 	using alias##3x3 = scalar##3x3;                  \
 	using alias##4x3 = scalar##4x3;                  \
+	using alias##1x4 = scalar##1x4;                  \
 	using alias##2x4 = scalar##2x4;                  \
 	using alias##3x4 = scalar##3x4;                  \
 	using alias##4x4 = scalar##4x4;
