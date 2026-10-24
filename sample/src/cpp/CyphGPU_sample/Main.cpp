@@ -58,6 +58,9 @@ void uploadVertexBuffers(
 
 	std::memcpy(position_buffer->getHostPtr(), POSITION_DATA.data(), position_buffer->getDesc().size);
 	std::memcpy(tex_coord_buffer->getHostPtr(), TEX_COORD_DATA.data(), tex_coord_buffer->getDesc().size);
+
+	position_buffer->makeImmutable();
+	tex_coord_buffer->makeImmutable();
 }
 
 void uploadTexture(
@@ -99,6 +102,8 @@ void uploadTexture(
 		.src_buffer = staging_buffer,
 		.dst_image = texture,
 	});
+
+	cmd_rec.makeImmutableAfterSubmit(texture);
 }
 
 void recreateSwapchain(

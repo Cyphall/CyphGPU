@@ -506,7 +506,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		}
 	}
 
-	detail::BumpFlatMap<vk::Semaphore, uint64_t> signals_to_wait{detail::BumpAllocator{*m_bump_memory}};
+	detail::BumpFlatMap<vk::Semaphore, uint64_t> signals_to_wait = std::move(m_containers->immutable_waits);
 	auto add_signal_to_wait = [&](vk::Semaphore semaphore, uint64_t value) {
 		auto [it, inserted] = signals_to_wait.try_emplace(semaphore, value);
 		if (!inserted)
@@ -531,6 +531,8 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		for (auto& [resource, written] : referenced_resources)
 		{
 			resource->lock();
+
+			assert((!resource->isImmutable() || !written) && "The resource is immutable at submit-time, but was not at recording-time.");
 
 			if (written)
 			{
@@ -873,9 +875,12 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 		for (auto& [resource, written] : referenced_resources)
 		{
-			written ?
-				resource->setReadWriteSignal(signal) :
-				resource->addReadSignal(signal);
+			if (!resource->isImmutable())
+			{
+				written ?
+					resource->setReadWriteSignal(signal) :
+					resource->addReadSignal(signal);
+			}
 
 			resource->unlock();
 		}
@@ -883,9 +888,25 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 
 	m_slot->addFinishedSignal(signal);
 
+	{
+		ZoneScopedN("Make resources immutable");
+
+		for (auto& resource : m_containers->pending_immutable_resources)
+		{
+			resource->makeImmutable();
+		}
+	}
+
 	m_containers.reset();
 
 	return {m_slot->getDeviceSession(), signal};
+}
+
+void cgpu::CommandRecorder::makeImmutableAfterSubmit(const ResourcePtr& resource)
+{
+	COMMAND_PARSE
+
+	m_containers->pending_immutable_resources.emplace_back(resource);
 }
 
 void cgpu::CommandRecorder::SubmitHandle::waitFinished() const
@@ -2351,6 +2372,26 @@ requires(std::derived_from<T, cgpu::Resource>)
 void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point)
 {
 	assert(!m_containers->cmd_list.empty());
+
+	if (resource->isImmutable())
+	{
+		assert(!hasWriteAccesses(access_point.accesses) && "Cannot write to immutable resource.");
+
+		auto [resource_it, resource_inserted] = m_containers->referenced_objects.try_emplace(resource, false); // lifetime only
+		if (resource_inserted)
+		{
+			if (const auto& signal = resource->tryGetReadWriteSignal())
+			{
+				auto [wait_it, wait_inserted] = m_containers->immutable_waits.try_emplace(signal->semaphore, signal->value);
+				if (!wait_inserted)
+				{
+					wait_it->second = std::max(wait_it->second, signal->value);
+				}
+			}
+		}
+
+		return;
+	}
 
 	auto& curr_cmd = m_containers->cmd_list.back();
 	auto [cmd_it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);

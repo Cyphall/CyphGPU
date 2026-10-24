@@ -2,6 +2,7 @@
 
 #include <CyphGPU/Queue.hpp>
 
+#include <atomic>
 #include <flat_map>
 #include <optional>
 #include <shared_mutex>
@@ -18,6 +19,10 @@ public:
 
 	Resource& operator=(const Resource&) = delete;
 	Resource& operator=(Resource&&) = delete;
+
+	void makeImmutable();
+
+	bool isImmutable() const;
 
 protected:
 	friend class CommandRecorder;
@@ -49,6 +54,11 @@ protected:
 	[[nodiscard]]
 	Type getType() const;
 
+	[[nodiscard]]
+	bool isLayoutInitialized() const;
+
+	void setLayoutInitialized(bool init);
+
 private:
 	Type m_type;
 
@@ -56,5 +66,9 @@ private:
 	std::optional<Queue::Signal> m_read_write_signal{};
 
 	std::shared_mutex m_mutex{};
+
+	bool m_layout_initialized{false};
+
+	std::atomic_bool m_immutable{false};
 };
 }

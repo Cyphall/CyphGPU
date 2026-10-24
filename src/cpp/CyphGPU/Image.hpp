@@ -192,8 +192,6 @@ private:
 	vk::Image m_handle{};
 	std::optional<VmaAllocation> m_alloc{};
 
-	bool m_layout_initialized{false};
-
 	vk::ImageViewType m_default_view_type{};
 	vk::ImageAspectFlagBits m_default_view_aspect{};
 	vk::Format m_default_view_linear_format{};
@@ -215,10 +213,5 @@ private:
 
 	[[nodiscard]]
 	vk::ImageView getAttachmentView(vk::Format format, uint32_t level, Range<uint32_t> layers, vk::ImageAspectFlags aspects, vk::ImageUsageFlagBits usage);
-
-	[[nodiscard]]
-	bool isLayoutInitialized() const;
-
-	void setLayoutInitialized(bool init);
 };
 }

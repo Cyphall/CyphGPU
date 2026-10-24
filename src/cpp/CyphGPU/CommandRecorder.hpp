@@ -48,6 +48,8 @@ public:
 
 	SubmitHandle submit();
 
+	void makeImmutableAfterSubmit(const ResourcePtr& resource);
+
 	// ----- Common structs -----
 
 	struct ImageLevelsLayersRange
@@ -533,9 +535,15 @@ private:
 
 		detail::BumpList<Cmd> cmd_list;
 
+		detail::BumpFlatMap<vk::Semaphore, uint64_t> immutable_waits;
+
+		detail::BumpVector<ResourcePtr> pending_immutable_resources;
+
 		explicit Containers(detail::BumpMemoryResource& bump_memory):
 			referenced_objects{detail::BumpAllocator{bump_memory}},
-			cmd_list{detail::BumpAllocator{bump_memory}}
+			cmd_list{detail::BumpAllocator{bump_memory}},
+			immutable_waits{detail::BumpAllocator{bump_memory}},
+			pending_immutable_resources{detail::BumpAllocator{bump_memory}}
 		{}
 	};
 

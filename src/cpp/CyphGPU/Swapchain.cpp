@@ -369,6 +369,8 @@ void cgpu::Swapchain::performPresent()
 
 	auto& image_data = m_image_data[m_acquired_image];
 
+	assert(!image_data.image->isImmutable() && "A swapchain image cannot be made immutable.");
+
 	if (image_data.image->isLayoutInitialized())
 	{
 		{

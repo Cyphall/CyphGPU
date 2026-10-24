@@ -15,6 +15,7 @@ cgpu::Buffer::Buffer(PrivateKey, const DeviceSessionPtr& device_session, Desc&& 
 	m_desc{std::move(desc)}
 {
 	createBuffer();
+	setLayoutInitialized(true);
 }
 
 cgpu::Buffer::~Buffer()
