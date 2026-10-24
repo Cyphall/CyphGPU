@@ -6,17 +6,11 @@
 #include <optional>
 #include <shared_mutex>
 
-namespace cgpu::detail
+namespace cgpu
 {
 class Resource
 {
 public:
-	enum class Type : uint8_t
-	{
-		eImage,
-		eBuffer,
-	};
-
 	virtual ~Resource() = default;
 
 	Resource(const Resource&) = delete;
@@ -24,6 +18,17 @@ public:
 
 	Resource& operator=(const Resource&) = delete;
 	Resource& operator=(Resource&&) = delete;
+
+protected:
+	friend class CommandRecorder;
+
+	enum class Type : uint8_t
+	{
+		eImage,
+		eBuffer,
+	};
+
+	explicit Resource(Type type);
 
 	[[nodiscard]]
 	const std::flat_map<vk::Semaphore, uint64_t>& getReadSignals() const;
@@ -43,9 +48,6 @@ public:
 
 	[[nodiscard]]
 	Type getType() const;
-
-protected:
-	explicit Resource(Type type);
 
 private:
 	Type m_type;

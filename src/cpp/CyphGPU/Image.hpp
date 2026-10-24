@@ -1,8 +1,8 @@
 #pragma once
 
-#include <CyphGPU/detail/Resource.hpp>
 #include <CyphGPU/fwd.hpp>
 #include <CyphGPU/MemoryType.hpp>
+#include <CyphGPU/Resource.hpp>
 #include <CyphGPU/ShaderTypes.hpp>
 #include <CyphGPU/Utils.hpp>
 
@@ -16,7 +16,7 @@
 
 namespace cgpu
 {
-class Image final : detail::Resource
+class Image final : public Resource
 {
 	class PrivateKey
 	{};
