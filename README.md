@@ -2,7 +2,7 @@
 
 # CyphGPU
 
-A rendering backend over modern Vulkan for my other projects.
+A GPU computing and rendering library (RHI) over modern Vulkan.
 
 ## Features
 
