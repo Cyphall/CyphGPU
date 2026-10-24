@@ -117,10 +117,8 @@ void cgpu::Queue::timelineToBinary(
 	clearCompletedPayloads();
 
 	assert(wait_semaphores.size() == wait_values.size());
-	// Should not be possible to have more than 4 semaphores
-	// since we only have 4 queues.
-	assert(wait_semaphores.size() <= 4);
-	boost::container::static_vector<vk::SemaphoreSubmitInfo, 4> wait_infos;
+	assert(wait_semaphores.size() <= DeviceSession::MAX_QUEUE_COUNT);
+	boost::container::static_vector<vk::SemaphoreSubmitInfo, DeviceSession::MAX_QUEUE_COUNT> wait_infos;
 	for (const auto& [semaphore, value] : std::views::zip(wait_semaphores, wait_values))
 	{
 		wait_infos.push_back({

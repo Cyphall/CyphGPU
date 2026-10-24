@@ -36,6 +36,8 @@ public:
 	{
 	};
 
+	static constexpr size_t MAX_QUEUE_COUNT = 4;
+
 	[[nodiscard]]
 	static DeviceSessionPtr create(const DevicePtr& device, Desc&& desc);
 
