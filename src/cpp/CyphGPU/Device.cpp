@@ -143,6 +143,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRPipelineLibraryExtensionName,
 			vk::EXTGraphicsPipelineLibraryExtensionName,
 			vk::KHRDeviceAddressCommandsExtensionName,
+			vk::KHRExtendedFlagsExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
@@ -342,6 +343,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			{
 				auto& features = chain.get<vk::PhysicalDeviceDeviceAddressCommandsFeaturesKHR>();
 				features.deviceAddressCommands = vk::True;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceExtendedFlagsFeaturesKHR>();
+				features.extendedFlags = vk::True;
 			}
 
 			{

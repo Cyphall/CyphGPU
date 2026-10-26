@@ -176,6 +176,7 @@ void cgpu::Swapchain::createSwapchain()
 
 	vk::StructureChain<
 		vk::SwapchainCreateInfoKHR,
+		vk::ImageUsageFlags2CreateInfoKHR,
 		vk::ImageFormatListCreateInfo,
 		vk::SwapchainPresentModesCreateInfoKHR>
 		chain;
@@ -188,7 +189,7 @@ void cgpu::Swapchain::createSwapchain()
 	swapchain_info.imageColorSpace = m_desc.format.colorSpace;
 	swapchain_info.imageExtent = std::bit_cast<vk::Extent2D>(m_extent);
 	swapchain_info.imageArrayLayers = m_layers;
-	swapchain_info.imageUsage = m_desc.usages;
+	swapchain_info.imageUsage = {};
 	// Swapchains are not included in maintenance11 on purpose.
 	// https://github.com/KhronosGroup/Vulkan-Docs/issues/2811
 	swapchain_info.imageSharingMode = queue_families.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
@@ -202,6 +203,9 @@ void cgpu::Swapchain::createSwapchain()
 		old_swapchain ?
 			(*old_swapchain)->getHandle() :
 			nullptr;
+
+	auto& image_usage_info = chain.get<vk::ImageUsageFlags2CreateInfoKHR>();
+	image_usage_info.usage = m_desc.usages;
 
 	auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();
 	image_format_list_info.viewFormatCount = static_cast<uint32_t>(view_formats.size());

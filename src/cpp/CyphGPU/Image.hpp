@@ -41,7 +41,7 @@ public:
 		/// Required.
 		glm::uvec3 extent CGPU_REQUIRED;
 		/// Required.
-		vk::ImageUsageFlags usages CGPU_REQUIRED; //TODO: Use vk::ImageUsageFlags2 when VK_KHR_extended_flags becomes more widely supported.
+		vk::ImageUsageFlags2KHR usages CGPU_REQUIRED;
 		/// Optional. Default: 2D.
 		vk::ImageType type{vk::ImageType::e2D};
 		/// Optional. Default: GPU high-prio.

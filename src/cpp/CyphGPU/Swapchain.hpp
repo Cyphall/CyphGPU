@@ -22,7 +22,7 @@ public:
 		/// Required.
 		glm::uvec2 preferred_extent CGPU_REQUIRED;
 		/// Required.
-		vk::ImageUsageFlags usages CGPU_REQUIRED;
+		vk::ImageUsageFlags2KHR usages CGPU_REQUIRED;
 		/// Optional. Default: 1.
 		uint32_t preferred_layers{1};
 		/// Optional. Default: No additional view format.

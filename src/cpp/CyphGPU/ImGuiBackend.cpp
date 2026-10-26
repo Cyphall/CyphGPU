@@ -78,8 +78,8 @@ void ImGui_ImplCyphGPU_CreateTexture(ImTextureData& texture)
 			.name = "ImGui texture",
 			.format = format,
 			.extent = {texture.Width, texture.Height, 1},
-			.usages = vk::ImageUsageFlagBits::eTransferDst |
-	                  vk::ImageUsageFlagBits::eSampled,
+			.usages = vk::ImageUsageFlagBits2KHR::eTransferDst |
+	                  vk::ImageUsageFlagBits2KHR::eSampled,
 		}
 	);
 

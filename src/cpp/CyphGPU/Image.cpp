@@ -218,6 +218,7 @@ void cgpu::Image::createImage()
 
 		vk::StructureChain<
 			vk::ImageCreateInfo,
+			vk::ImageUsageFlags2CreateInfoKHR,
 			vk::ImageFormatListCreateInfo>
 			chain;
 
@@ -232,11 +233,14 @@ void cgpu::Image::createImage()
 		image_info.arrayLayers = m_desc.layers;
 		image_info.samples = m_desc.samples;
 		image_info.tiling = vk::ImageTiling::eOptimal;
-		image_info.usage = m_desc.usages;
+		image_info.usage = {};
 		image_info.sharingMode = vk::SharingMode::eConcurrent;
 		image_info.queueFamilyIndexCount = static_cast<uint32_t>(queue_families.size());
 		image_info.pQueueFamilyIndices = queue_families.data();
 		image_info.initialLayout = vk::ImageLayout::eUndefined;
+
+		auto& image_usage_info = chain.get<vk::ImageUsageFlags2CreateInfoKHR>();
+		image_usage_info.usage = m_desc.usages;
 
 		auto& image_format_list_info = chain.get<vk::ImageFormatListCreateInfo>();
 		image_format_list_info.viewFormatCount = static_cast<uint32_t>(view_formats.size());

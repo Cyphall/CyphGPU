@@ -79,8 +79,8 @@ void uploadTexture(
 			.name = "Texture",
 			.format = vk::Format::eR8G8B8A8Srgb,
 			.extent = {width, height, 1},
-			.usages = vk::ImageUsageFlagBits::eTransferDst |
-	                  vk::ImageUsageFlagBits::eSampled,
+			.usages = vk::ImageUsageFlagBits2KHR::eTransferDst |
+	                  vk::ImageUsageFlagBits2KHR::eSampled,
 		}
 	);
 
@@ -122,7 +122,7 @@ void recreateSwapchain(
 		{
 			.format = format,
 			.preferred_extent = extent,
-			.usages = vk::ImageUsageFlagBits::eColorAttachment,
+			.usages = vk::ImageUsageFlagBits2KHR::eColorAttachment,
 			.old_swapchain = old_swapchain,
 		}
 	);
@@ -133,7 +133,7 @@ void recreateSwapchain(
 			.name = "Depth image",
 			.format = vk::Format::eD32Sfloat,
 			.extent = {swapchain->getExtent(), 1},
-			.usages = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+			.usages = vk::ImageUsageFlagBits2KHR::eDepthStencilAttachment,
 		}
 	);
 }
