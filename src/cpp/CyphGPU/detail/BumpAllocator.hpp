@@ -121,9 +121,8 @@ template<
 	class TValue,
 	class THash = ankerl::unordered_dense::hash<TKey>,
 	class TKeyEqual = std::equal_to<TKey>,
-	class TBucket = ankerl::unordered_dense::bucket_type::standard,
-	class TBucketContainer = ankerl::unordered_dense::detail::default_container_t>
-using BumpDenseUnorderedMap = ankerl::unordered_dense::map<TKey, TValue, THash, TKeyEqual, BumpAllocator<std::pair<TKey, TValue>>, TBucket, TBucketContainer>;
+	class TBucket = ankerl::unordered_dense::bucket_type::group>
+using BumpDenseUnorderedMap = ankerl::unordered_dense::map<TKey, TValue, THash, TKeyEqual, BumpAllocator<std::pair<TKey, TValue>>, TBucket>;
 
 template<
 	class TKey,
@@ -136,9 +135,8 @@ template<
 	class TKey,
 	class THash = ankerl::unordered_dense::hash<TKey>,
 	class TKeyEqual = std::equal_to<TKey>,
-	class TBucket = ankerl::unordered_dense::bucket_type::standard,
-	class TBucketContainer = ankerl::unordered_dense::detail::default_container_t>
-using BumpDenseUnorderedSet = ankerl::unordered_dense::set<TKey, THash, TKeyEqual, BumpAllocator<TKey>, TBucket, TBucketContainer>;
+	class TBucket = ankerl::unordered_dense::bucket_type::group>
+using BumpDenseUnorderedSet = ankerl::unordered_dense::set<TKey, THash, TKeyEqual, BumpAllocator<TKey>, TBucket>;
 
 template<
 	class TKey,
