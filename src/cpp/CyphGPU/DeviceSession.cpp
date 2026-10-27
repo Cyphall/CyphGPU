@@ -416,6 +416,7 @@ void cgpu::DeviceSession::createAllocator()
 	flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 	flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
 	flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
+	flags |= VMA_ALLOCATOR_CREATE_KHR_EXTENDED_FLAGS_BIT;
 	if (m_device->getCapabilities() & Device::Capability::eMemoryBudget)
 	{
 		flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
