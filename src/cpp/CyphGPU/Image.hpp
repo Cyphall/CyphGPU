@@ -196,16 +196,16 @@ private:
 	vk::ImageAspectFlagBits m_default_view_aspect{};
 	vk::Format m_default_view_linear_format{};
 
-	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_cache;
-	std::vector<std::pair<StorageDescriptorInfo, uint32_t>> m_storage_cache;
+	std::vector<std::pair<SampledDescriptorInfo, uint32_t>> m_sampled_registry;
+	std::vector<std::pair<StorageDescriptorInfo, uint32_t>> m_storage_registry;
 
 	std::atomic_uint m_default_sampled_descriptor_idx{INVALID_DESCRIPTOR_IDX};
 	std::atomic_uint m_default_storage_descriptor_idx{INVALID_DESCRIPTOR_IDX};
 
-	std::shared_mutex m_cache_mutex{};
+	std::shared_mutex m_registry_mutex{};
 
 	//TODO: remove once we have an extension to remove image views from attachments
-	std::vector<std::pair<AttachmentViewInfo, vk::ImageView>> m_attachment_cache;
+	std::vector<std::pair<AttachmentViewInfo, vk::ImageView>> m_attachment_registry;
 
 	void createImage();
 

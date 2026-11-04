@@ -116,7 +116,7 @@ private:
 	};
 
 	template<class T>
-	class MetaObjectCache
+	class MetaObjectRegistry
 	{
 	public:
 		[[nodiscard]]
@@ -175,19 +175,19 @@ private:
 	Heap m_sampler_heap{};
 	Heap m_resource_heap{};
 
-	MetaObjectCache<Sampler> m_sampler_cache{};
-	MetaObjectCache<VertexInputState> m_vertex_input_state_cache{};
-	MetaObjectCache<PreRasterizationShaderState> m_pre_rasterization_shader_state_cache{};
-	MetaObjectCache<FragmentShaderState> m_fragment_shader_state_cache{};
-	MetaObjectCache<FragmentOutputState> m_fragment_output_state_cache{};
-	MetaObjectCache<ComputeShaderState> m_compute_shader_state_cache{};
+	MetaObjectRegistry<Sampler> m_sampler_registry{};
+	MetaObjectRegistry<VertexInputState> m_vertex_input_state_registry{};
+	MetaObjectRegistry<PreRasterizationShaderState> m_pre_rasterization_shader_state_registry{};
+	MetaObjectRegistry<FragmentShaderState> m_fragment_shader_state_registry{};
+	MetaObjectRegistry<FragmentOutputState> m_fragment_output_state_registry{};
+	MetaObjectRegistry<ComputeShaderState> m_compute_shader_state_registry{};
 
 	std::unordered_map<
 		GraphicsPipelineKey,
 		std::unique_ptr<GraphicsPipelineValue>,
 		GraphicsPipelineKeyHasher>
-		m_graphics_pipeline_cache{};
-	std::shared_mutex m_graphics_pipeline_cache_mutex{};
+		m_graphics_pipeline_registry{};
+	std::shared_mutex m_graphics_pipeline_registry_mutex{};
 
 	std::shared_mutex m_graphics_pipeline_opt_mutex{};
 	std::condition_variable_any m_graphics_pipeline_opt_cv{};

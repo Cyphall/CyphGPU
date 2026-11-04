@@ -126,7 +126,7 @@ cgpu::DeviceSession::~DeviceSession()
 	m_graphics_pipeline_opt_thread.request_stop();
 	m_graphics_pipeline_opt_thread.join();
 
-	for (const auto& graphics_pipeline : m_graphics_pipeline_cache | std::views::values)
+	for (const auto& graphics_pipeline : m_graphics_pipeline_registry | std::views::values)
 	{
 		if (auto pipeline = graphics_pipeline->opt_pipeline.load())
 		{
@@ -135,12 +135,12 @@ cgpu::DeviceSession::~DeviceSession()
 		m_handle.destroyPipeline(graphics_pipeline->fast_link_pipeline, nullptr, m_dispatcher);
 	}
 
-	m_compute_shader_state_cache.clear();
-	m_fragment_output_state_cache.clear();
-	m_fragment_shader_state_cache.clear();
-	m_pre_rasterization_shader_state_cache.clear();
-	m_vertex_input_state_cache.clear();
-	m_sampler_cache.clear();
+	m_compute_shader_state_registry.clear();
+	m_fragment_output_state_registry.clear();
+	m_fragment_shader_state_registry.clear();
+	m_pre_rasterization_shader_state_registry.clear();
+	m_vertex_input_state_registry.clear();
+	m_sampler_registry.clear();
 
 	vmaDestroyBuffer(m_allocator, m_resource_heap.buffer, m_resource_heap.alloc);
 	vmaDestroyBuffer(m_allocator, m_sampler_heap.buffer, m_sampler_heap.alloc);
@@ -255,7 +255,7 @@ vk::Pipeline cgpu::DeviceSession::GraphicsPipelineValue::getBestPipeline() const
 }
 
 template<class T>
-T& cgpu::DeviceSession::MetaObjectCache<T>::get(DeviceSession& device_session, T::Desc&& desc)
+T& cgpu::DeviceSession::MetaObjectRegistry<T>::get(DeviceSession& device_session, T::Desc&& desc)
 {
 	{
 		std::shared_lock lock{m_mutex};
@@ -281,7 +281,7 @@ T& cgpu::DeviceSession::MetaObjectCache<T>::get(DeviceSession& device_session, T
 }
 
 template<class T>
-void cgpu::DeviceSession::MetaObjectCache<T>::clear()
+void cgpu::DeviceSession::MetaObjectRegistry<T>::clear()
 {
 	m_map.clear();
 }
@@ -746,32 +746,32 @@ const vk::BindHeapInfoEXT& cgpu::DeviceSession::getSamplerBindHeapInfo() const
 
 cgpu::Sampler& cgpu::DeviceSession::getSampler(Sampler::Desc&& desc)
 {
-	return m_sampler_cache.get(*this, std::move(desc));
+	return m_sampler_registry.get(*this, std::move(desc));
 }
 
 cgpu::VertexInputState& cgpu::DeviceSession::getVertexInputState(VertexInputState::Desc&& desc)
 {
-	return m_vertex_input_state_cache.get(*this, std::move(desc));
+	return m_vertex_input_state_registry.get(*this, std::move(desc));
 }
 
 cgpu::PreRasterizationShaderState& cgpu::DeviceSession::getPreRasterizationShaderState(PreRasterizationShaderState::Desc&& desc)
 {
-	return m_pre_rasterization_shader_state_cache.get(*this, std::move(desc));
+	return m_pre_rasterization_shader_state_registry.get(*this, std::move(desc));
 }
 
 cgpu::FragmentShaderState& cgpu::DeviceSession::getFragmentShaderState(FragmentShaderState::Desc&& desc)
 {
-	return m_fragment_shader_state_cache.get(*this, std::move(desc));
+	return m_fragment_shader_state_registry.get(*this, std::move(desc));
 }
 
 cgpu::FragmentOutputState& cgpu::DeviceSession::getFragmentOutputState(FragmentOutputState::Desc&& desc)
 {
-	return m_fragment_output_state_cache.get(*this, std::move(desc));
+	return m_fragment_output_state_registry.get(*this, std::move(desc));
 }
 
 cgpu::ComputeShaderState& cgpu::DeviceSession::getComputeShaderState(ComputeShaderState::Desc&& desc)
 {
-	return m_compute_shader_state_cache.get(*this, std::move(desc));
+	return m_compute_shader_state_registry.get(*this, std::move(desc));
 }
 
 vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(const GraphicsPipelineKey& key, bool lto)
@@ -837,17 +837,17 @@ vk::Pipeline cgpu::DeviceSession::getGraphicsPipeline(
 	};
 
 	{
-		std::shared_lock lock{m_graphics_pipeline_cache_mutex};
-		auto it = m_graphics_pipeline_cache.find(key);
-		if (it != m_graphics_pipeline_cache.end())
+		std::shared_lock lock{m_graphics_pipeline_registry_mutex};
+		auto it = m_graphics_pipeline_registry.find(key);
+		if (it != m_graphics_pipeline_registry.end())
 		{
 			return it->second->getBestPipeline();
 		}
 	}
 
-	std::unique_lock lock{m_graphics_pipeline_cache_mutex};
-	auto it = m_graphics_pipeline_cache.find(key);
-	if (it != m_graphics_pipeline_cache.end())
+	std::unique_lock lock{m_graphics_pipeline_registry_mutex};
+	auto it = m_graphics_pipeline_registry.find(key);
+	if (it != m_graphics_pipeline_registry.end())
 	{
 		return it->second->getBestPipeline();
 	}
@@ -855,7 +855,7 @@ vk::Pipeline cgpu::DeviceSession::getGraphicsPipeline(
 	auto value = std::make_unique<GraphicsPipelineValue>();
 	value->fast_link_pipeline = linkGraphicsPipeline(key, false);
 
-	it = m_graphics_pipeline_cache.emplace(key, std::move(value)).first;
+	it = m_graphics_pipeline_registry.emplace(key, std::move(value)).first;
 
 	{
 		std::unique_lock opt_lock{m_graphics_pipeline_opt_mutex};

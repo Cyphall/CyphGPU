@@ -22,15 +22,15 @@ cgpu::Image::Image(PrivateKey, const DeviceSessionPtr& device_session, Desc&& de
 
 cgpu::Image::~Image()
 {
-	for (vk::ImageView view : m_attachment_cache | std::views::values)
+	for (vk::ImageView view : m_attachment_registry | std::views::values)
 	{
 		m_device_session->getHandle().destroyImageView(view, nullptr, m_device_session->getDispatcher());
 	}
-	for (uint32_t index : m_storage_cache | std::views::values)
+	for (uint32_t index : m_storage_registry | std::views::values)
 	{
 		m_device_session->deleteResourceDescriptor(index);
 	}
-	for (uint32_t index : m_sampled_cache | std::views::values)
+	for (uint32_t index : m_sampled_registry | std::views::values)
 	{
 		m_device_session->deleteResourceDescriptor(index);
 	}
@@ -77,10 +77,10 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
 	info.swizzle = overrides.swizzle ? *overrides.swizzle : vk::ComponentMapping{};
 
-	std::unique_lock lock{m_cache_mutex};
+	std::unique_lock lock{m_registry_mutex};
 
-	auto it = std::ranges::find(m_sampled_cache, info, &std::pair<SampledDescriptorInfo, uint32_t>::first);
-	if (it == m_sampled_cache.end()) [[unlikely]]
+	auto it = std::ranges::find(m_sampled_registry, info, &std::pair<SampledDescriptorInfo, uint32_t>::first);
+	if (it == m_sampled_registry.end()) [[unlikely]]
 	{
 		vk::ImageViewCreateInfo view_info;
 		view_info.flags = {};
@@ -102,8 +102,8 @@ cgpu::SampledImageHandle cgpu::Image::getSampledDescriptorIndirect(const Sampled
 		desc_info.type = vk::DescriptorType::eSampledImage;
 		desc_info.data.pImage = &typed_info;
 
-		m_sampled_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
-		it = m_sampled_cache.end() - 1;
+		m_sampled_registry.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_sampled_registry.end() - 1;
 	}
 
 	return it->second;
@@ -129,10 +129,10 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 	info.layers = overrides.layers ? *overrides.layers : Range<uint32_t>{0, calcDefaultLayerCount(info.type)};
 	info.aspect = overrides.aspect ? *overrides.aspect : m_default_view_aspect;
 
-	std::unique_lock lock{m_cache_mutex};
+	std::unique_lock lock{m_registry_mutex};
 
-	auto it = std::ranges::find(m_storage_cache, info, &std::pair<StorageDescriptorInfo, uint32_t>::first);
-	if (it == m_storage_cache.end()) [[unlikely]]
+	auto it = std::ranges::find(m_storage_registry, info, &std::pair<StorageDescriptorInfo, uint32_t>::first);
+	if (it == m_storage_registry.end()) [[unlikely]]
 	{
 		vk::ImageViewCreateInfo view_info;
 		view_info.flags = {};
@@ -154,8 +154,8 @@ cgpu::StorageImageHandle cgpu::Image::getStorageDescriptorIndirect(const Storage
 		desc_info.type = vk::DescriptorType::eStorageImage;
 		desc_info.data.pImage = &typed_info;
 
-		m_storage_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
-		it = m_storage_cache.end() - 1;
+		m_storage_registry.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_storage_registry.end() - 1;
 	}
 
 	return it->second;
@@ -313,10 +313,10 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 	info.aspects = aspects;
 	info.usage = usage;
 
-	std::unique_lock lock{m_cache_mutex};
+	std::unique_lock lock{m_registry_mutex};
 
-	auto it = std::ranges::find(m_attachment_cache, info, &std::pair<AttachmentViewInfo, vk::ImageView>::first);
-	if (it == m_attachment_cache.end()) [[unlikely]]
+	auto it = std::ranges::find(m_attachment_registry, info, &std::pair<AttachmentViewInfo, vk::ImageView>::first);
+	if (it == m_attachment_registry.end()) [[unlikely]]
 	{
 		vk::StructureChain<
 			vk::ImageViewCreateInfo,
@@ -338,8 +338,8 @@ vk::ImageView cgpu::Image::getAttachmentView(vk::Format format, uint32_t level, 
 		auto& view_usage_info = chain.get<vk::ImageViewUsageCreateInfo>();
 		view_usage_info.usage = usage;
 
-		m_attachment_cache.emplace_back(info, m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher()));
-		it = m_attachment_cache.end() - 1;
+		m_attachment_registry.emplace_back(info, m_device_session->getHandle().createImageView(chain.get(), nullptr, m_device_session->getDispatcher()));
+		it = m_attachment_registry.end() - 1;
 	}
 
 	return it->second;

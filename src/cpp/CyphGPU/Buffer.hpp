@@ -143,10 +143,10 @@ private:
 	vk::DeviceAddress m_device_ptr{};
 	std::optional<std::byte*> m_host_ptr{};
 
-	std::vector<std::pair<UniformTexelDescriptorInfo, uint32_t>> m_uniform_texel_cache;
-	std::vector<std::pair<StorageTexelDescriptorInfo, uint32_t>> m_storage_texel_cache;
+	std::vector<std::pair<UniformTexelDescriptorInfo, uint32_t>> m_uniform_texel_registry;
+	std::vector<std::pair<StorageTexelDescriptorInfo, uint32_t>> m_storage_texel_registry;
 
-	std::shared_mutex m_cache_mutex{};
+	std::shared_mutex m_registry_mutex{};
 
 	void createBuffer();
 };

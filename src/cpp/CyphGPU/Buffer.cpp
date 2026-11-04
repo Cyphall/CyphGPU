@@ -20,11 +20,11 @@ cgpu::Buffer::Buffer(PrivateKey, const DeviceSessionPtr& device_session, Desc&& 
 
 cgpu::Buffer::~Buffer()
 {
-	for (uint32_t index : m_storage_texel_cache | std::views::values)
+	for (uint32_t index : m_storage_texel_registry | std::views::values)
 	{
 		m_device_session->deleteResourceDescriptor(index);
 	}
-	for (uint32_t index : m_uniform_texel_cache | std::views::values)
+	for (uint32_t index : m_uniform_texel_registry | std::views::values)
 	{
 		m_device_session->deleteResourceDescriptor(index);
 	}
@@ -73,10 +73,10 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 	info.format = format;
 	info.byte_range = overrides.byte_range ? *overrides.byte_range : Range<vk::DeviceSize>{0, m_desc.size};
 
-	std::unique_lock lock{m_cache_mutex};
+	std::unique_lock lock{m_registry_mutex};
 
-	auto it = std::ranges::find(m_uniform_texel_cache, info, &std::pair<UniformTexelDescriptorInfo, uint32_t>::first);
-	if (it == m_uniform_texel_cache.end()) [[unlikely]]
+	auto it = std::ranges::find(m_uniform_texel_registry, info, &std::pair<UniformTexelDescriptorInfo, uint32_t>::first);
+	if (it == m_uniform_texel_registry.end()) [[unlikely]]
 	{
 		vk::TexelBufferDescriptorInfoEXT typed_info;
 		typed_info.format = info.format;
@@ -87,8 +87,8 @@ cgpu::UniformTexelBufferHandle cgpu::Buffer::getUniformTexelDescriptorIndirect(v
 		desc_info.type = vk::DescriptorType::eUniformTexelBuffer;
 		desc_info.data.pTexelBuffer = &typed_info;
 
-		m_uniform_texel_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
-		it = m_uniform_texel_cache.end() - 1;
+		m_uniform_texel_registry.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_uniform_texel_registry.end() - 1;
 	}
 
 	return it->second;
@@ -107,10 +107,10 @@ cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(v
 	info.format = format;
 	info.byte_range = overrides.byte_range ? *overrides.byte_range : Range<vk::DeviceSize>{0, m_desc.size};
 
-	std::unique_lock lock{m_cache_mutex};
+	std::unique_lock lock{m_registry_mutex};
 
-	auto it = std::ranges::find(m_storage_texel_cache, info, &std::pair<StorageTexelDescriptorInfo, uint32_t>::first);
-	if (it == m_storage_texel_cache.end()) [[unlikely]]
+	auto it = std::ranges::find(m_storage_texel_registry, info, &std::pair<StorageTexelDescriptorInfo, uint32_t>::first);
+	if (it == m_storage_texel_registry.end()) [[unlikely]]
 	{
 		vk::TexelBufferDescriptorInfoEXT typed_info;
 		typed_info.format = info.format;
@@ -121,8 +121,8 @@ cgpu::StorageTexelBufferHandle cgpu::Buffer::getStorageTexelDescriptorIndirect(v
 		desc_info.type = vk::DescriptorType::eStorageTexelBuffer;
 		desc_info.data.pTexelBuffer = &typed_info;
 
-		m_storage_texel_cache.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
-		it = m_storage_texel_cache.end() - 1;
+		m_storage_texel_registry.emplace_back(info, m_device_session->createResourceDescriptor(desc_info));
+		it = m_storage_texel_registry.end() - 1;
 	}
 
 	return it->second;
