@@ -128,7 +128,10 @@ cgpu::DeviceSession::~DeviceSession()
 
 	for (const auto& graphics_pipeline : m_graphics_pipeline_cache | std::views::values)
 	{
-		m_handle.destroyPipeline(graphics_pipeline->opt_pipeline, nullptr, m_dispatcher);
+		if (auto pipeline = graphics_pipeline->opt_pipeline.load())
+		{
+			m_handle.destroyPipeline(pipeline, nullptr, m_dispatcher);
+		}
 		m_handle.destroyPipeline(graphics_pipeline->fast_link_pipeline, nullptr, m_dispatcher);
 	}
 

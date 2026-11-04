@@ -147,7 +147,7 @@ private:
 	struct GraphicsPipelineValue
 	{
 		vk::Pipeline fast_link_pipeline{};
-		std::atomic<vk::Pipeline> opt_pipeline{};
+		std::atomic<vk::Pipeline> opt_pipeline{}; // Nullable
 
 		[[nodiscard]]
 		vk::Pipeline getBestPipeline() const;
