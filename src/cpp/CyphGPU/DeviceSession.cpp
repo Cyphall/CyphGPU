@@ -241,15 +241,38 @@ std::size_t cgpu::DeviceSession::GraphicsPipelineKeyHasher::operator()(const Gra
 	return seed;
 }
 
+vk::Pipeline cgpu::DeviceSession::GraphicsPipelineValue::getBestPipeline() const
+{
+	auto best_pipeline = opt_pipeline.load();
+	if (!best_pipeline)
+	{
+		best_pipeline = fast_link_pipeline;
+	}
+	return best_pipeline;
+}
+
 template<class T>
 T& cgpu::DeviceSession::MetaObjectCache<T>::get(DeviceSession& device_session, T::Desc&& desc)
 {
-	std::unique_lock lock{m_mutex};
-	auto [it, inserted] = m_map.try_emplace(desc);
-	if (inserted)
 	{
-		it->second = std::make_unique<T>(typename T::PrivateKey{}, device_session, std::move(desc));
+		std::shared_lock lock{m_mutex};
+		auto it = m_map.find(desc);
+		if (it != m_map.end())
+		{
+			return *it->second;
+		}
 	}
+
+	std::unique_lock lock{m_mutex};
+	auto it = m_map.find(desc);
+	if (it != m_map.end())
+	{
+		return *it->second;
+	}
+
+	auto object = std::make_unique<T>(typename T::PrivateKey{}, device_session, std::move(desc));
+
+	it = m_map.emplace(object->getDesc(), std::move(object)).first;
 
 	return *it->second;
 }
@@ -615,7 +638,7 @@ void cgpu::DeviceSession::createGraphicsPipelineOptThread()
 		[&](std::stop_token token) { // NOLINT(*-unnecessary-value-param)
 			while (true)
 			{
-				std::pair<GraphicsPipelineKey, GraphicsPipelineValue*> request{};
+				std::pair<GraphicsPipelineKey, std::atomic<vk::Pipeline>*> request{};
 				{
 					std::unique_lock lock{m_graphics_pipeline_opt_mutex};
 					if (!m_graphics_pipeline_opt_cv.wait(lock, token, [&] { return !m_graphics_pipeline_opt_queue.empty(); }))
@@ -626,10 +649,7 @@ void cgpu::DeviceSession::createGraphicsPipelineOptThread()
 					m_graphics_pipeline_opt_queue.pop();
 				}
 
-				request.second->opt_pipeline = linkGraphicsPipeline(
-					request.first,
-					true
-				);
+				*request.second = linkGraphicsPipeline(request.first, true);
 			}
 		}
 	};
@@ -751,10 +771,7 @@ cgpu::ComputeShaderState& cgpu::DeviceSession::getComputeShaderState(ComputeShad
 	return m_compute_shader_state_cache.get(*this, std::move(desc));
 }
 
-vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(
-	const GraphicsPipelineKey& key,
-	bool lto
-)
+vk::Pipeline cgpu::DeviceSession::linkGraphicsPipeline(const GraphicsPipelineKey& key, bool lto)
 {
 	std::array libraries = {
 		key.vertex_input_state->getHandle(),
@@ -809,8 +826,6 @@ vk::Pipeline cgpu::DeviceSession::getGraphicsPipeline(
 	const FragmentOutputStatePtr& fragment_output_state
 )
 {
-	std::unique_lock lock{m_graphics_pipeline_cache_mutex};
-
 	GraphicsPipelineKey key{
 		vertex_input_state.get(),
 		pre_rasterization_shader_state.get(),
@@ -818,23 +833,33 @@ vk::Pipeline cgpu::DeviceSession::getGraphicsPipeline(
 		fragment_output_state.get(),
 	};
 
-	auto [it, inserted] = m_graphics_pipeline_cache.try_emplace(key);
-	if (inserted)
 	{
-		it->second = std::make_unique<GraphicsPipelineValue>();
-		it->second->fast_link_pipeline = linkGraphicsPipeline(
-			key,
-			false
-		);
-
+		std::shared_lock lock{m_graphics_pipeline_cache_mutex};
+		auto it = m_graphics_pipeline_cache.find(key);
+		if (it != m_graphics_pipeline_cache.end())
 		{
-			std::unique_lock opt_lock{m_graphics_pipeline_opt_mutex};
-			m_graphics_pipeline_opt_queue.emplace(key, it->second.get());
+			return it->second->getBestPipeline();
 		}
-
-		m_graphics_pipeline_opt_cv.notify_one();
 	}
 
-	vk::Pipeline opt_pipeline = it->second->opt_pipeline;
-	return opt_pipeline ? opt_pipeline : it->second->fast_link_pipeline;
+	std::unique_lock lock{m_graphics_pipeline_cache_mutex};
+	auto it = m_graphics_pipeline_cache.find(key);
+	if (it != m_graphics_pipeline_cache.end())
+	{
+		return it->second->getBestPipeline();
+	}
+
+	auto value = std::make_unique<GraphicsPipelineValue>();
+	value->fast_link_pipeline = linkGraphicsPipeline(key, false);
+
+	it = m_graphics_pipeline_cache.emplace(key, std::move(value)).first;
+
+	{
+		std::unique_lock opt_lock{m_graphics_pipeline_opt_mutex};
+		m_graphics_pipeline_opt_queue.emplace(key, &it->second->opt_pipeline);
+	}
+
+	m_graphics_pipeline_opt_cv.notify_one();
+
+	return it->second->getBestPipeline();
 }

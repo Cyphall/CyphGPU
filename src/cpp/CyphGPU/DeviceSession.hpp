@@ -148,6 +148,9 @@ private:
 	{
 		vk::Pipeline fast_link_pipeline{};
 		std::atomic<vk::Pipeline> opt_pipeline{};
+
+		[[nodiscard]]
+		vk::Pipeline getBestPipeline() const;
 	};
 
 	DevicePtr m_device;
@@ -188,7 +191,7 @@ private:
 
 	std::shared_mutex m_graphics_pipeline_opt_mutex{};
 	std::condition_variable_any m_graphics_pipeline_opt_cv{};
-	std::queue<std::pair<GraphicsPipelineKey, GraphicsPipelineValue*>> m_graphics_pipeline_opt_queue{};
+	std::queue<std::pair<GraphicsPipelineKey, std::atomic<vk::Pipeline>*>> m_graphics_pipeline_opt_queue{};
 	std::jthread m_graphics_pipeline_opt_thread{};
 
 #if defined(TRACY_ENABLE)
@@ -248,10 +251,7 @@ private:
 	ComputeShaderState& getComputeShaderState(ComputeShaderState::Desc&& desc);
 
 	[[nodiscard]]
-	vk::Pipeline linkGraphicsPipeline(
-		const GraphicsPipelineKey& key,
-		bool lto
-	);
+	vk::Pipeline linkGraphicsPipeline(const GraphicsPipelineKey& key, bool lto);
 
 	[[nodiscard]]
 	vk::Pipeline getGraphicsPipeline(
