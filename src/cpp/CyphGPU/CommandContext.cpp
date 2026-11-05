@@ -225,7 +225,7 @@ vk::CommandBuffer cgpu::CommandContext::Slot::createCommandBuffer(const QueuePtr
 		}
 	}
 
-	size_t level_index = static_cast<size_t>(level);
+	size_t level_index = std::to_underlying(level);
 
 	if (it->second.available_cmd_bufs[level_index].empty())
 	{

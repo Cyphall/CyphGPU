@@ -531,30 +531,30 @@ void cgpu::DeviceSession::createMemoryPools()
 		};
 	};
 
-	m_memory_pools[static_cast<size_t>(MemoryType::eGPULowPrio)] = create_pool(
+	m_memory_pools[std::to_underlying(MemoryType::eGPULowPrio)] = create_pool(
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
 		0.5f
 	);
 
-	m_memory_pools[static_cast<size_t>(MemoryType::eGPUHighPrio)] = create_pool(
+	m_memory_pools[std::to_underlying(MemoryType::eGPUHighPrio)] = create_pool(
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
 		1.0f
 	);
 
-	m_memory_pools[static_cast<size_t>(MemoryType::eCPUCached)] = create_pool(
+	m_memory_pools[std::to_underlying(MemoryType::eCPUCached)] = create_pool(
 		vk::MemoryPropertyFlagBits::eHostVisible |
 			vk::MemoryPropertyFlagBits::eHostCoherent |
 			vk::MemoryPropertyFlagBits::eHostCached,
 		0.0f
 	);
 
-	m_memory_pools[static_cast<size_t>(MemoryType::eCPUUncached)] = create_pool(
+	m_memory_pools[std::to_underlying(MemoryType::eCPUUncached)] = create_pool(
 		vk::MemoryPropertyFlagBits::eHostVisible |
 			vk::MemoryPropertyFlagBits::eHostCoherent,
 		0.0f
 	);
 
-	m_memory_pools[static_cast<size_t>(MemoryType::eCPUVisibleGPU)] = create_pool(
+	m_memory_pools[std::to_underlying(MemoryType::eCPUVisibleGPU)] = create_pool(
 		vk::MemoryPropertyFlagBits::eDeviceLocal |
 			vk::MemoryPropertyFlagBits::eHostVisible |
 			vk::MemoryPropertyFlagBits::eHostCoherent,
@@ -698,7 +698,7 @@ const VmaAllocator& cgpu::DeviceSession::getAllocator() const
 
 const cgpu::DeviceSession::MemoryPool& cgpu::DeviceSession::getMemoryPool(MemoryType type) const
 {
-	return m_memory_pools[static_cast<size_t>(type)];
+	return m_memory_pools[std::to_underlying(type)];
 }
 
 std::span<const uint32_t> cgpu::DeviceSession::getActiveQueueFamilies() const
