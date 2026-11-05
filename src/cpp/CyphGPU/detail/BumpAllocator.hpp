@@ -29,7 +29,7 @@ public:
 	BumpAllocator(const BumpAllocator&) = default;
 
 	template<class TOther>
-	BumpAllocator(const BumpAllocator<TOther>& other):
+	BumpAllocator(const BumpAllocator<TOther>& other): // NOLINT(*-explicit-constructor)
 		m_resource{other.m_resource}
 	{}
 
@@ -60,7 +60,7 @@ struct BumpDeleter
 
 	template<class TOther>
 	requires(std::is_convertible_v<TOther*, T*>)
-	BumpDeleter(const BumpDeleter<TOther>&)
+	BumpDeleter(const BumpDeleter<TOther>&) // NOLINT(*-explicit-constructor)
 	{}
 
 	void operator()(T* ptr) const

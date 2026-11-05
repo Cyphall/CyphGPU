@@ -292,7 +292,7 @@ cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 		uint32_t cmd_stageful_index{};
 		AccessPoints access_points{};
 
-		operator bool() const
+		operator bool() const // NOLINT(*-explicit-constructor)
 		{
 			return cmd_idx != INVALID_IDX;
 		}
