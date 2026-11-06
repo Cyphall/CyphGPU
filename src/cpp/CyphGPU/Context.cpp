@@ -102,18 +102,6 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	};
 #endif
 
-#if defined(VK_USE_PLATFORM_XLIB_KHR)
-	static const CapabilityData SURFACE_XLIB{
-		{
-			vk::KHRSurfaceExtensionName,
-			vk::KHRSurfaceMaintenance1ExtensionName,
-			vk::KHRGetSurfaceCapabilities2ExtensionName,
-			vk::EXTSwapchainColorSpaceExtensionName,
-			vk::KHRXlibSurfaceExtensionName,
-		}
-	};
-#endif
-
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	static const CapabilityData SURFACE_WAYLAND{
 		{
@@ -143,11 +131,6 @@ boost::optional<const cgpu::Context::CapabilityData&> cgpu::Context::getCapabili
 	case Capability::eSurfaceXcb: return SURFACE_XCB;
 #else
 	case Capability::eSurfaceXcb: return boost::none;
-#endif
-#if defined(VK_USE_PLATFORM_XLIB_KHR)
-	case Capability::eSurfaceXlib: return SURFACE_XLIB;
-#else
-	case Capability::eSurfaceXlib: return boost::none;
 #endif
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	case Capability::eSurfaceWayland: return SURFACE_WAYLAND;

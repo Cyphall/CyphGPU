@@ -27,8 +27,7 @@ public:
 		eSurfaceWin32 = 1 << 1,
 		eSurfaceMetal = 1 << 2,
 		eSurfaceXcb = 1 << 3,
-		eSurfaceXlib = 1 << 4,
-		eSurfaceWayland = 1 << 5,
+		eSurfaceWayland = 1 << 4,
 	};
 
 	using Capabilities = vk::Flags<Capability>;
@@ -90,7 +89,6 @@ struct vk::FlagTraits<cgpu::Context::Capability>
 		cgpu::Context::Capability::eSurfaceWin32 |
 		cgpu::Context::Capability::eSurfaceMetal |
 		cgpu::Context::Capability::eSurfaceXcb |
-		cgpu::Context::Capability::eSurfaceXlib |
 		cgpu::Context::Capability::eSurfaceWayland;
 };
 

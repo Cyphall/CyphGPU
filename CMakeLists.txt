@@ -28,7 +28,6 @@ string(COMPARE EQUAL "${CMAKE_SYSTEM_NAME}" "Linux" CYPHGPU_IS_LINUX)
 option(CYPHGPU_ENABLE_PLATFORM_WIN32 "Enable Win32 platform capabilities." ${CYPHGPU_IS_WINDOWS})
 option(CYPHGPU_ENABLE_PLATFORM_METAL "Enable Metal platform capabilities." ${CYPHGPU_IS_MACOS})
 option(CYPHGPU_ENABLE_PLATFORM_XCB "Enable X11 Xcb platform capabilities." ${CYPHGPU_IS_LINUX})
-option(CYPHGPU_ENABLE_PLATFORM_XLIB "Enable X11 Xlib platform capabilities." ${CYPHGPU_IS_LINUX})
 option(CYPHGPU_ENABLE_PLATFORM_WAYLAND "Enable Wayland platform capabilities." ${CYPHGPU_IS_LINUX})
 
 # ---- Dependency: glm ----
@@ -251,7 +250,6 @@ target_compile_definitions(CyphGPU PUBLIC NOMINMAX)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_WIN32}>:VK_USE_PLATFORM_WIN32_KHR>)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_METAL}>:VK_USE_PLATFORM_METAL_EXT>)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_XCB}>:VK_USE_PLATFORM_XCB_KHR>)
-target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_XLIB}>:VK_USE_PLATFORM_XLIB_KHR>)
 target_compile_definitions(CyphGPU PUBLIC $<$<BOOL:${CYPHGPU_ENABLE_PLATFORM_WAYLAND}>:VK_USE_PLATFORM_WAYLAND_KHR>)
 
 # ---- Dependency: GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ----
