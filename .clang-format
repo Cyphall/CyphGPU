@@ -79,6 +79,7 @@ ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
+DisableFormat: true
 EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: LogicalBlock
 FixNamespaceComments: false
@@ -106,7 +107,6 @@ IntegerLiteralSeparator:
 KeepEmptyLinesAtEOF: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 LambdaBodyIndentation: Signature
-Language: Cpp
 LineEnding: LF
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
@@ -159,3 +159,9 @@ SpacesInSquareBrackets: false
 Standard: Latest
 TabWidth: 4
 UseTab: AlignWithSpaces
+---
+Language: Cpp
+DisableFormat: false
+---
+Language: CSharp
+DisableFormat: false
