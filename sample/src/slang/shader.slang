@@ -1,4 +1,4 @@
-static const float3 LIGHT_DIR = {0.424, 0.566, 0.707};
+static const float3 LIGHT_DIR = { 0.424, 0.566, 0.707 };
 
 cbuffer Parameters
 {
@@ -11,22 +11,22 @@ cbuffer Parameters
 
 struct VIn
 {
-	uint vertex_index : SV_VulkanVertexID;
+	uint vertex_index: SV_VulkanVertexID;
 };
 
 struct V2F
 {
-	float4 raster_position : SV_Position;
+	float4 raster_position: SV_Position;
 	float3 position;
 	float2 tex_coord;
 };
 
 struct FOut
 {
-	float4 color : SV_Target0;
+	float4 color: SV_Target0;
 };
 
-[[shader("vertex")]]
+[shader("vertex")]
 V2F main(VIn input)
 {
 	V2F output;
@@ -36,7 +36,7 @@ V2F main(VIn input)
 	return output;
 }
 
-[[shader("fragment")]]
+[shader("fragment")]
 FOut main(V2F input)
 {
 	float3 d_x = ddx(input.position);

@@ -1,37 +1,37 @@
 struct ImDrawVert
 {
-    float2 pos;
-    float2 uv;
-    uint32_t col;
+	float2 pos;
+	float2 uv;
+	uint32_t col;
 };
 
 cbuffer Parameters
 {
-    ImDrawVert* u_vertices;
-    float2 u_scale;
-    float2 u_offset;
+	ImDrawVert* u_vertices;
+	float2 u_scale;
+	float2 u_offset;
 	Texture2D.Handle u_image;
 	SamplerState.Handle u_sampler;
 };
 
 struct VIn
 {
-    uint32_t vertex_index : SV_VulkanVertexID;
+	uint32_t vertex_index: SV_VulkanVertexID;
 };
 
 struct V2F
 {
-    float4 raster_position : SV_Position;
-    float4 color;
-    float2 uv;
+	float4 raster_position: SV_Position;
+	float4 color;
+	float2 uv;
 };
 
 struct FOut
 {
-    float4 color : SV_Target0;
+	float4 color: SV_Target0;
 };
 
-[[shader("vertex")]]
+[shader("vertex")]
 V2F main(VIn input)
 {
 	ImDrawVert vertex = u_vertices[input.vertex_index];
@@ -43,7 +43,7 @@ V2F main(VIn input)
 	return output;
 }
 
-[[shader("fragment")]]
+[shader("fragment")]
 FOut main(V2F input)
 {
 	FOut output;
