@@ -35,7 +35,8 @@ vcpkg_extract_source_archive(
 set(VCPKG_FIXUP_MACHO_RPATH OFF)
 
 file(GLOB SLANGC "${SOURCE_PATH}/*/slangc*")
-file(COPY ${SLANGC} DESTINATION "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
+file(GLOB SLANGD "${SOURCE_PATH}/*/slangd*")
+file(COPY ${SLANGC} ${SLANGD} DESTINATION "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
 
 file(GLOB SLANG_COMPILER "${SOURCE_PATH}/*/*slang-compiler*")
 file(COPY ${SLANG_COMPILER} DESTINATION "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
