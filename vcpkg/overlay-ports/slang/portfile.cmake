@@ -8,21 +8,21 @@ if (VCPKG_TARGET_IS_WINDOWS)
 		ARCHIVE
 		URLS "https://github.com/shader-slang/slang/releases/download/v${VERSION}/slang-${VERSION}-windows-x86_64.zip"
 		FILENAME "slang-${VERSION}-windows-x86_64.zip"
-		SHA512 8129340303cdb8769c73677e106a04ab969eeb46f3b0feb9d8f60503498af7207dab281d4d5e845d44272111935f84be6e174bfa62f82ed3e33cec3ce9315921
+		SHA512 cac45e9f659ae31cd9a4dbdd3be5c062bf97c1e354fb99212742c3e77866bc519326e63b392a067d74829d3faaabc28271efe615129e5acf8386edd863ba363e
 	)
 elseif (VCPKG_TARGET_IS_OSX)
 	vcpkg_download_distfile(
 		ARCHIVE
 		URLS "https://github.com/shader-slang/slang/releases/download/v${VERSION}/slang-${VERSION}-macos-aarch64.zip"
 		FILENAME "slang-${VERSION}-macos-aarch64.zip"
-		SHA512 a626354b10449415093e6466000f1c8296e7cf83ac241a34791080a1bcfcc86afd64dc4616984d60d9ebf755769dac87f2d682e45135f152864733f250704dc0
+		SHA512 fdffcdb5070b676d25c23c118791ede6fa6db046e8eb5a299c3e91a595e3716b75026f21993199120f771a9ac4034c80d8cd6d221b75b1cd5c896d3d4cd874f0
 	)
 elseif (VCPKG_TARGET_IS_LINUX)
 	vcpkg_download_distfile(
 		ARCHIVE
 		URLS "https://github.com/shader-slang/slang/releases/download/v${VERSION}/slang-${VERSION}-linux-x86_64.zip"
 		FILENAME "slang-${VERSION}-linux-x86_64.zip"
-		SHA512 7153e5912cd381d24e4507dde69cd7582937cc9c5476dd05cd0caf487b38aeca6332a0c3592f6e4610cec002d46581e7aa1d64522b60a3d48a121344493cfaec
+		SHA512 6277a36cb7e377767031cfef9239b545adddffb52c33a68aa549e7d62aeacc2d7a07cef98390767ba527afeebf74f15645440189ea31fbf7573a941b9e70e54a
 	)
 endif ()
 
