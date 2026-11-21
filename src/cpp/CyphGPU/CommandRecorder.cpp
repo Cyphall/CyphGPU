@@ -267,7 +267,8 @@ bool isColorFormatUINT(vk::Format format)
 }
 }
 
-const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::CommandRecorder::ClearImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::CommandRecorder::ClearColorImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::CommandRecorder::ClearDepthStencilImageParams::DEFAULT_RANGE{};
 const std::array<cgpu::CommandRecorder::CopyImageToImageParams::Range, 1> cgpu::CommandRecorder::CopyImageToImageParams::DEFAULT_RANGE{};
 const std::array<cgpu::CommandRecorder::CopyBufferToImageParams::Range, 1> cgpu::CommandRecorder::CopyBufferToImageParams::DEFAULT_RANGE{};
 const std::array<cgpu::CommandRecorder::CopyImageToBufferParams::Range, 1> cgpu::CommandRecorder::CopyImageToBufferParams::DEFAULT_RANGE{};
@@ -938,15 +939,93 @@ vk::Result cgpu::CommandRecorder::SubmitHandle::waitSemaphore(uint64_t timeout) 
 
 // NOLINTBEGIN(*-rvalue-reference-param-not-moved)
 
-void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
+void cgpu::CommandRecorder::clearColorImage(ClearColorImageParams&& params)
 {
 	COMMAND_PARSE
 
-	vk::ImageAspectFlags aspects;
-	if (params.color_value)
+	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
+	vk_ranges.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
 	{
-		aspects |= vk::ImageAspectFlagBits::eColor;
+		auto [vk_range, byte_size] = resolveRange(params.image, range, vk::ImageAspectFlagBits::eColor);
+
+		if (byte_size == 0)
+		{
+			continue;
+		}
+
+		vk_ranges.emplace_back(vk_range);
 	}
+
+	if (vk_ranges.empty())
+	{
+		return;
+	}
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		detail::BumpVector<vk::ImageSubresourceRange> ranges;
+		vk::Image image;
+		vk::ClearColorValue color_value{};
+
+		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
+			ranges{std::move(ranges)}
+		{}
+
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			REGIONED_COMMAND_EXECUTE_BEGIN(clearColorImage)
+
+			VULKAN_CALL(vkCmdClearColorImage);
+			cmd_buf.clearColorImage(
+				image,
+				vk::ImageLayout::eGeneral,
+				color_value,
+				ranges,
+				dispatcher
+			);
+
+			REGIONED_COMMAND_EXECUTE_END
+		}
+	};
+
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
+	cmd.image = params.image->getHandle();
+	cmd.color_value = std::visit(
+		Overloaded{
+			[&](const glm::vec4& value) {
+				assert(!isColorFormatSINT(params.image->getDesc().format));
+				assert(!isColorFormatUINT(params.image->getDesc().format));
+				return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
+			},
+			[&](const glm::ivec4& value) {
+				assert(isColorFormatSINT(params.image->getDesc().format));
+				return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
+			},
+			[&](const glm::uvec4& value) {
+				assert(isColorFormatUINT(params.image->getDesc().format));
+				return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
+			},
+		},
+		params.color_value
+	);
+
+	addCmdResource(
+		params.image,
+		{
+			vk::PipelineStageFlagBits2::eClear,
+			vk::AccessFlagBits2::eTransferWrite,
+		}
+	);
+}
+
+void cgpu::CommandRecorder::clearDepthStencilImage(ClearDepthStencilImageParams&& params)
+{
+	COMMAND_PARSE
+
+	assert(params.depth_value || params.stencil_value);
+
+	vk::ImageAspectFlags aspects;
 	if (params.depth_value)
 	{
 		aspects |= vk::ImageAspectFlagBits::eDepth;
@@ -954,11 +1033,6 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 	if (params.stencil_value)
 	{
 		aspects |= vk::ImageAspectFlagBits::eStencil;
-	}
-
-	if (!aspects)
-	{
-		return;
 	}
 
 	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
@@ -984,8 +1058,7 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 	{
 		detail::BumpVector<vk::ImageSubresourceRange> ranges;
 		vk::Image image;
-		std::optional<vk::ClearColorValue> color_value;
-		std::optional<vk::ClearDepthStencilValue> depth_stencil_value;
+		vk::ClearDepthStencilValue depth_stencil_value{};
 
 		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
 			ranges{std::move(ranges)}
@@ -993,31 +1066,16 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 
 		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(clearImage)
+			REGIONED_COMMAND_EXECUTE_BEGIN(clearDepthStencilImage)
 
-			if (color_value)
-			{
-				VULKAN_CALL(vkCmdClearColorImage);
-				cmd_buf.clearColorImage(
-					image,
-					vk::ImageLayout::eGeneral,
-					*color_value,
-					ranges,
-					dispatcher
-				);
-			}
-
-			if (depth_stencil_value)
-			{
-				VULKAN_CALL(vkCmdClearDepthStencilImage);
-				cmd_buf.clearDepthStencilImage(
-					image,
-					vk::ImageLayout::eGeneral,
-					*depth_stencil_value,
-					ranges,
-					dispatcher
-				);
-			}
+			VULKAN_CALL(vkCmdClearDepthStencilImage);
+			cmd_buf.clearDepthStencilImage(
+				image,
+				vk::ImageLayout::eGeneral,
+				depth_stencil_value,
+				ranges,
+				dispatcher
+			);
 
 			REGIONED_COMMAND_EXECUTE_END
 		}
@@ -1025,34 +1083,10 @@ void cgpu::CommandRecorder::clearImage(ClearImageParams&& params)
 
 	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
 	cmd.image = params.image->getHandle();
-	if (params.color_value)
-	{
-		cmd.color_value = std::visit(
-			Overloaded{
-				[&](const glm::vec4& value) {
-					assert(!isColorFormatSINT(params.image->getDesc().format));
-					assert(!isColorFormatUINT(params.image->getDesc().format));
-					return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
-				},
-				[&](const glm::ivec4& value) {
-					assert(isColorFormatSINT(params.image->getDesc().format));
-					return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
-				},
-				[&](const glm::uvec4& value) {
-					assert(isColorFormatUINT(params.image->getDesc().format));
-					return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
-				},
-			},
-			*params.color_value
-		);
-	}
-	if (params.depth_value || params.stencil_value)
-	{
-		cmd.depth_stencil_value = {{
-			params.depth_value.value_or(0.0f),
-			params.stencil_value.value_or(0),
-		}};
-	}
+	cmd.depth_stencil_value = vk::ClearDepthStencilValue{
+		.depth = params.depth_value.value_or(0.0f),
+		.stencil = params.stencil_value.value_or(0),
+	};
 
 	addCmdResource(
 		params.image,

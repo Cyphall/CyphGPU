@@ -110,7 +110,7 @@ public:
 
 	// ----- Commands -----
 
-	struct ClearImageParams
+	struct ClearColorImageParams
 	{
 		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
 
@@ -118,15 +118,27 @@ public:
 		ImagePtr image CGPU_REQUIRED;
 		/// Optional. Default: One default-initialized range.
 		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
-		/// Optional. Default: Empty (no color clear).
-		std::optional<ColorValue> color_value{};
-		/// Optional. Default: Empty (no depth clear).
+		/// Required.
+		ColorValue color_value{};
+	};
+
+	void clearColorImage(ClearColorImageParams&& params);
+
+	struct ClearDepthStencilImageParams
+	{
+		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
+		/// Optional. Default: Empty (no depth clear). At least one of depth or stencil must be provided.
 		std::optional<DepthValue> depth_value{};
-		/// Optional. Default: Empty (no stencil clear).
+		/// Optional. Default: Empty (no stencil clear). At least one of depth or stencil must be provided.
 		std::optional<StencilValue> stencil_value{};
 	};
 
-	void clearImage(ClearImageParams&& params);
+	void clearDepthStencilImage(ClearDepthStencilImageParams&& params);
 
 	struct CopyImageToImageParams
 	{
