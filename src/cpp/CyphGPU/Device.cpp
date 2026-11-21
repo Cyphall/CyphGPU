@@ -268,7 +268,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				// features.descriptorBindingPartiallyBound = vk::True;
 				// features.descriptorBindingVariableDescriptorCount = vk::True;
 				// features.runtimeDescriptorArray = vk::True;
-				features.samplerFilterMinmax = vk::True;
+				// features.samplerFilterMinmax = vk::True;
 				features.scalarBlockLayout = vk::True;
 				// features.imagelessFramebuffer = vk::True;
 				features.uniformBufferStandardLayout = vk::True;
