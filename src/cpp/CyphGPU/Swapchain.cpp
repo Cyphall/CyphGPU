@@ -263,7 +263,7 @@ void cgpu::Swapchain::createLayoutChangeObjects()
 	{
 		vk::CommandPoolCreateInfo info;
 		info.flags = {};
-		info.queueFamilyIndex = m_device_session->getMainQueue()->getFamily();
+		info.queueFamilyIndex = m_device_session->getGraphicsQueue()->getFamily();
 
 		m_layout_change_cmdpool = m_device_session->getHandle().createCommandPool(info, nullptr, m_device_session->getDispatcher());
 	}
@@ -380,7 +380,7 @@ void cgpu::Swapchain::performPresent()
 		{
 			ZoneScopedN("Timeline -> Binary + layout change");
 
-			m_device_session->getMainQueue()->timelineToBinary(
+			m_device_session->getGraphicsQueue()->timelineToBinary(
 				shared_from_this(),
 				image_data.image->getReadSignals().keys(),
 				image_data.image->getReadSignals().values(),
@@ -392,7 +392,7 @@ void cgpu::Swapchain::performPresent()
 		{
 			ZoneScopedN("Present");
 
-			m_status = m_device_session->getMainQueue()->swapchainPresent(
+			m_status = m_device_session->getGraphicsQueue()->swapchainPresent(
 				shared_from_this(),
 				m_acquired_image,
 				image_data.semaphore

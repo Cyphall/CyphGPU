@@ -64,7 +64,7 @@ public:
 	const vk::Device& getHandle();
 
 	[[nodiscard]]
-	QueuePtr getMainQueue() const;
+	QueuePtr getGraphicsQueue() const;
 
 	[[nodiscard]]
 	QueuePtr getAsyncGraphicsQueue() const;
@@ -163,7 +163,7 @@ private:
 
 	std::vector<uint32_t> m_active_queue_families{};
 
-	std::shared_ptr<Queue> m_main_queue{};
+	std::shared_ptr<Queue> m_graphics_queue{};
 	std::shared_ptr<Queue> m_async_graphics_queue{};
 	std::shared_ptr<Queue> m_async_compute_queue{};
 	std::shared_ptr<Queue> m_async_transfer_queue{};

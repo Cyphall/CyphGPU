@@ -305,7 +305,7 @@ int main()
 		rotation += 4.0f;
 
 		{
-			cgpu::CommandRecorder cmd_rec = cmd_ctx.createRecorder(device_session->getMainQueue());
+			cgpu::CommandRecorder cmd_rec = cmd_ctx.createRecorder(device_session->getGraphicsQueue());
 
 			if (!texture)
 			{

@@ -155,7 +155,7 @@ cgpu::DeviceSession::~DeviceSession()
 	m_async_transfer_queue.reset();
 	m_async_compute_queue.reset();
 	m_async_graphics_queue.reset();
-	m_main_queue.reset();
+	m_graphics_queue.reset();
 
 	m_handle.destroy(nullptr, m_dispatcher);
 }
@@ -180,9 +180,9 @@ const vk::Device& cgpu::DeviceSession::getHandle()
 	return m_handle;
 }
 
-cgpu::QueuePtr cgpu::DeviceSession::getMainQueue() const
+cgpu::QueuePtr cgpu::DeviceSession::getGraphicsQueue() const
 {
-	return {shared_from_this(), m_main_queue.get()};
+	return {shared_from_this(), m_graphics_queue.get()};
 }
 
 cgpu::QueuePtr cgpu::DeviceSession::getAsyncGraphicsQueue() const
@@ -202,7 +202,7 @@ cgpu::QueuePtr cgpu::DeviceSession::getAsyncTransferQueue() const
 
 void cgpu::DeviceSession::waitIdle()
 {
-	m_main_queue->waitIdle();
+	m_graphics_queue->waitIdle();
 	m_async_graphics_queue->waitIdle();
 	m_async_compute_queue->waitIdle();
 	m_async_transfer_queue->waitIdle();
@@ -292,7 +292,7 @@ void cgpu::DeviceSession::createDevice()
 
 	std::vector<QueueFamilyInfo> available_queues = queryAvailableQueues(getDevice());
 
-	std::optional<uint32_t> main_queue_family = tryReserveBestQueue(
+	std::optional<uint32_t> graphics_queue_family = tryReserveBestQueue(
 		available_queues,
 		vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer
 	);
@@ -312,10 +312,10 @@ void cgpu::DeviceSession::createDevice()
 		vk::QueueFlagBits::eTransfer
 	);
 
-	// Main queue is mandatory, other queues are optional
-	if (!main_queue_family)
+	// Graphics queue is mandatory, other queues are optional
+	if (!graphics_queue_family)
 	{
-		throw std::runtime_error("Could not find a suitable main queue.");
+		throw std::runtime_error("Could not find a suitable graphics queue.");
 	}
 
 	std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
@@ -356,7 +356,7 @@ void cgpu::DeviceSession::createDevice()
 		return queue_create_infos[*index].queueCount - 1;
 	};
 
-	std::optional<uint32_t> main_queue_index = try_register_queue(main_queue_family, 1.0f);
+	std::optional<uint32_t> graphics_queue_index = try_register_queue(graphics_queue_family, 1.0f);
 	std::optional<uint32_t> async_graphics_queue_index = try_register_queue(async_graphics_queue_family, 0.0f);
 	std::optional<uint32_t> async_compute_queue_index = try_register_queue(async_compute_queue_family, 0.0f);
 	std::optional<uint32_t> async_transfer_queue_index = try_register_queue(async_transfer_queue_family, 0.0f);
@@ -415,24 +415,24 @@ void cgpu::DeviceSession::createDevice()
 		return std::make_shared<Queue>(Queue::PrivateKey{}, *this, queue, *family, available_queues[*family].caps, name);
 	};
 
-	m_main_queue = try_create_queue(main_queue_family, main_queue_index, "Main");
+	m_graphics_queue = try_create_queue(graphics_queue_family, graphics_queue_index, "Graphics");
 	m_async_graphics_queue = try_create_queue(async_graphics_queue_family, async_graphics_queue_index, "Async graphics");
 	m_async_compute_queue = try_create_queue(async_compute_queue_family, async_compute_queue_index, "Async compute");
 	m_async_transfer_queue = try_create_queue(async_transfer_queue_family, async_transfer_queue_index, "Async transfer");
 
 	// Some queue types may not have a dedicated queue.
-	// In this case, use the main queue.
+	// In this case, use the graphics queue.
 	if (!m_async_graphics_queue)
 	{
-		m_async_graphics_queue = m_main_queue;
+		m_async_graphics_queue = m_graphics_queue;
 	}
 	if (!m_async_compute_queue)
 	{
-		m_async_compute_queue = m_main_queue;
+		m_async_compute_queue = m_graphics_queue;
 	}
 	if (!m_async_transfer_queue)
 	{
-		m_async_transfer_queue = m_main_queue;
+		m_async_transfer_queue = m_graphics_queue;
 	}
 }
 
@@ -672,16 +672,16 @@ void cgpu::DeviceSession::createTracyCollectThread()
 			{
 				cv.wait_for(lock, token, std::chrono::milliseconds{100}, [&token] { return token.stop_requested(); });
 
-				m_main_queue->tracyCollect();
-				if (m_async_graphics_queue != m_main_queue)
+				m_graphics_queue->tracyCollect();
+				if (m_async_graphics_queue != m_graphics_queue)
 				{
 					m_async_graphics_queue->tracyCollect();
 				}
-				if (m_async_compute_queue != m_main_queue)
+				if (m_async_compute_queue != m_graphics_queue)
 				{
 					m_async_compute_queue->tracyCollect();
 				}
-				if (m_async_transfer_queue != m_main_queue)
+				if (m_async_transfer_queue != m_graphics_queue)
 				{
 					m_async_transfer_queue->tracyCollect();
 				}
