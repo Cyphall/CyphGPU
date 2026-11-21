@@ -7,6 +7,7 @@ function(cgpu_target_shader_pipelines TARGET BUNDLE PREFIX)
 	list(APPEND SLANGC_ARGS -fvk-use-c-layout)
 	list(APPEND SLANGC_ARGS -fvk-use-entrypoint-name)
 	list(APPEND SLANGC_ARGS -matrix-layout-row-major)
+	list(APPEND SLANGC_ARGS -restrictive-capability-check)
 	list(APPEND SLANGC_ARGS $<IF:$<CONFIG:Debug,RelWithDebInfo>,-g3,-g0>)
 	list(APPEND SLANGC_ARGS $<IF:$<CONFIG:RelWithDebInfo,Release>,-O3,-O0>)
 
