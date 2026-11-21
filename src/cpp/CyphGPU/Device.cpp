@@ -144,6 +144,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::EXTGraphicsPipelineLibraryExtensionName,
 			vk::KHRDeviceAddressCommandsExtensionName,
 			vk::KHRExtendedFlagsExtensionName,
+			vk::KHRShaderMaximalReconvergenceExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
@@ -348,6 +349,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			{
 				auto& features = chain.get<vk::PhysicalDeviceExtendedFlagsFeaturesKHR>();
 				features.extendedFlags = vk::True;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceShaderMaximalReconvergenceFeaturesKHR>();
+				features.shaderMaximalReconvergence = vk::True;
 			}
 
 			{

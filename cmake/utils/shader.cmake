@@ -3,7 +3,7 @@ function(cgpu_target_shader_pipelines TARGET BUNDLE PREFIX)
 	find_program(SLANGC_EXECUTABLE slangc REQUIRED)
 
 	list(APPEND SLANGC_ARGS -target spirv)
-	list(APPEND SLANGC_ARGS -profile sm_6_6+spirv_1_6+vk_mem_model+spvDescriptorHeapEXT)
+	list(APPEND SLANGC_ARGS -profile sm_6_6+spirv_1_6+vk_mem_model+spvDescriptorHeapEXT+spvMaximalReconvergenceKHR)
 	list(APPEND SLANGC_ARGS -fvk-use-c-layout)
 	list(APPEND SLANGC_ARGS -fvk-use-entrypoint-name)
 	list(APPEND SLANGC_ARGS -matrix-layout-row-major)
