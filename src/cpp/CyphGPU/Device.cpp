@@ -148,6 +148,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRWorkgroupMemoryExplicitLayoutExtensionName,
 			vk::KHRShaderFmaExtensionName,
 			vk::KHRShaderRelaxedExtendedInstructionExtensionName,
+			vk::KHRShaderQuadControlExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
@@ -377,6 +378,11 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			{
 				auto& features = chain.get<vk::PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR>();
 				features.shaderRelaxedExtendedInstruction = vk::True;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceShaderQuadControlFeaturesKHR>();
+				features.shaderQuadControl = vk::True;
 			}
 
 			{
