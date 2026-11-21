@@ -243,7 +243,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				features.storageBuffer8BitAccess = vk::True;
 				features.uniformAndStorageBuffer8BitAccess = vk::True;
 				// features.storagePushConstant8 = vk::True;
-				features.shaderBufferInt64Atomics = vk::True;
+				// features.shaderBufferInt64Atomics = vk::True;
 				// features.shaderSharedInt64Atomics = vk::True;
 				// features.shaderFloat16 = vk::True;
 				features.shaderInt8 = vk::True;
