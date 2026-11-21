@@ -144,7 +144,7 @@ public:
 	}
 
 private:
-	friend class CommandRecorder;
+	friend class ComputeCommandRecorder;
 
 	struct DispatchCmd
 	{

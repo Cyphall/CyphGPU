@@ -146,7 +146,7 @@ public:
 	vk::DeviceSize calcByteSize(Range<uint32_t> levels, uint32_t layers, std::optional<vk::ImageAspectFlags> aspects = std::nullopt) const;
 
 private:
-	friend class CommandRecorder;
+	friend class GraphicsCommandRecorder;
 	friend class Swapchain;
 
 	struct SampledDescriptorInfo

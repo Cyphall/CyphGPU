@@ -25,6 +25,9 @@ class TLAS;
 
 class CommandContext;
 class CommandRecorder;
+class GraphicsCommandRecorder;
+class ComputeCommandRecorder;
+class TransferCommandRecorder;
 
 class PassContext;
 class GraphicsPassContext;

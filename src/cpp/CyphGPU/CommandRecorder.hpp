@@ -110,35 +110,136 @@ public:
 
 	// ----- Commands -----
 
-	struct ClearColorImageParams
+	struct DebugBarrierParams
 	{
-		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
-
-		/// Required.
-		ImagePtr image CGPU_REQUIRED;
-		/// Optional. Default: One default-initialized range.
-		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
-		/// Required.
-		ColorValue color_value{};
+		/// Optional. Default: All commands.
+		vk::PipelineStageFlags2 src_stages{vk::PipelineStageFlagBits2::eAllCommands};
+		/// Optional. Default: All accesses.
+		vk::AccessFlags2 src_accesses{vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite};
+		/// Optional. Default: All commands.
+		vk::PipelineStageFlags2 dst_stages{vk::PipelineStageFlagBits2::eAllCommands};
+		/// Optional. Default: All accesses.
+		vk::AccessFlags2 dst_accesses{vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite};
 	};
 
-	void clearColorImage(ClearColorImageParams&& params);
+	void debugBarrier(DebugBarrierParams&& params);
 
-	struct ClearDepthStencilImageParams
+protected:
+	friend class ScopedDebugRegion;
+	friend class GraphicsPassContext;
+	friend class ComputePassContext;
+	friend class CommandContext::Slot;
+
+	struct AccessPoints
 	{
-		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
+		vk::PipelineStageFlags2 stages{};
+		vk::AccessFlags2 accesses{};
 
-		/// Required.
-		ImagePtr image CGPU_REQUIRED;
-		/// Optional. Default: One default-initialized range.
-		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
-		/// Optional. Default: Empty (no depth clear). At least one of depth or stencil must be provided.
-		std::optional<DepthValue> depth_value{};
-		/// Optional. Default: Empty (no stencil clear). At least one of depth or stencil must be provided.
-		std::optional<StencilValue> stencil_value{};
+		[[nodiscard]]
+		AccessPoints operator|(AccessPoints other) const
+		{
+			return {stages | other.stages, accesses | other.accesses};
+		}
+
+		AccessPoints& operator|=(AccessPoints other)
+		{
+			stages |= other.stages;
+			accesses |= other.accesses;
+			return *this;
+		}
 	};
 
-	void clearDepthStencilImage(ClearDepthStencilImageParams&& params);
+	struct CmdCallbackBase
+	{
+		virtual ~CmdCallbackBase() = default;
+
+		virtual void operator()(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
+	};
+
+	struct Cmd
+	{
+		detail::BumpUniquePtr<CmdCallbackBase> callback;
+
+		bool is_stageful{};
+
+		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
+
+		explicit Cmd(detail::BumpMemoryResource& bump_memory):
+			referenced_resources{detail::BumpAllocator{bump_memory}}
+		{}
+	};
+
+	struct Containers
+	{
+		// bool: true if it is a resource and it is written
+		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> referenced_objects;
+
+		detail::BumpList<Cmd> cmd_list;
+
+		detail::BumpFlatMap<vk::Semaphore, uint64_t> immutable_waits;
+
+		detail::BumpVector<ResourcePtr> pending_immutable_resources;
+
+		explicit Containers(detail::BumpMemoryResource& bump_memory):
+			referenced_objects{detail::BumpAllocator{bump_memory}},
+			cmd_list{detail::BumpAllocator{bump_memory}},
+			immutable_waits{detail::BumpAllocator{bump_memory}},
+			pending_immutable_resources{detail::BumpAllocator{bump_memory}}
+		{}
+	};
+
+	std::shared_ptr<CommandContext::Slot> m_slot;
+	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
+	detail::BumpMemoryResource* m_bump_memory;
+
+	QueuePtr m_queue;
+
+	uint32_t m_num_resources{0};
+	uint32_t m_num_resource_barriers{0};
+
+	std::optional<Containers> m_containers;
+
+#if !defined(NDEBUG)
+	bool m_submitted{false};
+#endif
+
+	explicit CommandRecorder(
+		std::shared_ptr<CommandContext::Slot>&& slot,
+		detail::BumpMemoryResource& bump_memory,
+		const QueuePtr& queue
+	);
+
+	template<class T>
+	requires(!std::derived_from<T, cgpu::Resource>)
+	void addReferencedObject(const std::shared_ptr<T>& object)
+	{
+		m_containers->referenced_objects.try_emplace(object, false);
+	}
+
+	template<class T>
+	requires(std::derived_from<T, cgpu::Resource>)
+	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
+
+	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier
+	template<class TCallback, class... TArgs>
+	requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
+	TCallback& addCmd(bool is_stageful, TArgs&&... args);
+
+	vk::DeviceAddress writeParameters(
+		const void* data,
+		size_t size,
+		size_t alignment
+	);
+
+	void beginDebugRegion(std::string_view name, glm::vec4 color);
+
+	void endDebugRegion();
+};
+
+class TransferCommandRecorder : public CommandRecorder
+{
+public:
+	// ----- Commands -----
 
 	struct CopyImageToImageParams
 	{
@@ -227,6 +328,158 @@ public:
 	};
 
 	void copyBufferToBuffer(CopyBufferToBufferParams&& params);
+
+protected:
+	using CommandRecorder::CommandRecorder;
+};
+
+class ComputeCommandRecorder : public TransferCommandRecorder
+{
+public:
+	// ----- Commands -----
+
+	struct ClearColorImageParams
+	{
+		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
+		/// Required.
+		ColorValue color_value{};
+	};
+
+	void clearColorImage(ClearColorImageParams&& params);
+
+	struct ComputePassParams
+	{
+		/// Required.
+		std::function<void(ComputePassContext& ctx)> callback CGPU_REQUIRED;
+	};
+
+	void computePass(ComputePassParams&& params);
+
+	struct BLASParams
+	{
+		struct VertexBuffer
+		{
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
+		};
+
+		struct IndexBuffer
+		{
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
+		};
+
+		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
+		struct ScratchBuffer
+		{
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
+		};
+
+		/// Required.
+		BLASPtr blas CGPU_REQUIRED;
+		/// Required.
+		VertexBuffer vertex_buffer CGPU_REQUIRED;
+		/// Optional. Default: No index buffer.
+		std::optional<IndexBuffer> index_buffer{};
+		/// Optional. Default: No scratch buffer.
+		std::optional<ScratchBuffer> scratch_buffer{};
+	};
+
+	void buildBLAS(BLASParams&& params);
+
+	struct TLASParams
+	{
+		struct Instance
+		{
+			/// Required.
+			BLASPtr blas CGPU_REQUIRED;
+			/// Required.
+			glm::mat4x3 local_to_world CGPU_REQUIRED;
+			/// Optional. Default: 0.
+			uint32_t custom_index{0};
+			/// Optional. Default: 0xFF.
+			uint8_t mask{0xFF};
+			/// Optional. Default: 0.
+			uint32_t sbt_record_offset{0};
+			/// Optional. Default: No flag.
+			vk::GeometryInstanceFlagsKHR flags{};
+		};
+
+		/// Must have a size of N * sizeof(vk::AccelerationStructureInstanceKHR) structs, where N being the number of instances.
+		///
+		/// Must be aligned to 16 bytes.
+		struct InstancesBuffer
+		{
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
+		};
+
+		struct InstanceInfo
+		{
+			/// Required.
+			std::span<const Instance> data CGPU_REQUIRED;
+			/// Required.
+			InstancesBuffer buffer CGPU_REQUIRED;
+		};
+
+		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
+		struct ScratchBuffer
+		{
+			/// Required.
+			BufferPtr buffer CGPU_REQUIRED;
+			/// Optional. Default: Default-initialized range.
+			BufferRange range{};
+		};
+
+		/// Required.
+		TLASPtr tlas CGPU_REQUIRED;
+		/// Optional. Default: No instance.
+		std::optional<InstanceInfo> instance_info{};
+		/// Optional. Default: No scratch buffer.
+		std::optional<ScratchBuffer> scratch_buffer{};
+	};
+
+	/// Warning: builds and traces of the same TLAS must be submitted in the order they were recorded, and not recorded concurrently
+	void buildTLAS(TLASParams&& params);
+
+protected:
+	using TransferCommandRecorder::TransferCommandRecorder;
+};
+
+class GraphicsCommandRecorder : public ComputeCommandRecorder
+{
+public:
+	// ----- Commands -----
+
+	struct ClearDepthStencilImageParams
+	{
+		static const std::array<ImageLevelsLayersRange, 1> DEFAULT_RANGE;
+
+		/// Required.
+		ImagePtr image CGPU_REQUIRED;
+		/// Optional. Default: One default-initialized range.
+		std::span<const ImageLevelsLayersRange> ranges{DEFAULT_RANGE};
+		/// Optional. Default: Empty (no depth clear). At least one of depth or stencil must be provided.
+		std::optional<DepthValue> depth_value{};
+		/// Optional. Default: Empty (no stencil clear). At least one of depth or stencil must be provided.
+		std::optional<StencilValue> stencil_value{};
+	};
+
+	void clearDepthStencilImage(ClearDepthStencilImageParams&& params);
 
 	struct BlitParams
 	{
@@ -350,124 +603,6 @@ public:
 
 	void graphicsPass(GraphicsPassParams&& params);
 
-	struct ComputePassParams
-	{
-		/// Required.
-		std::function<void(ComputePassContext& ctx)> callback CGPU_REQUIRED;
-	};
-
-	void computePass(ComputePassParams&& params);
-
-	struct BLASParams
-	{
-		struct VertexBuffer
-		{
-			/// Required.
-			BufferPtr buffer CGPU_REQUIRED;
-			/// Optional. Default: Default-initialized range.
-			BufferRange range{};
-		};
-
-		struct IndexBuffer
-		{
-			/// Required.
-			BufferPtr buffer CGPU_REQUIRED;
-			/// Optional. Default: Default-initialized range.
-			BufferRange range{};
-		};
-
-		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
-		struct ScratchBuffer
-		{
-			/// Required.
-			BufferPtr buffer CGPU_REQUIRED;
-			/// Optional. Default: Default-initialized range.
-			BufferRange range{};
-		};
-
-		/// Required.
-		BLASPtr blas CGPU_REQUIRED;
-		/// Required.
-		VertexBuffer vertex_buffer CGPU_REQUIRED;
-		/// Optional. Default: No index buffer.
-		std::optional<IndexBuffer> index_buffer{};
-		/// Optional. Default: No scratch buffer.
-		std::optional<ScratchBuffer> scratch_buffer{};
-	};
-
-	void buildBLAS(BLASParams&& params);
-
-	struct TLASParams
-	{
-		struct Instance
-		{
-			/// Required.
-			BLASPtr blas CGPU_REQUIRED;
-			/// Required.
-			glm::mat4x3 local_to_world CGPU_REQUIRED;
-			/// Optional. Default: 0.
-			uint32_t custom_index{0};
-			/// Optional. Default: 0xFF.
-			uint8_t mask{0xFF};
-			/// Optional. Default: 0.
-			uint32_t sbt_record_offset{0};
-			/// Optional. Default: No flag.
-			vk::GeometryInstanceFlagsKHR flags{};
-		};
-
-		/// Must have a size of N * sizeof(vk::AccelerationStructureInstanceKHR) structs, where N being the number of instances.
-		///
-		/// Must be aligned to 16 bytes.
-		struct InstancesBuffer
-		{
-			/// Required.
-			BufferPtr buffer CGPU_REQUIRED;
-			/// Optional. Default: Default-initialized range.
-			BufferRange range{};
-		};
-
-		struct InstanceInfo
-		{
-			/// Required.
-			std::span<const Instance> data CGPU_REQUIRED;
-			/// Required.
-			InstancesBuffer buffer CGPU_REQUIRED;
-		};
-
-		/// Must be aligned to minAccelerationStructureScratchOffsetAlignment bytes.
-		struct ScratchBuffer
-		{
-			/// Required.
-			BufferPtr buffer CGPU_REQUIRED;
-			/// Optional. Default: Default-initialized range.
-			BufferRange range{};
-		};
-
-		/// Required.
-		TLASPtr tlas CGPU_REQUIRED;
-		/// Optional. Default: No instance.
-		std::optional<InstanceInfo> instance_info{};
-		/// Optional. Default: No scratch buffer.
-		std::optional<ScratchBuffer> scratch_buffer{};
-	};
-
-	/// Warning: builds and traces of the same TLAS must be submitted in the order they were recorded, and not recorded concurrently
-	void buildTLAS(TLASParams&& params);
-
-	struct DebugBarrierParams
-	{
-		/// Optional. Default: All commands.
-		vk::PipelineStageFlags2 src_stages{vk::PipelineStageFlagBits2::eAllCommands};
-		/// Optional. Default: All accesses.
-		vk::AccessFlags2 src_accesses{vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite};
-		/// Optional. Default: All commands.
-		vk::PipelineStageFlags2 dst_stages{vk::PipelineStageFlagBits2::eAllCommands};
-		/// Optional. Default: All accesses.
-		vk::AccessFlags2 dst_accesses{vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite};
-	};
-
-	void debugBarrier(DebugBarrierParams&& params);
-
 	struct ResolveParams
 	{
 		struct Range
@@ -494,117 +629,8 @@ public:
 
 	void resolve(ResolveParams&& params);
 
-private:
-	friend class CommandContext::Slot;
-	friend class PassContext;
-	friend class GraphicsPassContext;
-	friend class ComputePassContext;
-	friend class ScopedDebugRegion;
-
-	struct AccessPoints
-	{
-		vk::PipelineStageFlags2 stages{};
-		vk::AccessFlags2 accesses{};
-
-		[[nodiscard]]
-		AccessPoints operator|(AccessPoints other) const
-		{
-			return {stages | other.stages, accesses | other.accesses};
-		}
-
-		AccessPoints& operator|=(AccessPoints other)
-		{
-			stages |= other.stages;
-			accesses |= other.accesses;
-			return *this;
-		}
-	};
-
-	struct CmdCallbackBase
-	{
-		virtual ~CmdCallbackBase() = default;
-
-		virtual void operator()(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
-	};
-
-	struct Cmd
-	{
-		detail::BumpUniquePtr<CmdCallbackBase> callback;
-
-		bool is_stageful{};
-
-		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
-
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			referenced_resources{detail::BumpAllocator{bump_memory}}
-		{}
-	};
-
-	struct Containers
-	{
-		// bool: true if it is a resource and it is written
-		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> referenced_objects;
-
-		detail::BumpList<Cmd> cmd_list;
-
-		detail::BumpFlatMap<vk::Semaphore, uint64_t> immutable_waits;
-
-		detail::BumpVector<ResourcePtr> pending_immutable_resources;
-
-		explicit Containers(detail::BumpMemoryResource& bump_memory):
-			referenced_objects{detail::BumpAllocator{bump_memory}},
-			cmd_list{detail::BumpAllocator{bump_memory}},
-			immutable_waits{detail::BumpAllocator{bump_memory}},
-			pending_immutable_resources{detail::BumpAllocator{bump_memory}}
-		{}
-	};
-
-	std::shared_ptr<CommandContext::Slot> m_slot;
-	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
-	detail::BumpMemoryResource* m_bump_memory;
-
-	QueuePtr m_queue;
-
-	uint32_t m_num_resources{0};
-	uint32_t m_num_resource_barriers{0};
-
-	std::optional<Containers> m_containers;
-
-#if !defined(NDEBUG)
-	bool m_submitted{false};
-#endif
-
-	explicit CommandRecorder(
-		std::shared_ptr<CommandContext::Slot>&& slot,
-		detail::BumpMemoryResource& bump_memory,
-		const QueuePtr& queue
-	);
-
-	template<class T>
-	requires(!std::derived_from<T, cgpu::Resource>)
-	void addReferencedObject(const std::shared_ptr<T>& object)
-	{
-		m_containers->referenced_objects.try_emplace(object, false);
-	}
-
-	template<class T>
-	requires(std::derived_from<T, cgpu::Resource>)
-	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
-
-	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier
-	template<class TCallback, class... TArgs>
-	requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
-	TCallback& addCmd(bool is_stageful, TArgs&&... args);
-
-	vk::DeviceAddress writeParameters(
-		const void* data,
-		size_t size,
-		size_t alignment
-	);
-
-	void beginDebugRegion(std::string_view name, glm::vec4 color);
-
-	void endDebugRegion();
+protected:
+	using ComputeCommandRecorder::ComputeCommandRecorder;
 };
 
 class ScopedDebugRegion

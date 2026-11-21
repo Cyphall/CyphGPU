@@ -89,7 +89,7 @@ void ImGui_ImplCyphGPU_CreateTexture(ImTextureData& texture)
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
-void ImGui_ImplCyphGPU_UploadTexture(cgpu::CommandRecorder& cmd_rec, ImTextureData& texture, cgpu::Range<glm::uvec2> upload_region)
+void ImGui_ImplCyphGPU_UploadTexture(cgpu::TransferCommandRecorder& cmd_rec, ImTextureData& texture, cgpu::Range<glm::uvec2> upload_region)
 {
 	ImGui_ImplCyphGPU_BackendData& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
 	ImGui_ImplCyphGPU_BackendTextureData& btd = *static_cast<ImGui_ImplCyphGPU_BackendTextureData*>(texture.BackendUserData);
@@ -144,7 +144,7 @@ void ImGui_ImplCyphGPU_DestroyTexture(ImTextureData& texture)
 }
 
 // NOLINTNEXTLINE(*-identifier-naming)
-void ImGui_ImplCyphGPU_UpdateTexture(cgpu::CommandRecorder& cmd_rec, ImTextureData& texture)
+void ImGui_ImplCyphGPU_UpdateTexture(cgpu::TransferCommandRecorder& cmd_rec, ImTextureData& texture)
 {
 	switch (texture.Status)
 	{
@@ -305,7 +305,7 @@ void ImGui_ImplCyphGPU_NewFrame()
 	}
 }
 
-void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::CommandRecorder& cmd_rec, const cgpu::ImagePtr& output_image)
+void ImGui_ImplCyphGPU_RenderDrawData(const ImDrawData& draw_data, cgpu::GraphicsCommandRecorder& cmd_rec, const cgpu::ImagePtr& output_image)
 {
 	ImGui_ImplCyphGPU_BackendData& bd = *static_cast<ImGui_ImplCyphGPU_BackendData*>(ImGui::GetIO().BackendRendererUserData);
 

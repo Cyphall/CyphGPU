@@ -65,7 +65,7 @@ void uploadVertexBuffers(
 
 void uploadTexture(
 	const cgpu::DeviceSessionPtr& device_session,
-	cgpu::CommandRecorder& cmd_rec,
+	cgpu::TransferCommandRecorder& cmd_rec,
 	cgpu::ImagePtr& texture
 )
 {
@@ -305,7 +305,7 @@ int main()
 		rotation += 4.0f;
 
 		{
-			cgpu::CommandRecorder cmd_rec = cmd_ctx.createRecorder(device_session->getGraphicsQueue());
+			cgpu::GraphicsCommandRecorder cmd_rec = cmd_ctx.createGraphicsRecorder();
 
 			if (!texture)
 			{

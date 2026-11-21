@@ -267,14 +267,14 @@ bool isColorFormatUINT(vk::Format format)
 }
 }
 
-const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::CommandRecorder::ClearColorImageParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::CommandRecorder::ClearDepthStencilImageParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::CopyImageToImageParams::Range, 1> cgpu::CommandRecorder::CopyImageToImageParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::CopyBufferToImageParams::Range, 1> cgpu::CommandRecorder::CopyBufferToImageParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::CopyImageToBufferParams::Range, 1> cgpu::CommandRecorder::CopyImageToBufferParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::CopyBufferToBufferParams::Range, 1> cgpu::CommandRecorder::CopyBufferToBufferParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::BlitParams::Range, 1> cgpu::CommandRecorder::BlitParams::DEFAULT_RANGE{};
-const std::array<cgpu::CommandRecorder::ResolveParams::Range, 1> cgpu::CommandRecorder::ResolveParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::ComputeCommandRecorder::ClearColorImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::CommandRecorder::ImageLevelsLayersRange, 1> cgpu::GraphicsCommandRecorder::ClearDepthStencilImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::TransferCommandRecorder::CopyImageToImageParams::Range, 1> cgpu::TransferCommandRecorder::CopyImageToImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::TransferCommandRecorder::CopyBufferToImageParams::Range, 1> cgpu::TransferCommandRecorder::CopyBufferToImageParams::DEFAULT_RANGE{};
+const std::array<cgpu::TransferCommandRecorder::CopyImageToBufferParams::Range, 1> cgpu::TransferCommandRecorder::CopyImageToBufferParams::DEFAULT_RANGE{};
+const std::array<cgpu::TransferCommandRecorder::CopyBufferToBufferParams::Range, 1> cgpu::TransferCommandRecorder::CopyBufferToBufferParams::DEFAULT_RANGE{};
+const std::array<cgpu::GraphicsCommandRecorder::BlitParams::Range, 1> cgpu::GraphicsCommandRecorder::BlitParams::DEFAULT_RANGE{};
+const std::array<cgpu::GraphicsCommandRecorder::ResolveParams::Range, 1> cgpu::GraphicsCommandRecorder::ResolveParams::DEFAULT_RANGE{};
 
 void cgpu::CommandRecorder::SubmitHandle::waitFinished() const
 {
@@ -939,165 +939,194 @@ void cgpu::CommandRecorder::makeImmutableAfterSubmit(const ResourcePtr& resource
 
 // NOLINTBEGIN(*-rvalue-reference-param-not-moved)
 
-void cgpu::CommandRecorder::clearColorImage(ClearColorImageParams&& params)
+void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
 {
 	COMMAND_PARSE
 
-	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
-	vk_ranges.reserve(params.ranges.size());
-	for (const auto& range : params.ranges)
-	{
-		auto [vk_range, byte_size] = resolveRange(params.image, range, vk::ImageAspectFlagBits::eColor);
-
-		if (byte_size == 0)
-		{
-			continue;
-		}
-
-		vk_ranges.emplace_back(vk_range);
-	}
-
-	if (vk_ranges.empty())
-	{
-		return;
-	}
-
 	struct CmdCallback final : CmdCallbackBase
 	{
-		detail::BumpVector<vk::ImageSubresourceRange> ranges;
-		vk::Image image;
-		vk::ClearColorValue color_value{};
-
-		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
-			ranges{std::move(ranges)}
-		{}
+		vk::MemoryBarrier2 barrier;
+		vk::DependencyInfo info;
 
 		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(clearColorImage)
+			REGIONED_COMMAND_EXECUTE_BEGIN(debugBarrier)
 
-			VULKAN_CALL(vkCmdClearColorImage);
-			cmd_buf.clearColorImage(
-				image,
-				vk::ImageLayout::eGeneral,
-				color_value,
-				ranges,
-				dispatcher
-			);
+			{
+				VULKAN_CALL(vkCmdPipelineBarrier2);
+				cmd_buf.pipelineBarrier2(
+					info,
+					dispatcher
+				);
+			}
 
 			REGIONED_COMMAND_EXECUTE_END
 		}
 	};
 
-	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
-	cmd.image = params.image->getHandle();
-	cmd.color_value = std::visit(
-		Overloaded{
-			[&](const glm::vec4& value) {
-				assert(!isColorFormatSINT(params.image->getDesc().format));
-				assert(!isColorFormatUINT(params.image->getDesc().format));
-				return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
-			},
-			[&](const glm::ivec4& value) {
-				assert(isColorFormatSINT(params.image->getDesc().format));
-				return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
-			},
-			[&](const glm::uvec4& value) {
-				assert(isColorFormatUINT(params.image->getDesc().format));
-				return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
-			},
-		},
-		params.color_value
-	);
+	auto& cmd = addCmd<CmdCallback>(false);
 
-	addCmdResource(
-		params.image,
-		{
-			vk::PipelineStageFlagBits2::eClear,
-			vk::AccessFlagBits2::eTransferWrite,
-		}
-	);
+	cmd.barrier.srcStageMask = params.src_stages;
+	cmd.barrier.srcAccessMask = params.src_accesses;
+	cmd.barrier.dstStageMask = params.dst_stages;
+	cmd.barrier.dstAccessMask = params.dst_accesses;
+
+	cmd.info.dependencyFlags = {};
+	cmd.info.memoryBarrierCount = 1;
+	cmd.info.pMemoryBarriers = &cmd.barrier;
+	cmd.info.bufferMemoryBarrierCount = 0;
+	// cmd.info.pBufferMemoryBarriers;
+	cmd.info.imageMemoryBarrierCount = 0;
+	// cmd.info.pImageMemoryBarriers;
 }
 
-void cgpu::CommandRecorder::clearDepthStencilImage(ClearDepthStencilImageParams&& params)
+// NOLINTEND(*-rvalue-reference-param-not-moved)
+
+cgpu::CommandRecorder::CommandRecorder(
+	std::shared_ptr<CommandContext::Slot>&& slot,
+	detail::BumpMemoryResource& bump_memory,
+	const QueuePtr& queue
+):
+	m_slot{std::move(slot)},
+	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
+	m_bump_memory{&bump_memory},
+	m_queue{queue},
+	m_containers{bump_memory}
 {
-	COMMAND_PARSE
+	ZoneScoped;
 
-	assert(params.depth_value || params.stencil_value);
+	addReferencedObject(m_slot);
+}
 
-	vk::ImageAspectFlags aspects;
-	if (params.depth_value)
+template<class T>
+requires(std::derived_from<T, cgpu::Resource>)
+void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point)
+{
+	assert(!m_containers->cmd_list.empty());
+
+	if (resource->isImmutable())
 	{
-		aspects |= vk::ImageAspectFlagBits::eDepth;
-	}
-	if (params.stencil_value)
-	{
-		aspects |= vk::ImageAspectFlagBits::eStencil;
-	}
+		assert(!hasWriteAccesses(access_point.accesses) && "Cannot write to immutable resource.");
 
-	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
-	vk_ranges.reserve(params.ranges.size());
-	for (const auto& range : params.ranges)
-	{
-		auto [vk_range, byte_size] = resolveRange(params.image, range, aspects);
-
-		if (byte_size == 0)
+		auto [resource_it, resource_inserted] = m_containers->referenced_objects.try_emplace(resource, false); // lifetime only
+		if (resource_inserted)
 		{
-			continue;
+			if (const auto& signal = resource->tryGetReadWriteSignal())
+			{
+				auto [wait_it, wait_inserted] = m_containers->immutable_waits.try_emplace(signal->semaphore, signal->value);
+				if (!wait_inserted)
+				{
+					wait_it->second = std::max(wait_it->second, signal->value);
+				}
+			}
 		}
 
-		vk_ranges.emplace_back(vk_range);
-	}
-
-	if (vk_ranges.empty())
-	{
 		return;
 	}
 
+	auto& curr_cmd = m_containers->cmd_list.back();
+	auto [cmd_it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);
+	if (cmd_inserted)
+	{
+		bool has_write_access = hasWriteAccesses(access_point.accesses);
+
+		auto [global_it, global_inserted] = m_containers->referenced_objects.try_emplace(resource, has_write_access);
+		if (global_inserted)
+		{
+			m_num_resources++;
+		}
+		else
+		{
+			bool& was_previously_written = global_it->second;
+			if (was_previously_written || has_write_access)
+			{
+				m_num_resource_barriers++;
+			}
+
+			was_previously_written |= has_write_access;
+		}
+	}
+	else
+	{
+		cmd_it->second |= access_point;
+	}
+}
+
+template void cgpu::CommandRecorder::addCmdResource<cgpu::Image>(const std::shared_ptr<cgpu::Image>& resource, AccessPoints access_point);
+template void cgpu::CommandRecorder::addCmdResource<cgpu::Buffer>(const std::shared_ptr<cgpu::Buffer>& resource, AccessPoints access_point);
+
+template<class TCallback, class... TArgs>
+requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
+TCallback& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
+{
+	Cmd& cmd = m_containers->cmd_list.emplace_back(*m_bump_memory);
+	cmd.callback = detail::makeBumpUnique<TCallback>(*m_bump_memory, std::forward<TArgs>(args)...);
+	cmd.is_stageful = is_stageful;
+
+	return static_cast<TCallback&>(*cmd.callback);
+}
+
+vk::DeviceAddress cgpu::CommandRecorder::writeParameters(
+	const void* data,
+	size_t size,
+	size_t alignment
+)
+{
+	auto param_mem = m_slot->allocParameterMemory(size, alignment);
+	std::memcpy(param_mem.cpu_ptr, data, size);
+
+	return param_mem.gpu_ptr;
+}
+
+void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 color)
+{
+	COMMAND_PARSE
+
 	struct CmdCallback final : CmdCallbackBase
 	{
-		detail::BumpVector<vk::ImageSubresourceRange> ranges;
-		vk::Image image;
-		vk::ClearDepthStencilValue depth_stencil_value{};
+		std::string name;
+		vk::DebugUtilsLabelEXT info;
 
-		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
-			ranges{std::move(ranges)}
+		explicit CmdCallback(std::string_view name):
+			name{name}
 		{}
 
 		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
 		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(clearDepthStencilImage)
-
-			VULKAN_CALL(vkCmdClearDepthStencilImage);
-			cmd_buf.clearDepthStencilImage(
-				image,
-				vk::ImageLayout::eGeneral,
-				depth_stencil_value,
-				ranges,
+			VULKAN_CALL(vkCmdBeginDebugUtilsLabelEXT);
+			cmd_buf.beginDebugUtilsLabelEXT(
+				info,
 				dispatcher
 			);
-
-			REGIONED_COMMAND_EXECUTE_END
 		}
 	};
 
-	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
-	cmd.image = params.image->getHandle();
-	cmd.depth_stencil_value = vk::ClearDepthStencilValue{
-		.depth = params.depth_value.value_or(0.0f),
-		.stencil = params.stencil_value.value_or(0),
-	};
-
-	addCmdResource(
-		params.image,
-		{
-			vk::PipelineStageFlagBits2::eClear,
-			vk::AccessFlagBits2::eTransferWrite,
-		}
-	);
+	auto& cmd = addCmd<CmdCallback>(false, name);
+	cmd.info.pLabelName = cmd.name.c_str();
+	std::memcpy(cmd.info.color.data(), glm::value_ptr(color), sizeof(glm::vec4));
 }
 
-void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
+void cgpu::CommandRecorder::endDebugRegion()
+{
+	COMMAND_PARSE
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			VULKAN_CALL(vkCmdEndDebugUtilsLabelEXT);
+			cmd_buf.endDebugUtilsLabelEXT(
+				dispatcher
+			);
+		}
+	};
+
+	addCmd<CmdCallback>(false);
+}
+
+// NOLINTBEGIN(*-rvalue-reference-param-not-moved)
+
+void cgpu::TransferCommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 {
 	COMMAND_PARSE
 
@@ -1189,7 +1218,7 @@ void cgpu::CommandRecorder::copyImageToImage(CopyImageToImageParams&& params)
 	);
 }
 
-void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
+void cgpu::TransferCommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 {
 	COMMAND_PARSE
 
@@ -1274,7 +1303,7 @@ void cgpu::CommandRecorder::copyBufferToImage(CopyBufferToImageParams&& params)
 	);
 }
 
-void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
+void cgpu::TransferCommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 {
 	COMMAND_PARSE
 
@@ -1359,7 +1388,7 @@ void cgpu::CommandRecorder::copyImageToBuffer(CopyImageToBufferParams&& params)
 	);
 }
 
-void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params)
+void cgpu::TransferCommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params)
 {
 	COMMAND_PARSE
 
@@ -1436,7 +1465,450 @@ void cgpu::CommandRecorder::copyBufferToBuffer(CopyBufferToBufferParams&& params
 	);
 }
 
-void cgpu::CommandRecorder::blit(BlitParams&& params)
+// NOLINTEND(*-rvalue-reference-param-not-moved)
+
+// NOLINTBEGIN(*-rvalue-reference-param-not-moved)
+
+void cgpu::ComputeCommandRecorder::clearColorImage(ClearColorImageParams&& params)
+{
+	COMMAND_PARSE
+
+	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
+	vk_ranges.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
+	{
+		auto [vk_range, byte_size] = resolveRange(params.image, range, vk::ImageAspectFlagBits::eColor);
+
+		if (byte_size == 0)
+		{
+			continue;
+		}
+
+		vk_ranges.emplace_back(vk_range);
+	}
+
+	if (vk_ranges.empty())
+	{
+		return;
+	}
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		detail::BumpVector<vk::ImageSubresourceRange> ranges;
+		vk::Image image;
+		vk::ClearColorValue color_value{};
+
+		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
+			ranges{std::move(ranges)}
+		{}
+
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			REGIONED_COMMAND_EXECUTE_BEGIN(clearColorImage)
+
+			VULKAN_CALL(vkCmdClearColorImage);
+			cmd_buf.clearColorImage(
+				image,
+				vk::ImageLayout::eGeneral,
+				color_value,
+				ranges,
+				dispatcher
+			);
+
+			REGIONED_COMMAND_EXECUTE_END
+		}
+	};
+
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
+	cmd.image = params.image->getHandle();
+	cmd.color_value = std::visit(
+		Overloaded{
+			[&](const glm::vec4& value) {
+				assert(!isColorFormatSINT(params.image->getDesc().format));
+				assert(!isColorFormatUINT(params.image->getDesc().format));
+				return vk::ClearColorValue{.float32 = {{value.r, value.g, value.b, value.a}}};
+			},
+			[&](const glm::ivec4& value) {
+				assert(isColorFormatSINT(params.image->getDesc().format));
+				return vk::ClearColorValue{.int32 = {{value.r, value.g, value.b, value.a}}};
+			},
+			[&](const glm::uvec4& value) {
+				assert(isColorFormatUINT(params.image->getDesc().format));
+				return vk::ClearColorValue{.uint32 = {{value.r, value.g, value.b, value.a}}};
+			},
+		},
+		params.color_value
+	);
+
+	addCmdResource(
+		params.image,
+		{
+			vk::PipelineStageFlagBits2::eClear,
+			vk::AccessFlagBits2::eTransferWrite,
+		}
+	);
+}
+
+void cgpu::ComputeCommandRecorder::computePass(ComputePassParams&& params)
+{
+	COMMAND_PARSE
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		detail::BumpList<ComputePassContext::DispatchCmd> dispatch_cmds;
+
+		explicit CmdCallback(detail::BumpMemoryResource& bump_memory):
+			dispatch_cmds{detail::BumpAllocator{bump_memory}}
+		{}
+
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			REGIONED_COMMAND_EXECUTE_BEGIN(computePass)
+
+			{
+				std::optional<ComputeShaderStatePtr> current_compute_shader_state;
+				for (const auto& dispatch_cmd : dispatch_cmds)
+				{
+					if (dispatch_cmd.compute_shader_state != current_compute_shader_state)
+					{
+						current_compute_shader_state = dispatch_cmd.compute_shader_state;
+
+						{
+							VULKAN_CALL(vkCmdBindPipeline);
+							cmd_buf.bindPipeline(
+								vk::PipelineBindPoint::eCompute,
+								dispatch_cmd.compute_shader_state->getHandle(),
+								dispatcher
+							);
+						}
+					}
+
+					{
+						vk::PushDataInfoEXT info;
+						info.offset = 0;
+						info.data.address = &dispatch_cmd.params_gpu_ptr;
+						info.data.size = sizeof(vk::DeviceAddress);
+
+						{
+							VULKAN_CALL(vkCmdPushDataEXT);
+							cmd_buf.pushDataEXT(
+								info,
+								dispatcher
+							);
+						}
+					}
+
+					{
+						VULKAN_CALL(vkCmdDispatch);
+						cmd_buf.dispatch(
+							dispatch_cmd.group_count.x,
+							dispatch_cmd.group_count.y,
+							dispatch_cmd.group_count.z,
+							dispatcher
+						);
+					}
+				}
+			}
+
+			REGIONED_COMMAND_EXECUTE_END
+		}
+	};
+
+	auto& cmd = addCmd<CmdCallback>(true, *m_bump_memory);
+
+	ComputePassContext ctx{*this, cmd.dispatch_cmds};
+	params.callback(ctx);
+}
+
+void cgpu::ComputeCommandRecorder::buildBLAS(BLASParams&& params)
+{
+	COMMAND_PARSE
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		BLAS::VkStructs vk_structs;
+		vk::AccelerationStructureBuildRangeInfoKHR range_info;
+
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			REGIONED_COMMAND_EXECUTE_BEGIN(buildBLAS)
+
+			{
+				VULKAN_CALL(vkCmdBuildAccelerationStructuresKHR);
+				cmd_buf.buildAccelerationStructuresKHR(
+					vk_structs.build_geometry_info,
+					&range_info,
+					dispatcher
+				);
+			}
+
+			REGIONED_COMMAND_EXECUTE_END
+		}
+	};
+
+	auto& cmd = addCmd<CmdCallback>(true);
+
+	auto vertex_range = std::get<0>(resolveRange(params.vertex_buffer.buffer, params.vertex_buffer.range));
+
+	addCmdResource(
+		params.vertex_buffer.buffer,
+		{
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eShaderRead,
+		}
+	);
+
+	cgpu::Range<vk::DeviceSize> index_range;
+	if (params.index_buffer)
+	{
+		index_range = std::get<0>(resolveRange(params.index_buffer->buffer, params.index_buffer->range));
+
+		addCmdResource(
+			params.index_buffer->buffer,
+			{
+				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+				vk::AccessFlagBits2::eShaderRead,
+			}
+		);
+	}
+
+	cgpu::Range<vk::DeviceSize> scratch_range;
+	if (params.scratch_buffer)
+	{
+		scratch_range = std::get<0>(resolveRange(params.scratch_buffer->buffer, params.scratch_buffer->range));
+
+		addCmdResource(
+			params.scratch_buffer->buffer,
+			{
+				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+				vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
+			}
+		);
+	}
+
+	addCmdResource(
+		params.blas->getBuffer(),
+		{
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
+		}
+	);
+
+	BLAS::fillVkStructs(params.blas->getDesc().as_info, cmd.vk_structs);
+
+	cmd.vk_structs.geometry_info.geometry.triangles.vertexData.deviceAddress = params.vertex_buffer.buffer->getDevicePtr(vertex_range.offset);
+	cmd.vk_structs.geometry_info.geometry.triangles.indexData.deviceAddress = params.index_buffer ? params.index_buffer->buffer->getDevicePtr(index_range.offset) : 0;
+
+	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = params.blas->getHandle();
+	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? params.scratch_buffer->buffer->getDevicePtr(scratch_range.offset) : 0;
+
+	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
+	cmd.range_info.primitiveOffset = 0;
+	cmd.range_info.firstVertex = 0;
+	cmd.range_info.transformOffset = 0;
+
+	addReferencedObject(params.blas);
+}
+
+void cgpu::ComputeCommandRecorder::buildTLAS(TLASParams&& params)
+{
+	COMMAND_PARSE
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		TLAS::VkStructs vk_structs;
+		vk::AccelerationStructureBuildRangeInfoKHR range_info;
+
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			REGIONED_COMMAND_EXECUTE_BEGIN(buildTLAS)
+
+			{
+				VULKAN_CALL(vkCmdBuildAccelerationStructuresKHR);
+				cmd_buf.buildAccelerationStructuresKHR(
+					vk_structs.build_geometry_info,
+					&range_info,
+					dispatcher
+				);
+			}
+
+			REGIONED_COMMAND_EXECUTE_END
+		}
+	};
+
+	auto& cmd = addCmd<CmdCallback>(true);
+
+	detail::BumpDenseUnorderedSet<BLASPtr> referenced_blases{detail::BumpAllocator{*m_bump_memory}};
+	cgpu::Range<vk::DeviceSize> instance_range;
+	if (params.instance_info)
+	{
+		instance_range = std::get<0>(resolveRange(params.instance_info->buffer.buffer, params.instance_info->buffer.range));
+
+		assert(instance_range.size == params.instance_info->data.size() * sizeof(vk::AccelerationStructureInstanceKHR));
+		assert((params.instance_info->buffer.buffer->getDevicePtr() + instance_range.offset) % 16 == 0);
+
+		auto* instance_ptr = params.instance_info->buffer.buffer->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
+		for (const auto& instance : params.instance_info->data)
+		{
+			std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(glm::transpose(instance.local_to_world)), sizeof(glm::mat3x4));
+			instance_ptr->instanceCustomIndex = instance.custom_index;
+			instance_ptr->mask = instance.mask;
+			instance_ptr->instanceShaderBindingTableRecordOffset = instance.sbt_record_offset;
+			instance_ptr->flags = static_cast<VkGeometryInstanceFlagsKHR>(instance.flags);
+			instance_ptr->accelerationStructureReference = instance.blas->getDevicePtr();
+
+			instance_ptr++;
+
+			referenced_blases.insert(instance.blas);
+
+			addCmdResource(
+				instance.blas->getBuffer(),
+				{
+					vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+					vk::AccessFlagBits2::eAccelerationStructureReadKHR,
+				}
+			);
+		}
+
+		addCmdResource(
+			params.instance_info->buffer.buffer,
+			{
+				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+				vk::AccessFlagBits2::eShaderRead,
+			}
+		);
+	}
+
+	params.tlas->m_referenced_blases.assign_range(referenced_blases);
+
+	cgpu::Range<vk::DeviceSize> scratch_range;
+	if (params.scratch_buffer)
+	{
+		scratch_range = std::get<0>(resolveRange(params.scratch_buffer->buffer, params.scratch_buffer->range));
+
+		addCmdResource(
+			params.scratch_buffer->buffer,
+			{
+				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+				vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
+			}
+		);
+	}
+
+	addCmdResource(
+		params.tlas->getBuffer(),
+		{
+			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+			vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
+		}
+	);
+
+	TLAS::fillVkStructs(params.tlas->getDesc().as_info, cmd.vk_structs);
+
+	cmd.vk_structs.geometry_info.geometry.instances.data.deviceAddress = params.instance_info ? params.instance_info->buffer.buffer->getDevicePtr(instance_range.offset) : 0;
+
+	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = params.tlas->getHandle();
+	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? params.scratch_buffer->buffer->getDevicePtr(scratch_range.offset) : 0;
+
+	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
+	cmd.range_info.primitiveOffset = 0;
+	cmd.range_info.firstVertex = 0;
+	cmd.range_info.transformOffset = 0;
+
+	if (params.instance_info)
+	{
+		for (const auto& instance : params.instance_info->data)
+		{
+			addReferencedObject(instance.blas);
+		}
+	}
+
+	addReferencedObject(params.tlas);
+}
+
+// NOLINTEND(*-rvalue-reference-param-not-moved)
+
+// NOLINTBEGIN(*-rvalue-reference-param-not-moved)
+
+void cgpu::GraphicsCommandRecorder::clearDepthStencilImage(ClearDepthStencilImageParams&& params)
+{
+	COMMAND_PARSE
+
+	assert(params.depth_value || params.stencil_value);
+
+	vk::ImageAspectFlags aspects;
+	if (params.depth_value)
+	{
+		aspects |= vk::ImageAspectFlagBits::eDepth;
+	}
+	if (params.stencil_value)
+	{
+		aspects |= vk::ImageAspectFlagBits::eStencil;
+	}
+
+	detail::BumpVector<vk::ImageSubresourceRange> vk_ranges{detail::BumpAllocator{*m_bump_memory}};
+	vk_ranges.reserve(params.ranges.size());
+	for (const auto& range : params.ranges)
+	{
+		auto [vk_range, byte_size] = resolveRange(params.image, range, aspects);
+
+		if (byte_size == 0)
+		{
+			continue;
+		}
+
+		vk_ranges.emplace_back(vk_range);
+	}
+
+	if (vk_ranges.empty())
+	{
+		return;
+	}
+
+	struct CmdCallback final : CmdCallbackBase
+	{
+		detail::BumpVector<vk::ImageSubresourceRange> ranges;
+		vk::Image image;
+		vk::ClearDepthStencilValue depth_stencil_value{};
+
+		explicit CmdCallback(detail::BumpVector<vk::ImageSubresourceRange>&& ranges):
+			ranges{std::move(ranges)}
+		{}
+
+		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
+		{
+			REGIONED_COMMAND_EXECUTE_BEGIN(clearDepthStencilImage)
+
+			VULKAN_CALL(vkCmdClearDepthStencilImage);
+			cmd_buf.clearDepthStencilImage(
+				image,
+				vk::ImageLayout::eGeneral,
+				depth_stencil_value,
+				ranges,
+				dispatcher
+			);
+
+			REGIONED_COMMAND_EXECUTE_END
+		}
+	};
+
+	auto& cmd = addCmd<CmdCallback>(true, std::move(vk_ranges));
+	cmd.image = params.image->getHandle();
+	cmd.depth_stencil_value = vk::ClearDepthStencilValue{
+		.depth = params.depth_value.value_or(0.0f),
+		.stencil = params.stencil_value.value_or(0),
+	};
+
+	addCmdResource(
+		params.image,
+		{
+			vk::PipelineStageFlagBits2::eClear,
+			vk::AccessFlagBits2::eTransferWrite,
+		}
+	);
+}
+
+void cgpu::GraphicsCommandRecorder::blit(BlitParams&& params)
 {
 	COMMAND_PARSE
 
@@ -1526,7 +1998,7 @@ void cgpu::CommandRecorder::blit(BlitParams&& params)
 	);
 }
 
-void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
+void cgpu::GraphicsCommandRecorder::graphicsPass(GraphicsPassParams&& params)
 {
 	COMMAND_PARSE
 
@@ -1950,325 +2422,7 @@ void cgpu::CommandRecorder::graphicsPass(GraphicsPassParams&& params)
 	}
 }
 
-void cgpu::CommandRecorder::computePass(ComputePassParams&& params)
-{
-	COMMAND_PARSE
-
-	struct CmdCallback final : CmdCallbackBase
-	{
-		detail::BumpList<ComputePassContext::DispatchCmd> dispatch_cmds;
-
-		explicit CmdCallback(detail::BumpMemoryResource& bump_memory):
-			dispatch_cmds{detail::BumpAllocator{bump_memory}}
-		{}
-
-		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
-		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(computePass)
-
-			{
-				std::optional<ComputeShaderStatePtr> current_compute_shader_state;
-				for (const auto& dispatch_cmd : dispatch_cmds)
-				{
-					if (dispatch_cmd.compute_shader_state != current_compute_shader_state)
-					{
-						current_compute_shader_state = dispatch_cmd.compute_shader_state;
-
-						{
-							VULKAN_CALL(vkCmdBindPipeline);
-							cmd_buf.bindPipeline(
-								vk::PipelineBindPoint::eCompute,
-								dispatch_cmd.compute_shader_state->getHandle(),
-								dispatcher
-							);
-						}
-					}
-
-					{
-						vk::PushDataInfoEXT info;
-						info.offset = 0;
-						info.data.address = &dispatch_cmd.params_gpu_ptr;
-						info.data.size = sizeof(vk::DeviceAddress);
-
-						{
-							VULKAN_CALL(vkCmdPushDataEXT);
-							cmd_buf.pushDataEXT(
-								info,
-								dispatcher
-							);
-						}
-					}
-
-					{
-						VULKAN_CALL(vkCmdDispatch);
-						cmd_buf.dispatch(
-							dispatch_cmd.group_count.x,
-							dispatch_cmd.group_count.y,
-							dispatch_cmd.group_count.z,
-							dispatcher
-						);
-					}
-				}
-			}
-
-			REGIONED_COMMAND_EXECUTE_END
-		}
-	};
-
-	auto& cmd = addCmd<CmdCallback>(true, *m_bump_memory);
-
-	ComputePassContext ctx{*this, cmd.dispatch_cmds};
-	params.callback(ctx);
-}
-
-void cgpu::CommandRecorder::buildBLAS(BLASParams&& params)
-{
-	COMMAND_PARSE
-
-	struct CmdCallback final : CmdCallbackBase
-	{
-		BLAS::VkStructs vk_structs;
-		vk::AccelerationStructureBuildRangeInfoKHR range_info;
-
-		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
-		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(buildBLAS)
-
-			{
-				VULKAN_CALL(vkCmdBuildAccelerationStructuresKHR);
-				cmd_buf.buildAccelerationStructuresKHR(
-					vk_structs.build_geometry_info,
-					&range_info,
-					dispatcher
-				);
-			}
-
-			REGIONED_COMMAND_EXECUTE_END
-		}
-	};
-
-	auto& cmd = addCmd<CmdCallback>(true);
-
-	auto vertex_range = std::get<0>(resolveRange(params.vertex_buffer.buffer, params.vertex_buffer.range));
-
-	addCmdResource(
-		params.vertex_buffer.buffer,
-		{
-			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-			vk::AccessFlagBits2::eShaderRead,
-		}
-	);
-
-	cgpu::Range<vk::DeviceSize> index_range;
-	if (params.index_buffer)
-	{
-		index_range = std::get<0>(resolveRange(params.index_buffer->buffer, params.index_buffer->range));
-
-		addCmdResource(
-			params.index_buffer->buffer,
-			{
-				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-				vk::AccessFlagBits2::eShaderRead,
-			}
-		);
-	}
-
-	cgpu::Range<vk::DeviceSize> scratch_range;
-	if (params.scratch_buffer)
-	{
-		scratch_range = std::get<0>(resolveRange(params.scratch_buffer->buffer, params.scratch_buffer->range));
-
-		addCmdResource(
-			params.scratch_buffer->buffer,
-			{
-				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-				vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
-			}
-		);
-	}
-
-	addCmdResource(
-		params.blas->getBuffer(),
-		{
-			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-			vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
-		}
-	);
-
-	BLAS::fillVkStructs(params.blas->getDesc().as_info, cmd.vk_structs);
-
-	cmd.vk_structs.geometry_info.geometry.triangles.vertexData.deviceAddress = params.vertex_buffer.buffer->getDevicePtr(vertex_range.offset);
-	cmd.vk_structs.geometry_info.geometry.triangles.indexData.deviceAddress = params.index_buffer ? params.index_buffer->buffer->getDevicePtr(index_range.offset) : 0;
-
-	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = params.blas->getHandle();
-	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? params.scratch_buffer->buffer->getDevicePtr(scratch_range.offset) : 0;
-
-	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
-	cmd.range_info.primitiveOffset = 0;
-	cmd.range_info.firstVertex = 0;
-	cmd.range_info.transformOffset = 0;
-
-	addReferencedObject(params.blas);
-}
-
-void cgpu::CommandRecorder::buildTLAS(TLASParams&& params)
-{
-	COMMAND_PARSE
-
-	struct CmdCallback final : CmdCallbackBase
-	{
-		TLAS::VkStructs vk_structs;
-		vk::AccelerationStructureBuildRangeInfoKHR range_info;
-
-		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
-		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(buildTLAS)
-
-			{
-				VULKAN_CALL(vkCmdBuildAccelerationStructuresKHR);
-				cmd_buf.buildAccelerationStructuresKHR(
-					vk_structs.build_geometry_info,
-					&range_info,
-					dispatcher
-				);
-			}
-
-			REGIONED_COMMAND_EXECUTE_END
-		}
-	};
-
-	auto& cmd = addCmd<CmdCallback>(true);
-
-	detail::BumpDenseUnorderedSet<BLASPtr> referenced_blases{detail::BumpAllocator{*m_bump_memory}};
-	cgpu::Range<vk::DeviceSize> instance_range;
-	if (params.instance_info)
-	{
-		instance_range = std::get<0>(resolveRange(params.instance_info->buffer.buffer, params.instance_info->buffer.range));
-
-		assert(instance_range.size == params.instance_info->data.size() * sizeof(vk::AccelerationStructureInstanceKHR));
-		assert((params.instance_info->buffer.buffer->getDevicePtr() + instance_range.offset) % 16 == 0);
-
-		auto* instance_ptr = params.instance_info->buffer.buffer->getHostPtr<vk::AccelerationStructureInstanceKHR>(instance_range.offset);
-		for (const auto& instance : params.instance_info->data)
-		{
-			std::memcpy(instance_ptr->transform.matrix.data()->data(), glm::value_ptr(glm::transpose(instance.local_to_world)), sizeof(glm::mat3x4));
-			instance_ptr->instanceCustomIndex = instance.custom_index;
-			instance_ptr->mask = instance.mask;
-			instance_ptr->instanceShaderBindingTableRecordOffset = instance.sbt_record_offset;
-			instance_ptr->flags = static_cast<VkGeometryInstanceFlagsKHR>(instance.flags);
-			instance_ptr->accelerationStructureReference = instance.blas->getDevicePtr();
-
-			instance_ptr++;
-
-			referenced_blases.insert(instance.blas);
-
-			addCmdResource(
-				instance.blas->getBuffer(),
-				{
-					vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-					vk::AccessFlagBits2::eAccelerationStructureReadKHR,
-				}
-			);
-		}
-
-		addCmdResource(
-			params.instance_info->buffer.buffer,
-			{
-				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-				vk::AccessFlagBits2::eShaderRead,
-			}
-		);
-	}
-
-	params.tlas->m_referenced_blases.assign_range(referenced_blases);
-
-	cgpu::Range<vk::DeviceSize> scratch_range;
-	if (params.scratch_buffer)
-	{
-		scratch_range = std::get<0>(resolveRange(params.scratch_buffer->buffer, params.scratch_buffer->range));
-
-		addCmdResource(
-			params.scratch_buffer->buffer,
-			{
-				vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-				vk::AccessFlagBits2::eAccelerationStructureReadKHR | vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
-			}
-		);
-	}
-
-	addCmdResource(
-		params.tlas->getBuffer(),
-		{
-			vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
-			vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
-		}
-	);
-
-	TLAS::fillVkStructs(params.tlas->getDesc().as_info, cmd.vk_structs);
-
-	cmd.vk_structs.geometry_info.geometry.instances.data.deviceAddress = params.instance_info ? params.instance_info->buffer.buffer->getDevicePtr(instance_range.offset) : 0;
-
-	cmd.vk_structs.build_geometry_info.dstAccelerationStructure = params.tlas->getHandle();
-	cmd.vk_structs.build_geometry_info.scratchData.deviceAddress = params.scratch_buffer ? params.scratch_buffer->buffer->getDevicePtr(scratch_range.offset) : 0;
-
-	cmd.range_info.primitiveCount = cmd.vk_structs.primitive_count;
-	cmd.range_info.primitiveOffset = 0;
-	cmd.range_info.firstVertex = 0;
-	cmd.range_info.transformOffset = 0;
-
-	if (params.instance_info)
-	{
-		for (const auto& instance : params.instance_info->data)
-		{
-			addReferencedObject(instance.blas);
-		}
-	}
-
-	addReferencedObject(params.tlas);
-}
-
-void cgpu::CommandRecorder::debugBarrier(DebugBarrierParams&& params)
-{
-	COMMAND_PARSE
-
-	struct CmdCallback final : CmdCallbackBase
-	{
-		vk::MemoryBarrier2 barrier;
-		vk::DependencyInfo info;
-
-		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
-		{
-			REGIONED_COMMAND_EXECUTE_BEGIN(debugBarrier)
-
-			{
-				VULKAN_CALL(vkCmdPipelineBarrier2);
-				cmd_buf.pipelineBarrier2(
-					info,
-					dispatcher
-				);
-			}
-
-			REGIONED_COMMAND_EXECUTE_END
-		}
-	};
-
-	auto& cmd = addCmd<CmdCallback>(false);
-
-	cmd.barrier.srcStageMask = params.src_stages;
-	cmd.barrier.srcAccessMask = params.src_accesses;
-	cmd.barrier.dstStageMask = params.dst_stages;
-	cmd.barrier.dstAccessMask = params.dst_accesses;
-
-	cmd.info.dependencyFlags = {};
-	cmd.info.memoryBarrierCount = 1;
-	cmd.info.pMemoryBarriers = &cmd.barrier;
-	cmd.info.bufferMemoryBarrierCount = 0;
-	// cmd.info.pBufferMemoryBarriers;
-	cmd.info.imageMemoryBarrierCount = 0;
-	// cmd.info.pImageMemoryBarriers;
-}
-
-void cgpu::CommandRecorder::resolve(ResolveParams&& params)
+void cgpu::GraphicsCommandRecorder::resolve(ResolveParams&& params)
 {
 	COMMAND_PARSE
 
@@ -2384,148 +2538,6 @@ void cgpu::CommandRecorder::resolve(ResolveParams&& params)
 }
 
 // NOLINTEND(*-rvalue-reference-param-not-moved)
-
-cgpu::CommandRecorder::CommandRecorder(
-	std::shared_ptr<CommandContext::Slot>&& slot,
-	detail::BumpMemoryResource& bump_memory,
-	const QueuePtr& queue
-):
-	m_slot{std::move(slot)},
-	m_dispatcher{&m_slot->getDeviceSession()->getDispatcher()},
-	m_bump_memory{&bump_memory},
-	m_queue{queue},
-	m_containers{bump_memory}
-{
-	ZoneScoped;
-
-	addReferencedObject(m_slot);
-}
-
-template<class T>
-requires(std::derived_from<T, cgpu::Resource>)
-void cgpu::CommandRecorder::addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point)
-{
-	assert(!m_containers->cmd_list.empty());
-
-	if (resource->isImmutable())
-	{
-		assert(!hasWriteAccesses(access_point.accesses) && "Cannot write to immutable resource.");
-
-		auto [resource_it, resource_inserted] = m_containers->referenced_objects.try_emplace(resource, false); // lifetime only
-		if (resource_inserted)
-		{
-			if (const auto& signal = resource->tryGetReadWriteSignal())
-			{
-				auto [wait_it, wait_inserted] = m_containers->immutable_waits.try_emplace(signal->semaphore, signal->value);
-				if (!wait_inserted)
-				{
-					wait_it->second = std::max(wait_it->second, signal->value);
-				}
-			}
-		}
-
-		return;
-	}
-
-	auto& curr_cmd = m_containers->cmd_list.back();
-	auto [cmd_it, cmd_inserted] = curr_cmd.referenced_resources.try_emplace(resource.get(), access_point);
-	if (cmd_inserted)
-	{
-		bool has_write_access = hasWriteAccesses(access_point.accesses);
-
-		auto [global_it, global_inserted] = m_containers->referenced_objects.try_emplace(resource, has_write_access);
-		if (global_inserted)
-		{
-			m_num_resources++;
-		}
-		else
-		{
-			bool& was_previously_written = global_it->second;
-			if (was_previously_written || has_write_access)
-			{
-				m_num_resource_barriers++;
-			}
-
-			was_previously_written |= has_write_access;
-		}
-	}
-	else
-	{
-		cmd_it->second |= access_point;
-	}
-}
-
-template void cgpu::CommandRecorder::addCmdResource<cgpu::Image>(const std::shared_ptr<cgpu::Image>& resource, AccessPoints access_point);
-template void cgpu::CommandRecorder::addCmdResource<cgpu::Buffer>(const std::shared_ptr<cgpu::Buffer>& resource, AccessPoints access_point);
-
-template<class TCallback, class... TArgs>
-requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
-TCallback& cgpu::CommandRecorder::addCmd(bool is_stageful, TArgs&&... args)
-{
-	Cmd& cmd = m_containers->cmd_list.emplace_back(*m_bump_memory);
-	cmd.callback = detail::makeBumpUnique<TCallback>(*m_bump_memory, std::forward<TArgs>(args)...);
-	cmd.is_stageful = is_stageful;
-
-	return static_cast<TCallback&>(*cmd.callback);
-}
-
-vk::DeviceAddress cgpu::CommandRecorder::writeParameters(
-	const void* data,
-	size_t size,
-	size_t alignment
-)
-{
-	auto param_mem = m_slot->allocParameterMemory(size, alignment);
-	std::memcpy(param_mem.cpu_ptr, data, size);
-
-	return param_mem.gpu_ptr;
-}
-
-void cgpu::CommandRecorder::beginDebugRegion(std::string_view name, glm::vec4 color)
-{
-	COMMAND_PARSE
-
-	struct CmdCallback final : CmdCallbackBase
-	{
-		std::string name;
-		vk::DebugUtilsLabelEXT info;
-
-		explicit CmdCallback(std::string_view name):
-			name{name}
-		{}
-
-		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
-		{
-			VULKAN_CALL(vkCmdBeginDebugUtilsLabelEXT);
-			cmd_buf.beginDebugUtilsLabelEXT(
-				info,
-				dispatcher
-			);
-		}
-	};
-
-	auto& cmd = addCmd<CmdCallback>(false, name);
-	cmd.info.pLabelName = cmd.name.c_str();
-	std::memcpy(cmd.info.color.data(), glm::value_ptr(color), sizeof(glm::vec4));
-}
-
-void cgpu::CommandRecorder::endDebugRegion()
-{
-	COMMAND_PARSE
-
-	struct CmdCallback final : CmdCallbackBase
-	{
-		void operator()([[maybe_unused]] const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) override
-		{
-			VULKAN_CALL(vkCmdEndDebugUtilsLabelEXT);
-			cmd_buf.endDebugUtilsLabelEXT(
-				dispatcher
-			);
-		}
-	};
-
-	addCmd<CmdCallback>(false);
-}
 
 cgpu::ScopedDebugRegion::ScopedDebugRegion(CommandRecorder& rec, std::string_view name, glm::vec4 color):
 	m_rec{&rec}

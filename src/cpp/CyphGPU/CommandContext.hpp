@@ -23,7 +23,10 @@ public:
 	CommandContext& operator=(const CommandContext&) = delete;
 	CommandContext& operator=(CommandContext&&) = delete;
 
-	CommandRecorder createRecorder(const QueuePtr& queue);
+	GraphicsCommandRecorder createGraphicsRecorder();
+	GraphicsCommandRecorder createAsyncGraphicsRecorder();
+	ComputeCommandRecorder createAsyncComputeRecorder();
+	TransferCommandRecorder createAsyncTransferRecorder();
 
 	/// Call this at the end of each frame/task/independent unit of work
 	void finish();
@@ -44,7 +47,8 @@ private:
 
 		~Slot();
 
-		CommandRecorder createRecorder(const QueuePtr& queue);
+		template<class TRecorder>
+		TRecorder createRecorder(const QueuePtr& queue);
 
 		[[nodiscard]]
 		const DeviceSessionPtr& getDeviceSession() const;
