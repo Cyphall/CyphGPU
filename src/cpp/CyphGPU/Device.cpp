@@ -146,6 +146,7 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 			vk::KHRExtendedFlagsExtensionName,
 			vk::KHRShaderMaximalReconvergenceExtensionName,
 			vk::KHRWorkgroupMemoryExplicitLayoutExtensionName,
+			vk::KHRShaderFmaExtensionName,
 			vk::KHRMaintenance7ExtensionName,
 			vk::KHRMaintenance8ExtensionName,
 			vk::KHRMaintenance9ExtensionName,
@@ -363,6 +364,13 @@ boost::optional<const cgpu::Device::CapabilityData&> cgpu::Device::getCapability
 				features.workgroupMemoryExplicitLayoutScalarBlockLayout = vk::True;
 				features.workgroupMemoryExplicitLayout8BitAccess = vk::True;
 				features.workgroupMemoryExplicitLayout16BitAccess = vk::True;
+			}
+
+			{
+				auto& features = chain.get<vk::PhysicalDeviceShaderFmaFeaturesKHR>();
+				// features.shaderFmaFloat16 = vk::True;
+				features.shaderFmaFloat32 = vk::True;
+				// features.shaderFmaFloat64 = vk::True;
 			}
 
 			{
