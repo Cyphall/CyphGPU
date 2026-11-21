@@ -276,6 +276,33 @@ const std::array<cgpu::CommandRecorder::CopyBufferToBufferParams::Range, 1> cgpu
 const std::array<cgpu::CommandRecorder::BlitParams::Range, 1> cgpu::CommandRecorder::BlitParams::DEFAULT_RANGE{};
 const std::array<cgpu::CommandRecorder::ResolveParams::Range, 1> cgpu::CommandRecorder::ResolveParams::DEFAULT_RANGE{};
 
+void cgpu::CommandRecorder::SubmitHandle::waitFinished() const
+{
+	std::ignore = waitSemaphore(std::numeric_limits<uint64_t>::max());
+}
+
+bool cgpu::CommandRecorder::SubmitHandle::isFinished() const
+{
+	return waitSemaphore(0) == vk::Result::eSuccess;
+}
+
+cgpu::CommandRecorder::SubmitHandle::SubmitHandle(const DeviceSessionPtr& device_session, Queue::Signal signal):
+	m_device_session{device_session},
+	m_signal{signal}
+{
+}
+
+vk::Result cgpu::CommandRecorder::SubmitHandle::waitSemaphore(uint64_t timeout) const
+{
+	vk::SemaphoreWaitInfo info;
+	info.flags = {};
+	info.semaphoreCount = 1;
+	info.pSemaphores = &m_signal.semaphore;
+	info.pValues = &m_signal.value;
+
+	return m_device_session->getHandle().waitSemaphores(info, timeout, m_device_session->getDispatcher());
+}
+
 cgpu::CommandRecorder::SubmitHandle cgpu::CommandRecorder::submit()
 {
 	ZoneScoped;
@@ -908,33 +935,6 @@ void cgpu::CommandRecorder::makeImmutableAfterSubmit(const ResourcePtr& resource
 	COMMAND_PARSE
 
 	m_containers->pending_immutable_resources.emplace_back(resource);
-}
-
-void cgpu::CommandRecorder::SubmitHandle::waitFinished() const
-{
-	std::ignore = waitSemaphore(std::numeric_limits<uint64_t>::max());
-}
-
-bool cgpu::CommandRecorder::SubmitHandle::isFinished() const
-{
-	return waitSemaphore(0) == vk::Result::eSuccess;
-}
-
-cgpu::CommandRecorder::SubmitHandle::SubmitHandle(const DeviceSessionPtr& device_session, Queue::Signal signal):
-	m_device_session{device_session},
-	m_signal{signal}
-{
-}
-
-vk::Result cgpu::CommandRecorder::SubmitHandle::waitSemaphore(uint64_t timeout) const
-{
-	vk::SemaphoreWaitInfo info;
-	info.flags = {};
-	info.semaphoreCount = 1;
-	info.pSemaphores = &m_signal.semaphore;
-	info.pValues = &m_signal.value;
-
-	return m_device_session->getHandle().waitSemaphores(info, timeout, m_device_session->getDispatcher());
 }
 
 // NOLINTBEGIN(*-rvalue-reference-param-not-moved)
