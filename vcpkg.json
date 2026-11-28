@@ -45,5 +45,11 @@
 				"imgui"
 			]
 		}
-	}
+	},
+	"overrides": [
+		{
+			"name": "kubazip",
+			"version": "0.3.15#1"
+		}
+	]
 }
