@@ -90,7 +90,7 @@ public:
 
 private:
 	friend class DeviceSession;
-	friend class ComputeCommandRecorder;
+	friend class CommandRecorder;
 
 	struct VkStructs
 	{

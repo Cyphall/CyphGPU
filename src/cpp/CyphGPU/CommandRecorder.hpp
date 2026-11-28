@@ -17,7 +17,7 @@ namespace cgpu
 {
 class ScopedDebugRegion;
 
-class CommandRecorder
+class CommandRecorder final
 {
 public:
 	class SubmitHandle
@@ -124,123 +124,6 @@ public:
 
 	void debugBarrier(DebugBarrierParams&& params);
 
-protected:
-	friend class ScopedDebugRegion;
-	friend class GraphicsPassContext;
-	friend class ComputePassContext;
-	friend class CommandContext::Slot;
-
-	struct AccessPoints
-	{
-		vk::PipelineStageFlags2 stages{};
-		vk::AccessFlags2 accesses{};
-
-		[[nodiscard]]
-		AccessPoints operator|(AccessPoints other) const
-		{
-			return {stages | other.stages, accesses | other.accesses};
-		}
-
-		AccessPoints& operator|=(AccessPoints other)
-		{
-			stages |= other.stages;
-			accesses |= other.accesses;
-			return *this;
-		}
-	};
-
-	struct CmdCallbackBase
-	{
-		virtual ~CmdCallbackBase() = default;
-
-		virtual void operator()(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
-	};
-
-	struct Cmd
-	{
-		detail::BumpUniquePtr<CmdCallbackBase> callback;
-
-		bool is_stageful{};
-
-		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
-
-		explicit Cmd(detail::BumpMemoryResource& bump_memory):
-			referenced_resources{detail::BumpAllocator{bump_memory}}
-		{}
-	};
-
-	struct Containers
-	{
-		// bool: true if it is a resource and it is written
-		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> referenced_objects;
-
-		detail::BumpList<Cmd> cmd_list;
-
-		detail::BumpFlatMap<vk::Semaphore, uint64_t> immutable_waits;
-
-		detail::BumpVector<ResourcePtr> pending_immutable_resources;
-
-		explicit Containers(detail::BumpMemoryResource& bump_memory):
-			referenced_objects{detail::BumpAllocator{bump_memory}},
-			cmd_list{detail::BumpAllocator{bump_memory}},
-			immutable_waits{detail::BumpAllocator{bump_memory}},
-			pending_immutable_resources{detail::BumpAllocator{bump_memory}}
-		{}
-	};
-
-	std::shared_ptr<CommandContext::Slot> m_slot;
-	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
-	detail::BumpMemoryResource* m_bump_memory;
-
-	QueuePtr m_queue;
-
-	uint32_t m_num_resources{0};
-	uint32_t m_num_resource_barriers{0};
-
-	std::optional<Containers> m_containers;
-
-#if !defined(NDEBUG)
-	bool m_submitted{false};
-#endif
-
-	explicit CommandRecorder(
-		std::shared_ptr<CommandContext::Slot>&& slot,
-		detail::BumpMemoryResource& bump_memory,
-		const QueuePtr& queue
-	);
-
-	template<class T>
-	requires(!std::derived_from<T, cgpu::Resource>)
-	void addReferencedObject(const std::shared_ptr<T>& object)
-	{
-		m_containers->referenced_objects.try_emplace(object, false);
-	}
-
-	template<class T>
-	requires(std::derived_from<T, cgpu::Resource>)
-	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
-
-	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier
-	template<class TCallback, class... TArgs>
-	requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
-	TCallback& addCmd(bool is_stageful, TArgs&&... args);
-
-	vk::DeviceAddress writeParameters(
-		const void* data,
-		size_t size,
-		size_t alignment
-	);
-
-	void beginDebugRegion(std::string_view name, glm::vec4 color);
-
-	void endDebugRegion();
-};
-
-class TransferCommandRecorder : public CommandRecorder
-{
-public:
-	// ----- Commands -----
-
 	struct CopyImageToImageParams
 	{
 		struct Range
@@ -328,15 +211,6 @@ public:
 	};
 
 	void copyBufferToBuffer(CopyBufferToBufferParams&& params);
-
-protected:
-	using CommandRecorder::CommandRecorder;
-};
-
-class ComputeCommandRecorder : public TransferCommandRecorder
-{
-public:
-	// ----- Commands -----
 
 	struct ClearColorImageParams
 	{
@@ -455,15 +329,6 @@ public:
 
 	/// Warning: builds and traces of the same TLAS must be submitted in the order they were recorded, and not recorded concurrently
 	void buildTLAS(TLASParams&& params);
-
-protected:
-	using TransferCommandRecorder::TransferCommandRecorder;
-};
-
-class GraphicsCommandRecorder : public ComputeCommandRecorder
-{
-public:
-	// ----- Commands -----
 
 	struct ClearDepthStencilImageParams
 	{
@@ -630,7 +495,115 @@ public:
 	void resolve(ResolveParams&& params);
 
 protected:
-	using ComputeCommandRecorder::ComputeCommandRecorder;
+	friend class ScopedDebugRegion;
+	friend class GraphicsPassContext;
+	friend class ComputePassContext;
+	friend class CommandContext::Slot;
+
+	struct AccessPoints
+	{
+		vk::PipelineStageFlags2 stages{};
+		vk::AccessFlags2 accesses{};
+
+		[[nodiscard]]
+		AccessPoints operator|(AccessPoints other) const
+		{
+			return {stages | other.stages, accesses | other.accesses};
+		}
+
+		AccessPoints& operator|=(AccessPoints other)
+		{
+			stages |= other.stages;
+			accesses |= other.accesses;
+			return *this;
+		}
+	};
+
+	struct CmdCallbackBase
+	{
+		virtual ~CmdCallbackBase() = default;
+
+		virtual void operator()(const QueuePtr& queue, vk::CommandBuffer cmd_buf, const vk::detail::DispatchLoaderDynamic& dispatcher) = 0;
+	};
+
+	struct Cmd
+	{
+		detail::BumpUniquePtr<CmdCallbackBase> callback;
+
+		bool is_stageful{};
+
+		detail::BumpDenseUnorderedMap<Resource*, AccessPoints> referenced_resources;
+
+		explicit Cmd(detail::BumpMemoryResource& bump_memory):
+			referenced_resources{detail::BumpAllocator{bump_memory}}
+		{}
+	};
+
+	struct Containers
+	{
+		// bool: true if it is a resource and it is written
+		detail::BumpSegmentedUnorderedMap<std::shared_ptr<void>, bool> referenced_objects;
+
+		detail::BumpList<Cmd> cmd_list;
+
+		detail::BumpFlatMap<vk::Semaphore, uint64_t> immutable_waits;
+
+		detail::BumpVector<ResourcePtr> pending_immutable_resources;
+
+		explicit Containers(detail::BumpMemoryResource& bump_memory):
+			referenced_objects{detail::BumpAllocator{bump_memory}},
+			cmd_list{detail::BumpAllocator{bump_memory}},
+			immutable_waits{detail::BumpAllocator{bump_memory}},
+			pending_immutable_resources{detail::BumpAllocator{bump_memory}}
+		{}
+	};
+
+	std::shared_ptr<CommandContext::Slot> m_slot;
+	const vk::detail::DispatchLoaderDynamic* m_dispatcher;
+	detail::BumpMemoryResource* m_bump_memory;
+
+	QueuePtr m_queue;
+
+	uint32_t m_num_resources{0};
+	uint32_t m_num_resource_barriers{0};
+
+	std::optional<Containers> m_containers;
+
+#if !defined(NDEBUG)
+	bool m_submitted{false};
+#endif
+
+	explicit CommandRecorder(
+		std::shared_ptr<CommandContext::Slot>&& slot,
+		detail::BumpMemoryResource& bump_memory,
+		const QueuePtr& queue
+	);
+
+	template<class T>
+	requires(!std::derived_from<T, cgpu::Resource>)
+	void addReferencedObject(const std::shared_ptr<T>& object)
+	{
+		m_containers->referenced_objects.try_emplace(object, false);
+	}
+
+	template<class T>
+	requires(std::derived_from<T, cgpu::Resource>)
+	void addCmdResource(const std::shared_ptr<T>& resource, AccessPoints access_point);
+
+	/// If is_stageful is false, the cmd will not be taken into account when deciding between event vs barrier
+	template<class TCallback, class... TArgs>
+	requires(std::derived_from<TCallback, cgpu::CommandRecorder::CmdCallbackBase>)
+	TCallback& addCmd(bool is_stageful, TArgs&&... args);
+
+	vk::DeviceAddress writeParameters(
+		const void* data,
+		size_t size,
+		size_t alignment
+	);
+
+	void beginDebugRegion(std::string_view name, glm::vec4 color);
+
+	void endDebugRegion();
 };
 
 class ScopedDebugRegion

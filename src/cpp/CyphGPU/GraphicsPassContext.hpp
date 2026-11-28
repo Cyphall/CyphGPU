@@ -195,7 +195,7 @@ public:
 	);
 
 private:
-	friend class GraphicsCommandRecorder;
+	friend class CommandRecorder;
 
 	std::optional<VertexInputStatePtr> m_current_vertex_input_state;
 	std::optional<PreRasterizationShaderStatePtr> m_current_pre_rasterization_shader_state;

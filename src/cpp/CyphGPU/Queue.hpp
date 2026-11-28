@@ -58,9 +58,6 @@ private:
 	friend class DeviceSession;
 	friend class Swapchain;
 	friend class CommandRecorder;
-	friend class TransferCommandRecorder;
-	friend class ComputeCommandRecorder;
-	friend class GraphicsCommandRecorder;
 
 	struct SubmitPayload
 	{

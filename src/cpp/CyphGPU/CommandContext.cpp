@@ -25,32 +25,11 @@ cgpu::CommandContext::CommandContext(const DeviceSessionPtr& device_session):
 	beginSlot();
 }
 
-cgpu::GraphicsCommandRecorder cgpu::CommandContext::createGraphicsRecorder()
+cgpu::CommandRecorder cgpu::CommandContext::createRecorder(const QueuePtr& queue)
 {
 	ZoneScoped;
 
-	return m_current_slot->createRecorder<GraphicsCommandRecorder>(m_device_session->getGraphicsQueue());
-}
-
-cgpu::GraphicsCommandRecorder cgpu::CommandContext::createAsyncGraphicsRecorder()
-{
-	ZoneScoped;
-
-	return m_current_slot->createRecorder<GraphicsCommandRecorder>(m_device_session->getAsyncGraphicsQueue());
-}
-
-cgpu::ComputeCommandRecorder cgpu::CommandContext::createAsyncComputeRecorder()
-{
-	ZoneScoped;
-
-	return m_current_slot->createRecorder<ComputeCommandRecorder>(m_device_session->getAsyncComputeQueue());
-}
-
-cgpu::TransferCommandRecorder cgpu::CommandContext::createAsyncTransferRecorder()
-{
-	ZoneScoped;
-
-	return m_current_slot->createRecorder<TransferCommandRecorder>(m_device_session->getAsyncTransferQueue());
+	return m_current_slot->createRecorder(queue);
 }
 
 void cgpu::CommandContext::finish()
@@ -93,8 +72,7 @@ cgpu::CommandContext::Slot::~Slot()
 	}
 }
 
-template<class TRecorder>
-TRecorder cgpu::CommandContext::Slot::createRecorder(const QueuePtr& queue)
+cgpu::CommandRecorder cgpu::CommandContext::Slot::createRecorder(const QueuePtr& queue)
 {
 	ZoneScoped;
 
@@ -105,7 +83,7 @@ TRecorder cgpu::CommandContext::Slot::createRecorder(const QueuePtr& queue)
 		m_high_cmd_recs_warning_emitted = true;
 	}
 
-	return TRecorder{shared_from_this(), m_bump_memory, queue};
+	return CommandRecorder{shared_from_this(), m_bump_memory, queue};
 }
 
 const cgpu::DeviceSessionPtr& cgpu::CommandContext::Slot::getDeviceSession() const

@@ -69,7 +69,7 @@ public:
 
 private:
 	friend class DeviceSession;
-	friend class ComputeCommandRecorder;
+	friend class CommandRecorder;
 	friend class GraphicsPassContext;
 	friend class ComputePassContext;
 

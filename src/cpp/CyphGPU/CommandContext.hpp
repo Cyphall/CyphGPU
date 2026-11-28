@@ -12,7 +12,7 @@
 
 namespace cgpu
 {
-class CommandContext
+class CommandContext final
 {
 public:
 	explicit CommandContext(const DeviceSessionPtr& device_session);
@@ -23,10 +23,7 @@ public:
 	CommandContext& operator=(const CommandContext&) = delete;
 	CommandContext& operator=(CommandContext&&) = delete;
 
-	GraphicsCommandRecorder createGraphicsRecorder();
-	GraphicsCommandRecorder createAsyncGraphicsRecorder();
-	ComputeCommandRecorder createAsyncComputeRecorder();
-	TransferCommandRecorder createAsyncTransferRecorder();
+	CommandRecorder createRecorder(const QueuePtr& queue);
 
 	/// Call this at the end of each frame/task/independent unit of work
 	void finish();
@@ -47,8 +44,7 @@ private:
 
 		~Slot();
 
-		template<class TRecorder>
-		TRecorder createRecorder(const QueuePtr& queue);
+		CommandRecorder createRecorder(const QueuePtr& queue);
 
 		[[nodiscard]]
 		const DeviceSessionPtr& getDeviceSession() const;
