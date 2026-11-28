@@ -1,7 +1,7 @@
 function(cgpu_target_shader_pipelines TARGET BUNDLE PREFIX)
 	cmake_parse_arguments(
 		ARG
-		""
+		"DISABLE_FP_OPT"
 		""
 		"FILES"
 		${ARGN}
@@ -20,6 +20,11 @@ function(cgpu_target_shader_pipelines TARGET BUNDLE PREFIX)
 	list(APPEND SLANGC_ARGS -fvk-use-entrypoint-name)
 	list(APPEND SLANGC_ARGS -matrix-layout-row-major)
 	list(APPEND SLANGC_ARGS -restrictive-capability-check)
+	if (ARG_DISABLE_FP_OPT)
+		list(APPEND SLANGC_ARGS -fp-mode precise)
+	else ()
+		list(APPEND SLANGC_ARGS -fp-mode fast)
+	endif ()
 	list(APPEND SLANGC_ARGS $<IF:$<CONFIG:Debug,RelWithDebInfo>,-g3,-g0>)
 	list(APPEND SLANGC_ARGS $<IF:$<CONFIG:RelWithDebInfo,Release>,-O3,-O0>)
 
