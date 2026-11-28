@@ -158,7 +158,7 @@ if (CYPHGPU_ENABLE_IMGUI_BACKEND)
 	)
 
 	include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils/shader.cmake")
-	cgpu_target_shader_pipelines(CyphGPU ImGui_shader "src/slang"
+	cgpu_target_shader_pipelines(CyphGPU ImGui_shader "src/slang" FILES
 		"src/slang/CyphGPU/ImGui.slang"
 	)
 
